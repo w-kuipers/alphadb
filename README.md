@@ -59,7 +59,8 @@ The database is now ready to be initialized. The `init` method will create the `
 
 Now we update the database. For this we need to give it a structure. The database version information is a JSON structure formatted as such:
     
-    database_version_information = {    
+    database_version_information = {
+        "name": "db-name",      ## Database name, does not have to, but is advised to match the actual database name
         "latest": "1.0.0",       ## Latest, most up to date, version of the database
         "version": [{        ## List with database versions
             "_id": "1.0.0",      ## Database version
