@@ -11,7 +11,7 @@ The `NoConnection` exception is thrown when no mysql connection class is specifi
 #### DBNotInitialized
 
 The `DBNotInitialized` exception is thrown when the database is not yet initialized.
-Database.init() ## Will initialize the database and thus resolve the error
+    Database.init() ## Will initialize the database and thus resolve the error
 
 #### DBTemplateNoMatch
 
