@@ -7,6 +7,9 @@
 
 A toolset for SQL database versioning. 
 
+## Still in alpha stage
+Yes, it's ironic. But this package is still in the alpha stage. The only tested functionality is to create tables and inserting default data. Modifying/deleting tables is the next thing on the agenda!
+
 <details>
   <summary>Table of Contents</summary>
   <ol>
