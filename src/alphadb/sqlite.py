@@ -32,7 +32,7 @@ class CursorWrapper(object):
         return
 
 
-class FlexDBSQLite(AlphaDB):
+class AlphaDBSQLite(AlphaDB):
     database_type = "sqlite"
 
     def __init__(self):
