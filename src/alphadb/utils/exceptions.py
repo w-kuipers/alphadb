@@ -13,10 +13,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from .globals import CONFIG_TABLE_NAME
+
 
 class NoConnection(Exception):
     def __init__(self):
         super().__init__("No database connection active.")
+
+
+class DBConfigIncomplete(Exception):
+    def __init__(self, missing: str):
+        super().__init__(f'There seems to be an issue with the database config. It is initialized, but does not return a valid {missing}. Please manually check the "{CONFIG_TABLE_NAME}" table in your database.')
 
 
 class NoDatabaseType(ValueError):

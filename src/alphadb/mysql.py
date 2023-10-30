@@ -12,10 +12,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+from typing import Callable
+
 from .utils.exceptions import MissingDependencies
 
 try:
     from mysql.connector import MySQLConnection
+    from mysql.connector.cursor import MySQLCursor
 except ModuleNotFoundError:
     raise MissingDependencies(class_name="AlphaDBMysql", dependency="mysql-connector-python==8.2.0")
 
@@ -25,6 +29,7 @@ from alphadb import AlphaDB
 class AlphaDBMysql(AlphaDB):
     database_type = "mysql"
     connection: MySQLConnection | None = None
+    cursor: Callable[..., MySQLCursor]
 
     def __init__(self):
         self.get_sql_escape_string()

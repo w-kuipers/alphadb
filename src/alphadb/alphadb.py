@@ -13,10 +13,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Callable
 
-#### Local imports
+from mysql.connector.cursor import MySQLCursor
+
 from .utils.decorators import conn_test, init_test
-from .utils.exceptions import DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseType
+from .utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseType
 from .utils.query.default_data import create_default_data
 from .utils.query.table import create_table
 from .utils.types import Database, SQLEscapeString
@@ -26,6 +28,7 @@ class AlphaDB:
     database_type: Database
     sql_escape_string: SQLEscapeString
     db_name: str
+    cursor: Callable[..., MySQLCursor]
 
     def __init__(self, engine: Database):
         # self.database_type = database_type
@@ -62,6 +65,7 @@ class AlphaDB:
             table_check = cursor.fetchall()
 
             #### If it exists, get current version
+            fetched = None
             if table_check:
                 cursor.execute(
                     f"SELECT version FROM adb_conf WHERE db = {self.sql_escape_string}",
@@ -115,6 +119,7 @@ class AlphaDB:
             table_check = cursor.fetchall()
 
             #### If it exists, get current version
+            fetched = None
             if table_check:
                 cursor.execute(
                     f"SELECT version, template FROM adb_conf WHERE db = {self.sql_escape_string}",
@@ -146,6 +151,7 @@ class AlphaDB:
                 raise IncompleteVersionData()
 
         #### Start update process
+        database_version = None
         with self.cursor() as cursor:
             try:
                 cursor.execute(
@@ -154,25 +160,35 @@ class AlphaDB:
                 )
                 db_data = cursor.fetchone()
 
-                #### Check if the database template matches
-                if not version_information["name"] == db_data[1]:
-                    #### If no template is defined, use the current one
-                    if db_data[1] == None:
-                        cursor.execute(
-                            f'UPDATE adb_conf SET template="{version_information["name"]}" WHERE `db` = {self.sql_escape_string}',
-                            (self.db_name,),
-                        )
-                    else:
-                        raise DBTemplateNoMatch()
-                database_version = db_data[0]  ## Get database version
+                if not db_data == None:
+                    #### Check if the database template matches
+                    if not version_information["name"] == db_data[1]:
+                        #### If no template is defined, use the current one
+                        if db_data[1] == None:
+                            cursor.execute(
+                                f'UPDATE adb_conf SET template="{version_information["name"]}" WHERE `db` = {self.sql_escape_string}',
+                                (self.db_name,),
+                            )
+                        else:
+                            raise DBTemplateNoMatch()
+                    database_version = db_data[0]  ## Get database version
             except Exception as e:
                 raise Exception(e)
+
+            #### If no database version is returned from the database, config might be broken
+            if database_version == None or database_version == "":
+                raise DBConfigIncomplete(missing="version")
 
             database_version_latest = version_information["latest"] if update_to_version == None else update_to_version
 
             ### Check if database needs to be updated
-            if not int(database_version_latest.replace(".", "")) > int(database_version.replace(".", "")):
-                return "up-to-date"
+            try:
+                if not int(database_version_latest.replace(".", "")) > int(database_version.replace(".", "")):
+                    return "up-to-date"
+
+            #### If db version number can not be formatted to int, it's invalid
+            except ValueError:
+                raise DBConfigIncomplete(missing="version")
 
             try:
                 #### Loop through update data
