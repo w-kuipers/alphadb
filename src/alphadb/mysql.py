@@ -27,7 +27,7 @@ from alphadb import AlphaDB
 
 
 class AlphaDBMySQL(AlphaDB):
-    database_type = "mysql"
+    engine = "mysql"
     connection: MySQLConnection | None = None
     cursor: Callable[..., MySQLCursor]
 

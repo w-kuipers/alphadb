@@ -26,7 +26,7 @@ class DBConfigIncomplete(Exception):
         super().__init__(f'There seems to be an issue with the database config. It is initialized, but does not return a valid {missing}. Please manually check the "{CONFIG_TABLE_NAME}" table in your database.')
 
 
-class NoDatabaseType(ValueError):
+class NoDatabaseEngineSpecified(ValueError):
     def __init__(self):
         super().__init__("No database type was specified.")
 

@@ -18,7 +18,7 @@ from typing import Callable
 from mysql.connector.cursor import MySQLCursor
 
 from .utils.decorators import conn_test, init_test
-from .utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseType
+from .utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseEngineSpecified
 from .utils.globals import CONFIG_TABLE_NAME
 from .utils.query.default_data import create_default_data
 from .utils.query.table import create_table
@@ -26,37 +26,35 @@ from .utils.types import Database, SQLEscapeString
 
 
 class AlphaDB:
-    database_type: Database
+    engine: Database
     sql_escape_string: SQLEscapeString
     db_name: str
     cursor: Callable[..., MySQLCursor]
 
     def __init__(self, engine: Database):
-        # self.database_type = database_type
-        print(engine)
-
+        self.engine = engine
         self.get_sql_escape_string()
 
         self.connection = None
 
     def get_sql_escape_string(self):
-        if self.database_type == "mysql":
+        if self.engine == "mysql":
             self.sql_escape_string = "%s"
-        if self.database_type == "sqlite":
+        if self.engine == "sqlite":
             self.sql_escape_string = "?"
 
     @conn_test
     def check(self):
         #### Database type is needed to know how to check for existing tables
-        if not hasattr(self, "database_type"):
-            raise NoDatabaseType()
+        if not hasattr(self, "engine"):
+            raise NoDatabaseEngineSpecified()
 
         with self.cursor() as cursor:
             current_version = None
 
             #### Check if the config table (adb_conf) exists
             #### SQLite does not have an information_schema, so we check for existing tables differently
-            if self.database_type == "sqlite":
+            if self.engine == "sqlite":
                 cursor.execute(
                     f"SELECT name FROM sqlite_master WHERE type='table' AND name={self.sql_escape_string};",
                     (CONFIG_TABLE_NAME,),
@@ -72,7 +70,7 @@ class AlphaDB:
             fetched = None
             if table_check:
                 cursor.execute(
-                    f"SELECT version FROM {CONFIG_TABLE_NAME} WHERE db = {self.sql_escape_string}",
+                    f"SELECT version FROM `{CONFIG_TABLE_NAME}` WHERE db = {self.sql_escape_string}",
                     (self.db_name,),
                 )
                 fetched = cursor.fetchone()
@@ -94,7 +92,7 @@ class AlphaDB:
             with self.cursor() as cursor:
                 #### Create configuration table
 
-                if self.database_type == "sqlite":
+                if self.engine == "sqlite":
                     cursor.execute(f"CREATE TABLE IF NOT EXISTS `{CONFIG_TABLE_NAME}` (`db` VARCHAR(100) NOT NULL, `version` VARCHAR(50) NOT NULL, `template` VARCHAR(50) NULL, PRIMARY KEY (`db`));")
                 else:
                     cursor.execute(f"CREATE TABLE IF NOT EXISTS `{CONFIG_TABLE_NAME}` (`db` VARCHAR(100) NOT NULL, `version` VARCHAR(50) NOT NULL, `template` VARCHAR(50) NULL, PRIMARY KEY (`db`)) ENGINE = InnoDB;")
@@ -118,10 +116,10 @@ class AlphaDB:
             #### Check if adb_conf (fmm config table) exists
 
             #### SQLite does not have an information_schema, so we check for existing tables differently
-            if self.database_type == "sqlite":
+            if self.engine == "sqlite":
                 cursor.execute(
                     f"SELECT name FROM sqlite_master WHERE type='table' AND name={self.sql_escape_string};",
-                    (CONFIG_TABLE_NAME),
+                    (CONFIG_TABLE_NAME,),
                 )
             else:
                 cursor.execute(
@@ -154,7 +152,7 @@ class AlphaDB:
 
     @conn_test
     @init_test
-    def update(self, version_information=None, update_to_version=None, no_data=False):
+    def update(self, version_information, update_to_version=None, no_data=False):
         #### Some error handling
         if version_information == None:
             raise MissingVersionData()
@@ -167,7 +165,7 @@ class AlphaDB:
         with self.cursor() as cursor:
             try:
                 cursor.execute(
-                    f"SELECT version, template FROM adb_conf WHERE `db` = {self.sql_escape_string}",
+                    f"SELECT version, template FROM `{CONFIG_TABLE_NAME}` WHERE `db` = {self.sql_escape_string}",
                     (self.db_name,),
                 )
                 db_data = cursor.fetchone()
@@ -178,7 +176,7 @@ class AlphaDB:
                         #### If no template is defined, use the current one
                         if db_data[1] == None:
                             cursor.execute(
-                                f'UPDATE adb_conf SET template="{version_information["name"]}" WHERE `db` = {self.sql_escape_string}',
+                                f'UPDATE `{CONFIG_TABLE_NAME}` SET template="{version_information["name"]}" WHERE `db` = {self.sql_escape_string}',
                                 (self.db_name,),
                             )
                         else:
@@ -217,8 +215,7 @@ class AlphaDB:
 
                     #### Create tables
                     for table in version["createtable"]:
-                        query = create_table(table_data=version["createtable"][table], table_name=table)
-                        print(query)
+                        query = create_table(table_data=version["createtable"][table], table_name=table, engine=self.engine)
                         cursor.execute(query)
 
                     #### Insert default data
@@ -234,7 +231,7 @@ class AlphaDB:
                 raise e
 
             cursor.execute(
-                f"UPDATE adb_conf SET version={self.sql_escape_string} WHERE `db` = {self.sql_escape_string}",
+                f"UPDATE `{CONFIG_TABLE_NAME}` SET version={self.sql_escape_string} WHERE `db` = {self.sql_escape_string}",
                 (database_version_latest, self.db_name),
             )
 
@@ -247,21 +244,20 @@ class AlphaDB:
 
         with self.cursor() as cursor:
             #### Disable foreign key checks in MySQL
-            if self.database_type == "mysql":
+            if self.engine == "mysql":
                 cursor.execute("SET foreign_key_checks = 0;")
 
-            if self.database_type == "sqlite":
+            if self.engine == "sqlite":
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
             else:
                 cursor.execute("show tables;")
             tables = cursor.fetchall()
 
-            print(tables)
             for t in tables:
                 cursor.execute(f"DROP TABLE {t[0]}")
 
             #### Enable foreign key checks in MySQL
-            if self.database_type == "mysql":
+            if self.engine == "mysql":
                 cursor.execute("SET foreign_key_checks = 1;")
 
         return True

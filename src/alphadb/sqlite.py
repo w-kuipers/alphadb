@@ -35,7 +35,7 @@ class CursorWrapper(Cursor):
 
 
 class AlphaDBSQLite(AlphaDB):
-    database_type = "sqlite"
+    engine = "sqlite"
     cursor: Callable[..., Cursor]
 
     def __init__(self):
@@ -48,4 +48,5 @@ class AlphaDBSQLite(AlphaDB):
         return self.check()["check"] == True
 
     def __del__(self):
+        self.connection.commit()
         self.connection.close()
