@@ -60,30 +60,45 @@ The database is now ready to be initialized. The `init` method will create the `
 Now we update the database. For this we need to give it a structure. The database version information is a JSON structure formatted as such:
    
     database_version_information = {
-        "name": "db-name",      ## Database name, does not have to, but is advised to match the actual database name
-        "latest": "1.0.0",       ## Latest, most up to date, version of the database
-        "version": [{        ## List with database versions
-            "_id": "1.0.0",      ## Database version
-            "createtable": {         ## Object containing tables to be created,
-                "customers": {       ## Object key will be used as table name
-                    "primary_key": "id",         ## Primary key for table. Required.
-                    "name": {       ## Object key will be used as column name
-                        "type": "VARCHAR",       ## Data type
-                        "length": 100,       ## Date max length,
-                        "unique": true,      ## If data has to be unique, defaults to false
-                        "null": true,        ## Wheter the data is allowed to be null, defaults to false,
-                        "a_i": true,         ## Auto incement. Defaults to false.
+        "name": "mydb", ## Database name, does not have to, but is advised to match the actual database name
+        "version": [ ## List containing database versions
+            { 
+                "_id": "0.1.0", ## Database version
+                "createtable": { ## Object containing tables to be created,
+                    "customers": { ## Object key will be used as table name
+                        "primary_key": "id",
+                        "name": { ## Object key will be used as column name
+                            "type": "VARCHAR", ## Data type
+                            "length": 100, ## Date max length,
+                        },
+                        "id": {
+                            "type": "INT",
+                            "a_i": True
+                        }
                     },
-                    "id": {
-                        "type": "INT",
-                        "a_i": true
+                }
+            },
+            {
+                "_id": "1.0.0",
+                "createtable": {
+                    "orders": {
+                        "primary_key": "id",
+                        "id": {
+                            "type": "INT",
+                            "a_i": True
+                        },
+                        "date": {
+                            "type": "DATETIME",
+                        },
+                        "note": {
+                            "type": "TEXT",
+                            "null": True
+                        }
                     }
-                },
+                }
             }
-        }]
+        ]
     }
-
-Note that the above example will fail to execute, SQL columns can not both have `AUTO_INCREMENT` AND `NULL` set.
 
 Then call the `update` method.
 

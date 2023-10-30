@@ -147,7 +147,7 @@ class AlphaDB:
         if version_information == None:
             raise MissingVersionData()
         else:
-            if not "latest" in version_information or not "version" in version_information or not "name" in version_information:
+            if not "version" in version_information or not "name" in version_information:
                 raise IncompleteVersionData()
 
         #### Start update process
@@ -179,7 +179,9 @@ class AlphaDB:
             if database_version == None or database_version == "":
                 raise DBConfigIncomplete(missing="version")
 
-            database_version_latest = version_information["latest"] if update_to_version == None else update_to_version
+            #### Get the latest database version
+            latest = max(version_information["version"], key=lambda x: int(x["_id"].replace(".", "")))["_id"]
+            database_version_latest = latest if update_to_version == None else update_to_version
 
             ### Check if database needs to be updated
             try:
