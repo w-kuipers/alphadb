@@ -21,7 +21,7 @@ from .utils.decorators import conn_test, init_test
 from .utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseEngineSpecified
 from .utils.globals import CONFIG_TABLE_NAME
 from .utils.query.default_data import create_default_data
-from .utils.query.table import create_table
+from .utils.query.table import alter_table, create_table
 from .utils.types import Database, SQLEscapeString
 
 
@@ -214,9 +214,16 @@ class AlphaDB:
                         continue
 
                     #### Create tables
-                    for table in version["createtable"]:
-                        query = create_table(table_data=version["createtable"][table], table_name=table, engine=self.engine)
-                        cursor.execute(query)
+                    if "createtable" in version:
+                        for table in version["createtable"]:
+                            query = create_table(table_data=version["createtable"][table], table_name=table, engine=self.engine)
+                            cursor.execute(query)
+
+                    #### Alter tables
+                    if "altertable" in version:
+                        for table in version["altertable"]:
+                            query = alter_table(table_data=version["altertable"][table], table_name=table, engine=self.engine)
+                            cursor.execute(query)
 
                     #### Insert default data
                     if no_data == False:

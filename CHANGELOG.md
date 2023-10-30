@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
- - Better error handling
+ - Better error handling.
+ - Altertable option to update method.
 
 ### Changed
  - Latest version does not have to be specified in the version information anymore. Will be looked up in the version list.
@@ -18,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Initialized
 
-- Initialized the project
+- Initialized the project.
 
 [unreleased]: https://github.com/w-kuipers/alphadb/compare/v2.0.0...HEAD
 [0.1.0-alpha.0]: https://github.com/w-kuipers/alphadb/releases/tag/v0.1.0-alpha0

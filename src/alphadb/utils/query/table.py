@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
 from ...utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionObject
 from ...utils.query.column import create_table_column
 from ...utils.types import Database
@@ -94,5 +95,24 @@ def create_table(table_data: dict, table_name: str, engine: Database = "mysql"):
         query += " );"
     else:
         query += " ) ENGINE = InnoDB;"
+
+    return query
+
+
+def alter_table(table_data: dict, table_name: str, engine: Database = "mysql"):
+    #### Define query base
+    query = f" ALTER TABLE `{table_name}`"
+
+    #### Drop column
+    if "dropcolumn" in table_data:
+        for column in table_data["dropcolumn"]:
+            query += f" DROP COLUMN `{column}`"
+            query += ","
+
+    #### Remove trailing comma
+    query = query[:-1]
+
+    #### Engine of query
+    query += ";"
 
     return query
