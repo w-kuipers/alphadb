@@ -50,14 +50,14 @@ class AlphaDB:
         with self.cursor() as cursor:
             current_version = None
 
-            #### Check if the config table (fdb_cfg) exists
+            #### Check if the config table (adb_conf) exists
 
             #### SQLite does not have an information_schema, so we check for existing tables differently
             if self.database_type == "sqlite":
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='fdb_cfg';")
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='adb_conf';")
             else:
                 cursor.execute(
-                    f'SELECT table_name FROM information_schema.tables WHERE table_schema = {self.sql_escape_string} AND table_name = "fdb_cfg"',
+                    f'SELECT table_name FROM information_schema.tables WHERE table_schema = {self.sql_escape_string} AND table_name = "adb_conf"',
                     (self.db_name,),
                 )
             table_check = cursor.fetchall()
@@ -65,7 +65,7 @@ class AlphaDB:
             #### If it exists, get current version
             if table_check:
                 cursor.execute(
-                    f"SELECT version FROM fdb_cfg WHERE db = {self.sql_escape_string}",
+                    f"SELECT version FROM adb_conf WHERE db = {self.sql_escape_string}",
                     (self.db_name,),
                 )
                 fetched = cursor.fetchone()
@@ -88,13 +88,13 @@ class AlphaDB:
                 #### Create configuration table
 
                 if self.database_type == "sqlite":
-                    cursor.execute(f"CREATE TABLE IF NOT EXISTS `fdb_cfg` (`db` VARCHAR(100) NOT NULL, `version` VARCHAR(50) NOT NULL, `template` VARCHAR(50) NULL, PRIMARY KEY (`db`));")
+                    cursor.execute(f"CREATE TABLE IF NOT EXISTS `adb_conf` (`db` VARCHAR(100) NOT NULL, `version` VARCHAR(50) NOT NULL, `template` VARCHAR(50) NULL, PRIMARY KEY (`db`));")
                 else:
-                    cursor.execute(f"CREATE TABLE IF NOT EXISTS `fdb_cfg` (`db` VARCHAR(100) NOT NULL, `version` VARCHAR(50) NOT NULL, `template` VARCHAR(50) NULL, PRIMARY KEY (`db`)) ENGINE = InnoDB;")
+                    cursor.execute(f"CREATE TABLE IF NOT EXISTS `adb_conf` (`db` VARCHAR(100) NOT NULL, `version` VARCHAR(50) NOT NULL, `template` VARCHAR(50) NULL, PRIMARY KEY (`db`)) ENGINE = InnoDB;")
 
                 #### Set the version to 0.0.0
                 cursor.execute(
-                    f"INSERT INTO fdb_cfg (`db`, `version`) values ({self.sql_escape_string}, {self.sql_escape_string})",
+                    f"INSERT INTO adb_conf (`db`, `version`) values ({self.sql_escape_string}, {self.sql_escape_string})",
                     (self.db_name, "0.0.0"),
                 )
         except Exception as e:
@@ -108,9 +108,9 @@ class AlphaDB:
         template = None
 
         with self.cursor() as cursor:
-            #### Check if fdb_cfg (fmm config table) exists
+            #### Check if adb_conf (fmm config table) exists
             cursor.execute(
-                f'SELECT * FROM information_schema.tables WHERE table_schema = {self.sql_escape_string} AND table_name = "fdb_cfg"',
+                f'SELECT * FROM information_schema.tables WHERE table_schema = {self.sql_escape_string} AND table_name = "adb_conf"',
                 (self.db_name,),
             )
             table_check = cursor.fetchall()
@@ -118,7 +118,7 @@ class AlphaDB:
             #### If it exists, get current version
             if table_check:
                 cursor.execute(
-                    f"SELECT version, template FROM fdb_cfg WHERE db = {self.sql_escape_string}",
+                    f"SELECT version, template FROM adb_conf WHERE db = {self.sql_escape_string}",
                     (self.db_name,),
                 )
                 fetched = cursor.fetchone()
@@ -150,7 +150,7 @@ class AlphaDB:
         with self.cursor() as cursor:
             try:
                 cursor.execute(
-                    f"SELECT version, template FROM fdb_cfg WHERE `db` = {self.sql_escape_string}",
+                    f"SELECT version, template FROM adb_conf WHERE `db` = {self.sql_escape_string}",
                     (self.db_name,),
                 )
                 db_data = cursor.fetchone()
@@ -160,7 +160,7 @@ class AlphaDB:
                     #### If no template is defined, use the current one
                     if db_data[1] == None:
                         cursor.execute(
-                            f'UPDATE fdb_cfg SET template="{version_information["name"]}" WHERE `db` = {self.sql_escape_string}',
+                            f'UPDATE adb_conf SET template="{version_information["name"]}" WHERE `db` = {self.sql_escape_string}',
                             (self.db_name,),
                         )
                     else:
@@ -204,7 +204,7 @@ class AlphaDB:
                 raise Exception(e)
 
             cursor.execute(
-                f"UPDATE fdb_cfg SET version={self.sql_escape_string} WHERE `db` = {self.sql_escape_string}",
+                f"UPDATE adb_conf SET version={self.sql_escape_string} WHERE `db` = {self.sql_escape_string}",
                 (database_version_latest, self.db_name),
             )
 

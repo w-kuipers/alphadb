@@ -53,7 +53,7 @@ Note that this function will erase ALL data in the database and there is no way 
     
     db.vacate(confirm=True)
 
-The database is now ready to be initialized. The `init` method will create the `fdb_cfg` table. This holds configuration data for the database.
+The database is now ready to be initialized. The `init` method will create the `adb_conf` table. This holds configuration data for the database.
     
     db.init()
 
@@ -104,7 +104,7 @@ The `DBNotInitialized` exception is thrown when the database is not yet initiali
 #### DBTemplateNoMatch
 
 The `DBTemplateNoMatch` exception is thrown when de database was previously updated using another version source.
-On initialization, a table `fdb_cfg` is created. In this table the column `template` is used to save the version source template name. Make sure it matches.
+On initialization, a table `adb_conf` is created. In this table the column `template` is used to save the version source template name. Make sure it matches.
 
 ## License
 
