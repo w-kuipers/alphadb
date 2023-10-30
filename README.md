@@ -20,7 +20,7 @@ Yes, it's ironic. But this package is still in the alpha stage. The only tested 
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
-    <li><a htef="#exceptions">Exceptions</a></li>
+    <li><a href="#exceptions">Exceptions</a></li>
     <li><a href="#license">License</a></li>
   </ol>
 </details>
