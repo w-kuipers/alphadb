@@ -26,7 +26,7 @@ except ModuleNotFoundError:
 from alphadb import AlphaDB
 
 
-class AlphaDBMysql(AlphaDB):
+class AlphaDBMySQL(AlphaDB):
     database_type = "mysql"
     connection: MySQLConnection | None = None
     cursor: Callable[..., MySQLCursor]

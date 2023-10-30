@@ -1,13 +1,13 @@
 import pytest
 
-from alphadb.mysql import AlphaDBMysql
+from alphadb.mysql import AlphaDBMySQL
 from alphadb.utils.decorators import conn_test
 from alphadb.utils.exceptions import NoConnection
 
 
 #### Test if a database is connected
 class TestDatabaseConnectionDecorator:
-    db = AlphaDBMysql()
+    db = AlphaDBMySQL()
 
     #### The function inside the decorator should not execute when no database connection exists. NoConnection exeption should be raised.
     def test_not_connected(self):

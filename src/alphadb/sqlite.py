@@ -15,14 +15,16 @@
 
 import os
 import sqlite3
+from sqlite3 import Cursor
+from typing import Callable
 
 from .alphadb import AlphaDB
 
 
 #### The sqlite cursor does not support the with statement out of the box
-class CursorWrapper(object):
+class CursorWrapper(Cursor):
     def __init__(self, cursor):
-        self.cursor = cursor
+        self.cursor: Callable[..., Cursor] = cursor
 
     def __enter__(self):
         self.cursor_active = self.cursor()
@@ -34,6 +36,7 @@ class CursorWrapper(object):
 
 class AlphaDBSQLite(AlphaDB):
     database_type = "sqlite"
+    cursor: Callable[..., Cursor]
 
     def __init__(self):
         self.get_sql_escape_string()
