@@ -1,12 +1,26 @@
 import pytest
 
-from src.alphadb.utils.exceptions import IncompleteVersionObject
+from src.alphadb.utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionObject
 from src.alphadb.utils.query.table import create_table
 
 
 def test_missing_column_type():
     with pytest.raises(IncompleteVersionObject):
-        test_data = {"col": {"length": 10}}
+        test_data = {
+            "col": {"length": 10},
+        }
+        create_table(table_data=test_data, table_name="test")
+
+
+def test_incompatible_column_attributes():
+    with pytest.raises(IncompatibleColumnAttributes):
+        test_data = {
+            "col": {
+                "type": "VARCHAR",
+                "null": True,
+                "a_i": True,
+            },
+        }
         create_table(table_data=test_data, table_name="test")
 
 

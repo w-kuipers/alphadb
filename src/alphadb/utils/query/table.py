@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ...utils.exceptions import IncompleteVersionObject
+from ...utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionObject
 from ...utils.query.column import create_table_column
 from ...utils.types import Database
 
@@ -38,6 +38,9 @@ def create_table(table_data: dict, table_name: str, engine: Database = "mysql"):
         qunique = table_data[column]["unique"] if "unique" in table_data[column] else False
         qdefault = table_data[column]["default"] if "default" in table_data[column] else None
         qautoincrement = table_data[column]["a_i"] if "a_i" in table_data[column] else False
+
+        if qnull == True and qautoincrement == True:
+            raise IncompatibleColumnAttributes("NULL", "AUTO_INCREMENT")
 
         #### Create query chunk
         query += create_table_column(

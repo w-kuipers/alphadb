@@ -68,3 +68,12 @@ class DBTemplateNoMatch(ValueError):
 class MissingDependencies(ModuleNotFoundError):
     def __init__(self, class_name: str, dependency: str) -> None:
         super().__init__(f'"{class_name}" requires "{dependency}" to be installed manually.')
+
+
+class IncompatibleColumnAttributes(ValueError):
+    def __init__(self, *args) -> None:
+        attr_list = []
+        for attr in args:
+            attr_list.append(f'"{attr}"')
+
+        super().__init__(f'Column attributes {", ".join(attr_list)} are not compatible.')

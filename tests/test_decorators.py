@@ -1,8 +1,8 @@
 import pytest
 
-from src.alphadb.mysql import AlphaDBMysql
-from src.alphadb.utils.decorators import conn_test
-from src.alphadb.utils.exceptions import NoConnection
+from alphadb.mysql import AlphaDBMysql
+from alphadb.utils.decorators import conn_test
+from alphadb.utils.exceptions import NoConnection
 
 
 #### Test if a database is connected

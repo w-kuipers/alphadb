@@ -51,7 +51,6 @@ class AlphaDB:
             current_version = None
 
             #### Check if the config table (adb_conf) exists
-
             #### SQLite does not have an information_schema, so we check for existing tables differently
             if self.database_type == "sqlite":
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='adb_conf';")
