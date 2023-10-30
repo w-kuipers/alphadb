@@ -58,7 +58,7 @@ The database is now ready to be initialized. The `init` method will create the `
     db.init()
 
 Now we update the database. For this we need to give it a structure. The database version information is a JSON structure formatted as such:
-    
+   
     database_version_information = {
         "name": "db-name",      ## Database name, does not have to, but is advised to match the actual database name
         "latest": "1.0.0",       ## Latest, most up to date, version of the database
@@ -82,6 +82,8 @@ Now we update the database. For this we need to give it a structure. The databas
             }
         }]
     }
+
+Note that the above example will fail to execute, SQL columns can not both have `AUTO_INCREMENT` AND `NULL` set.
 
 Then call the `update` method.
 
