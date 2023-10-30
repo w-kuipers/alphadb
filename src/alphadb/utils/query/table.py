@@ -39,6 +39,19 @@ def create_table(table_data: dict, table_name: str, engine: Database = "mysql"):
         qdefault = table_data[column]["default"] if "default" in table_data[column] else None
         qautoincrement = table_data[column]["a_i"] if "a_i" in table_data[column] else False
 
+        #### Check for column type compatibility with AUTO_INCREMENT
+        incompatible_types_with_autoincrement = ["varchar", "text", "longtext", "datetime", "decimal", "json"]
+        if table_data[column]["type"].lower() in incompatible_types_with_autoincrement and qautoincrement == True:
+            raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "AUTO_INCREMENT")
+
+        #### Check for column type compatibility with UNIQUE
+        incompatible_types_with_unique = [
+            "json",
+        ]
+        if table_data[column]["type"].lower() in incompatible_types_with_unique and qunique == True:
+            raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "UNIQUE")
+
+        #### Null will be ignored by the database engine when AUTO_INCREMENT is specified
         if qnull == True and qautoincrement == True:
             raise IncompatibleColumnAttributes("NULL", "AUTO_INCREMENT")
 
