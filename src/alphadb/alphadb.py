@@ -200,7 +200,7 @@ class AlphaDB:
             except KeyError as e:
                 raise e
             except Exception as e:
-                raise Exception(e)
+                raise e
 
             cursor.execute(
                 f"UPDATE adb_conf SET version={self.sql_escape_string} WHERE `db` = {self.sql_escape_string}",
