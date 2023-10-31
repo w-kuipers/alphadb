@@ -59,7 +59,7 @@ The database is now ready to be initialized. The `init` method will create the `
 
 Now we update the database. For this we need to give it a structure. The database version information is a JSON structure formatted as such:
    
-    database_version_information = {
+    database_version_source = {
         "name": "mydb", ## Database name, does not have to, but is advised to match the actual database name
         "version": [ ## List containing database versions
             { 
@@ -102,7 +102,7 @@ Now we update the database. For this we need to give it a structure. The databas
 
 Then call the `update` method.
 
-    db.update(database_version_information)
+    db.update(version_source=database_version_source)
 
 ## Exceptions
 
