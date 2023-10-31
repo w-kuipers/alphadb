@@ -5,9 +5,10 @@
 
 # AlphaDB
 
-A toolset for SQL database versioning. 
+A toolset for SQL database versioning.
 
 ## Still in alpha stage
+
 Yes, it's ironic. But this package is still in the alpha stage. The only tested functionality is to create tables and inserting default data. Modifying/deleting tables is the next thing on the agenda!
 
 <details>
@@ -27,6 +28,7 @@ Yes, it's ironic. But this package is still in the alpha stage. The only tested 
 </details>
 
 ## Documentation
+
 Visit the [official documentation](https://alphadb-docs.vercel.app/)
 
 ## Installation
@@ -38,6 +40,7 @@ Visit the [official documentation](https://alphadb-docs.vercel.app/)
 Note that `pip` refers to the Python 3 package manager. In an environment where Python 2 is also present the correct command may be `pip3`.
 
 ## Usage
+
 Import one of the prebuild AlphaDB classes (Here we will use Mysql).
 
     from alphadb import AlphaDBMysql
@@ -54,19 +57,19 @@ Connect to a database.
 
 Make sure the database is empty, back it up if necessary. If the database is not empty, you can use the `vacate` method.
 Note that this function will erase ALL data in the database and there is no way to get it back. For extra safety the argument `confirm=True` is required for the function to run.
-    
+
     db.vacate(confirm=True)
 
 The database is now ready to be initialized. The `init` method will create the `adb_conf` table. This holds configuration data for the database.
-    
+
     db.init()
 
 Now we update the database. For this we need to give it a structure. The database version information is a JSON structure formatted as such:
-   
+
     database_version_source = {
         "name": "mydb", ## Database name, does not have to, but is advised to match the actual database name
         "version": [ ## List containing database versions
-            { 
+            {
                 "_id": "0.1.0", ## Database version
                 "createtable": { ## Object containing tables to be created,
                     "customers": { ## Object key will be used as table name
@@ -112,7 +115,7 @@ Then call the `update` method.
 
 #### NoConnection
 
-The `NoConnection` exception is thrown when no mysql connection class is specified.
+The `NoConnection` exception is thrown when a method is called while no database connection is active.
 
 #### DBNotInitialized
 
