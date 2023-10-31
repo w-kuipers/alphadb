@@ -13,6 +13,7 @@ Yes, it's ironic. But this package is still in the alpha stage. The only tested 
 <details>
   <summary>Table of Contents</summary>
   <ol>
+    <li><a href="#documentation">Documentation</a></li>
     <li>
       <a href="#installation">Installation</a>
       <ul>
@@ -24,6 +25,9 @@ Yes, it's ironic. But this package is still in the alpha stage. The only tested 
     <li><a href="#license">License</a></li>
   </ol>
 </details>
+
+## Documentation
+Visit the [official documentation](https://alphadb-docs.vercel.app/)
 
 ## Installation
 
