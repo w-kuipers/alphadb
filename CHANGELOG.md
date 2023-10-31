@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Altertable option to update method.
 
 ### Changed
+ - **BREAKING**: `update` method parameter `version_information` changed to `version_source`.
  - Latest version does not have to be specified in the version information anymore. Will be looked up in the version list.
 
 ## [0.1.0-alpha.0] - 2023-10-30

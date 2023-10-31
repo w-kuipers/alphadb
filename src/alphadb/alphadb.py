@@ -152,12 +152,12 @@ class AlphaDB:
 
     @conn_test
     @init_test
-    def update(self, version_information, update_to_version=None, no_data=False):
+    def update(self, version_source, update_to_version=None, no_data=False):
         #### Some error handling
-        if version_information == None:
+        if version_source == None:
             raise MissingVersionData()
         else:
-            if not "version" in version_information or not "name" in version_information:
+            if not "version" in version_source or not "name" in version_source:
                 raise IncompleteVersionData()
 
         #### Start update process
@@ -172,11 +172,11 @@ class AlphaDB:
 
                 if not db_data == None:
                     #### Check if the database template matches
-                    if not version_information["name"] == db_data[1]:
+                    if not version_source["name"] == db_data[1]:
                         #### If no template is defined, use the current one
                         if db_data[1] == None:
                             cursor.execute(
-                                f'UPDATE `{CONFIG_TABLE_NAME}` SET template="{version_information["name"]}" WHERE `db` = {self.sql_escape_string}',
+                                f'UPDATE `{CONFIG_TABLE_NAME}` SET template="{version_source["name"]}" WHERE `db` = {self.sql_escape_string}',
                                 (self.db_name,),
                             )
                         else:
@@ -190,7 +190,7 @@ class AlphaDB:
                 raise DBConfigIncomplete(missing="version")
 
             #### Get the latest database version
-            latest = max(version_information["version"], key=lambda x: int(x["_id"].replace(".", "")))["_id"]
+            latest = max(version_source["version"], key=lambda x: int(x["_id"].replace(".", "")))["_id"]
             database_version_latest = latest if update_to_version == None else update_to_version
 
             ### Check if database needs to be updated
@@ -204,7 +204,7 @@ class AlphaDB:
 
             try:
                 #### Loop through update data
-                for version in version_information["version"]:
+                for version in version_source["version"]:
                     #### Check if version number is larger than current version
                     if int(version["_id"].replace(".", "")) <= int(database_version.replace(".", "")):
                         continue
