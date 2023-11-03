@@ -28,7 +28,7 @@ class TestSQLite:
         with open("../tests/assets/test-db-structure.json") as f:
             structure = json.loads(f.read())
 
-        assert db.update(version_information=structure) == True
+        assert db.update(version_source=structure) == True
 
     #### Vacate method
     def test_mysql_vacate(self):
