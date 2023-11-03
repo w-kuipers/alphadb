@@ -15,7 +15,6 @@
 
 from typing import Callable
 
-from mysql.connector.cursor import MySQLCursor
 
 from .utils.decorators import conn_test, init_test
 from .utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseEngineSpecified
@@ -29,7 +28,7 @@ class AlphaDB:
     engine: Database
     sql_escape_string: SQLEscapeString
     db_name: str
-    cursor: Callable[..., MySQLCursor]
+    cursor: Callable
 
     def __init__(self, engine: Database):
         self.engine = engine
