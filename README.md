@@ -121,9 +121,9 @@ The `NoConnection` exception is thrown when a method is called while no database
 #### DBNotInitialized
 
 The `DBNotInitialized` exception is thrown when the database is not yet initialized.
-
-    Database.init() ## Will initialize the database and thus resolve the error
-
+``` python
+Database.init() ## Will initialize the database and thus resolve the error
+```
 #### DBTemplateNoMatch
 
 The `DBTemplateNoMatch` exception is thrown when de database was previously updated using another version source.
