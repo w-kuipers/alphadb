@@ -42,75 +42,76 @@ Note that `pip` refers to the Python 3 package manager. In an environment where 
 ## Usage
 
 Import one of the prebuild AlphaDB classes (Here we will use Mysql).
-
-    from alphadb import AlphaDBMysql
-
+``` python
+from alphadb import AlphaDBMysql
+```
 Connect to a database.
-
-    db = AlphaDBMysql()
-    db.connect(
-        host="localhost",
-        user="user",
-        password="password",
-        database="database"
-    )
-
+``` python
+db = AlphaDBMysql()
+db.connect(
+    host="localhost",
+    user="user",
+    password="password",
+    database="database"
+)
+```
 Make sure the database is empty, back it up if necessary. If the database is not empty, you can use the `vacate` method.
 Note that this function will erase ALL data in the database and there is no way to get it back. For extra safety the argument `confirm=True` is required for the function to run.
-
-    db.vacate(confirm=True)
-
+``` python
+db.vacate(confirm=True)
+```
 The database is now ready to be initialized. The `init` method will create the `adb_conf` table. This holds configuration data for the database.
-
-    db.init()
-
+``` python
+db.init()
+```
 Now we update the database. For this we need to give it a structure. The database version information is a JSON structure formatted as such:
-
-    database_version_source = {
-        "name": "mydb", ## Database name, does not have to, but is advised to match the actual database name
-        "version": [ ## List containing database versions
-            {
-                "_id": "0.1.0", ## Database version
-                "createtable": { ## Object containing tables to be created,
-                    "customers": { ## Object key will be used as table name
-                        "primary_key": "id",
-                        "name": { ## Object key will be used as column name
-                            "type": "VARCHAR", ## Data type
-                            "length": 100, ## Date max length,
-                        },
-                        "id": {
-                            "type": "INT",
-                            "a_i": True
-                        }
+``` python
+database_version_source = {
+    "name": "mydb", ## Database name, does not have to, but is advised to match the actual database name
+    "version": [ ## List containing database versions
+        {
+            "_id": "0.1.0", ## Database version
+            "createtable": { ## Object containing tables to be created,
+                "customers": { ## Object key will be used as table name
+                    "primary_key": "id",
+                    "name": { ## Object key will be used as column name
+                        "type": "VARCHAR", ## Data type
+                        "length": 100, ## Date max length,
                     },
-                }
-            },
-            {
-                "_id": "1.0.0",
-                "createtable": {
-                    "orders": {
-                        "primary_key": "id",
-                        "id": {
-                            "type": "INT",
-                            "a_i": True
-                        },
-                        "date": {
-                            "type": "DATETIME",
-                        },
-                        "note": {
-                            "type": "TEXT",
-                            "null": True
-                        }
+                    "id": {
+                        "type": "INT",
+                        "a_i": True
+                    }
+                },
+            }
+        },
+        {
+            "_id": "1.0.0",
+            "createtable": {
+                "orders": {
+                    "primary_key": "id",
+                    "id": {
+                        "type": "INT",
+                        "a_i": True
+                    },
+                    "date": {
+                        "type": "DATETIME",
+                    },
+                    "note": {
+                        "type": "TEXT",
+                        "null": True
                     }
                 }
             }
-        ]
-    }
+        }
+    ]
+}
+```
 
 Then call the `update` method.
-
-    db.update(version_source=database_version_source)
-
+``` python
+db.update(version_source=database_version_source)
+```
 ## Exceptions
 
 #### NoConnection
