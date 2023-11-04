@@ -182,7 +182,7 @@ class AlphaDB:
                             raise DBTemplateNoMatch()
                     database_version = db_data[0]  ## Get database version
             except Exception as e:
-                raise Exception(e)
+                raise e
 
             #### If no database version is returned from the database, config might be broken
             if database_version == None or database_version == "":
