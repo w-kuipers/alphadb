@@ -43,7 +43,7 @@ class NoNetworkConnection(Exception):
 
 class MissingVersionData(ValueError):
     def __init__(self) -> None:
-        super().__init__("Version information data must be supplied for the update to run")
+        super().__init__("A version source must be supplied for the update to run")
 
 
 class IncompleteVersionData(ValueError):
