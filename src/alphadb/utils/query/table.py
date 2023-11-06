@@ -112,6 +112,12 @@ def alter_table(table_data: dict, table_name: str, engine: Database = "mysql"):
             query += f" RENAME COLUMN {column} TO {table_data['renamecolumn'][column]}"
             query += ","
 
+    #### Alter/drop primary key
+    if "primary_key" in table_data:
+        if table_data["primary_key"] == None:
+            query += " DROP PRIMARY KEY" ## ? Maybe also remove autoincrement
+            query += ","
+
     #### Remove trailing comma
     query = query[:-1]
 

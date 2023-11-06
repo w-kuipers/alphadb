@@ -77,6 +77,14 @@
           }
         }
       }
+    },
+    {
+      "_id": "0.2.2",
+      "altertable": {
+        "table2": {
+          "primary_key": null
+        }
+      }
     }
   ]
 }
