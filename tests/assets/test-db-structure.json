@@ -55,6 +55,18 @@
           }
         }
       }
+    },
+    {
+      "_id": "0.2.0",
+      "altertable": {
+        "table2": {
+          "modifycolumn": {
+            "col2": {
+              "type": "INT"
+            }
+          }
+        }
+      }
     }
   ]
 }

@@ -91,7 +91,19 @@ def alter_table(table_data: dict, table_name: str, engine: Database = "mysql"):
             
             #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
             if column_data == None: continue
+
             query += " ADD" + create_table_column(column_name=column, column_type=table_data["addcolumn"][column]["type"], length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
+            query += ","
+
+    #### Modify column
+    if "modifycolumn" in table_data:
+        for column in table_data["modifycolumn"]:
+            column_data = prepare_create_column_data(table_name, column, table_data["modifycolumn"])
+
+            #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
+            if column_data == None: continue
+
+            query += " MODIFY COLUMN" + create_table_column(column_name=column, column_type=table_data["modifycolumn"][column]["type"], length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
             query += ","
 
     #### Remove trailing comma
