@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Optional, get_args
-
+from alphadb.utils.exceptions import IncompleteVersionObject, IncompatibleColumnAttributes
 from ..types import Database, DatabaseColumnType
 
 
@@ -56,3 +56,44 @@ def create_table_column(
             query += " AUTO_INCREMENT"
 
     return query
+
+def prepare_create_column_data(table_name: str, column: str, table_data: dict):
+
+    #### If iteration is not of type Dict, it is not a column and should be handled later
+    if not isinstance(table_data[column], dict) or column == "foreign_key":  ## Foreign key IS an object, but has to be handled later
+        return None
+
+    #### A column type must be defined
+    if not "type" in table_data[column]:
+        raise IncompleteVersionObject(key="type", object=f"{table_name}->{column}")
+
+    #### Define query attributes
+    qlength = table_data[column]["length"] if "length" in table_data[column] else None
+    qnull = table_data[column]["null"] if "null" in table_data[column] else False
+    qunique = table_data[column]["unique"] if "unique" in table_data[column] else False
+    qdefault = table_data[column]["default"] if "default" in table_data[column] else None
+    qautoincrement = table_data[column]["a_i"] if "a_i" in table_data[column] else False
+
+    #### Check for column type compatibility with AUTO_INCREMENT
+    incompatible_types_with_autoincrement = ["varchar", "text", "longtext", "datetime", "decimal", "json"]
+    if table_data[column]["type"].lower() in incompatible_types_with_autoincrement and qautoincrement == True:
+        raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "AUTO_INCREMENT")
+
+    #### Check for column type compatibility with UNIQUE
+    incompatible_types_with_unique = [
+        "json",
+    ]
+    if table_data[column]["type"].lower() in incompatible_types_with_unique and qunique == True:
+        raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "UNIQUE")
+
+    #### Null will be ignored by the database engine when AUTO_INCREMENT is specified
+    if qnull == True and qautoincrement == True:
+        raise IncompatibleColumnAttributes("NULL", "AUTO_INCREMENT")
+
+    return {
+        "length": qlength,
+        "null": qnull,
+        "unique": qunique,
+        "default": qdefault,
+        "auto_increment": qautoincrement
+    }
