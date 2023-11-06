@@ -67,6 +67,16 @@
           }
         }
       }
+    },
+    {
+      "_id": "0.2.1",
+      "altertable": {
+        "table2": {
+          "renamecolumn": {
+            "col1": "wasoriginalycol1"
+          }
+        }
+      }
     }
   ]
 }

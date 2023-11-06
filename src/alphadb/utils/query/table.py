@@ -106,6 +106,12 @@ def alter_table(table_data: dict, table_name: str, engine: Database = "mysql"):
             query += " MODIFY COLUMN" + create_table_column(column_name=column, column_type=table_data["modifycolumn"][column]["type"], length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
             query += ","
 
+    #### Rename column
+    if "renamecolumn" in table_data:
+        for column in table_data["renamecolumn"]:
+            query += f" RENAME COLUMN {column} TO {table_data['renamecolumn'][column]}"
+            query += ","
+
     #### Remove trailing comma
     query = query[:-1]
 
