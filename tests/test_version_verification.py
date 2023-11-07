@@ -13,9 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from alphadb.utils.query.table import create_table
 from alphadb.version_verification import SourceVeficication
-import pytest
 
 #### SourceVeficication will first check for _id, then for name
 def test_no_version_number_and_name():
@@ -25,7 +23,7 @@ def test_no_version_number_and_name():
     }
 
     version_source_no_name = {
-        "version": {
+        "version": [{
             "create_table": {
                 "table1": {
                     "col1": {
@@ -34,7 +32,7 @@ def test_no_version_number_and_name():
                     }
                 }
             }
-        }
+        }]
     }
 
 
@@ -43,26 +41,31 @@ def test_no_version_number_and_name():
     assert verification_no_version.verify() == [("LOW", "This version source does not contain any versions")]
     
     verification_no_name = SourceVeficication(version_source_no_name)
-    assert verification_no_name.verify() == [("CRITICAL", "No rootlevel name was specified"), ("CRITICAL", "Version on index 0 is missing a version number")]
+    assert verification_no_name.verify() == [("CRITICAL", "No rootlevel name was specified"), ("CRITICAL", "Version index 0: Missing a version number")]
 
-def test_empty_createtable():
+def test_empty_createtable_altertable():
     
-    version_empty_createtable = {}
+    version_empty_createtable_altertable = {}
 
     verification_empty_createtable = SourceVeficication({})
-    verification_empty_createtable.createtable(version_empty_createtable)
+    verification_empty_createtable.createtable(version_empty_createtable_altertable)
+    verification_empty_createtable.altertable(version_empty_createtable_altertable)
 
-    assert verification_empty_createtable.issues == [("LOW", "Createtable method on version at index 0 does not contain any data")]
+    assert verification_empty_createtable.issues == [("LOW", "Unknown version -> createtable: Does not contain any data"), ("LOW", "Unknown version -> altertable: Does not contain any data")]
 
 def test_createtable_no_type():
     version_createtable_no_type = {
-        "length": 10
+        "test_table": {
+            "test_column": {
+                "length": 10
+            }
+        }
     }
 
     verification_createtable_no_type = SourceVeficication({})
     verification_createtable_no_type.createtable(version_createtable_no_type)
 
-    assert verification_createtable_no_type.issues == [("CRITICAL", "Createtable method on version at index 0 does not contain a column type")]
+    assert verification_createtable_no_type.issues == [("CRITICAL", "Unknown version -> createtable -> table:test_table -> column:test_column: Does not contain a column type")]
 
 
 def test_column_incompatibility():
@@ -73,9 +76,9 @@ def test_column_incompatibility():
     }
 
     verification_null_and_ai = SourceVeficication({})
-    verification_null_and_ai.column_compatibility(version_null_and_ai, "createtable", index=0)
+    verification_null_and_ai.column_compatibility("test_table", "test_column", version_null_and_ai, "createtable")
 
-    assert verification_null_and_ai.issues == [("CRITICAL", "Column attributes NULL and AUTO_INCREMENT are incompatible")]
+    assert verification_null_and_ai.issues == [("CRITICAL", "Unknown version -> createtable -> table:test_table -> column:test_column: Column attributes NULL and AUTO_INCREMENT are incompatible")]
     
     #### JSON is one of the column types incompatible with AUTO_INCREMENT
     type_json_and_ai = {
@@ -84,10 +87,9 @@ def test_column_incompatibility():
     }
 
     verification_json_and_ai = SourceVeficication({})
-    verification_json_and_ai.column_compatibility(type_json_and_ai, "createtable", index=0)
+    verification_json_and_ai.column_compatibility("test_table", "test_column", type_json_and_ai, "createtable")
 
-    assert verification_json_and_ai.issues == [("CRITICAL", "Createtable method on version at index 0 is of type 'JSON' which is incompatible with AUTO_INCREMENT")]
-
+    assert verification_json_and_ai.issues == [("CRITICAL", "Unknown version -> createtable -> table:test_table -> column:test_column: Column type JSON is incompatible with attribute AUTO_INCREMENT")]
     #### JSON is one of the column types incompatible with UNIQUE
     type_json_and_unique = {
         "type": "JSON",
@@ -95,7 +97,7 @@ def test_column_incompatibility():
     }
 
     verification_json_and_unique = SourceVeficication({})
-    verification_json_and_unique.column_compatibility(type_json_and_unique, "createtable", index=0)
+    verification_json_and_unique.column_compatibility("test_table", "test_column", type_json_and_unique, "createtable")
 
-    assert verification_json_and_unique.issues == [("CRITICAL", "Createtable method on version at index 0 is of type 'JSON' which is incompatible with UNIQUE")]
+    assert verification_json_and_unique.issues == [("CRITICAL", "Unknown version -> createtable -> table:test_table -> column:test_column: Column type JSON is incompatible with attribute UNIQUE")]
 

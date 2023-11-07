@@ -42,44 +42,54 @@ class SourceVeficication():
         else:
             for i, version in enumerate(self.version_source["version"]):
                 if not "_id" in version:
-                    self.issues.append(("CRITICAL", f"Version on index {i} is missing a version number"))
-
-                if "createtable" in version: self.createtable(version["createtable"], i)
+                    version_output = f"Version index {i}"
+                    self.issues.append(("CRITICAL", f"{version_output}: Missing a version number"))
+                else: version_output = f"Version {version['_id']}"
+                if "createtable" in version: self.createtable(version["createtable"], version_output)
 
         return self.issues if not len(self.issues) == 0 else True
 
-    def createtable(self, createtable: dict, index=0):
+    def createtable(self, createtable: dict, version_output: str = "Unknown version"):
         "Verify a single versions createtable"
 
         if len(createtable) == 0: 
-            self.issues.append(("LOW", f"Createtable method on version at index {index} does not contain any data"))
-        else: 
-            self.column_compatibility(createtable, method="createtable", index=index)
+            self.issues.append(("LOW", f"{version_output} -> createtable: Does not contain any data"))
+        else:
+            for table in createtable:
+                for column in createtable[table]:
 
-    def altertable(self, altertable: dict, index=0):
+                    #### Primary key
+                    if column == "primary_key":
+                        
+                        continue    
+
+                    
+                    self.column_compatibility(table, column, createtable[table][column], method="createtable", version_output=version_output)
+
+    def altertable(self, altertable: dict, version_output: str = "Unknown version"):
         "Verify a single versions altertable"
 
         if len(altertable) == 0:
-            self.issues.append(("LOW", f"Altertable method on version at index {index} does not contain any data"))
-        else:
-            if "modifycolumn" in altertable:
+            self.issues.append(("LOW", f"{version_output} -> altertable: Does not contain any data"))
+        # else:
+            # if "modifycolumn" in altertable:
             
             # self.column_compatibility(altertable, method="altertable", index=index)
 
-    def column_compatibility(self, data: dict, method: Method, index: int = 0):
+    def column_compatibility(self, table_name: str, column_name: str, data: dict, method: Method, version_output: str = "Unknown version"):
         "Verify column attribute compatibility"
 
         #### NULL and AUTO_INCREMENT
         if "null" in data and "a_i" in data:
-            self.issues.append(("CRITICAL", "Column attributes NULL and AUTO_INCREMENT are incompatible"))
+            self.issues.append(("CRITICAL", f"{version_output} -> {method} -> table:{table_name} -> column:{column_name}: Column attributes NULL and AUTO_INCREMENT are incompatible"))
 
         #### If type is defined
-        if not "type" in data: self.issues.append(("CRITICAL", f"{method.capitalize()} method on version at index {index} does not contain a column type"))
+        if not "type" in data: self.issues.append(("CRITICAL", f"{version_output} -> {method} -> table:{table_name} -> column:{column_name}: Does not contain a column type"))
         else:
             #### Types incompatible with AUTO_INCREMENT
             if data["type"].lower() in incompatible_types_with_autoincrement and "a_i" in data:
-                self.issues.append(("CRITICAL", f"{method.capitalize()} method on version at index {index} is of type '{data['type']}' which is incompatible with AUTO_INCREMENT"))
+                self.issues.append(("CRITICAL", f"{version_output} -> {method} -> table:{table_name} -> column:{column_name}: Column type {data['type']} is incompatible with attribute AUTO_INCREMENT"))
             
             #### Types incompatible with UNIQUE
             if data["type"].lower() in incompatible_types_with_unique and "unique" in data:
-                self.issues.append(("CRITICAL", f"{method.capitalize()} method on version at index {index} is of type '{data['type']}' which is incompatible with UNIQUE"))
+                self.issues.append(("CRITICAL", f"{version_output} -> {method} -> table:{table_name} -> column:{column_name}: Column type {data['type']} is incompatible with attribute UNIQUE"))
