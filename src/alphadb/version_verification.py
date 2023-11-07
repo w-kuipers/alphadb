@@ -14,7 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Literal
-from alphadb.utils.types import ValidationIssuesList
+from alphadb.utils.types import ValidationIssuesList, Method
+from alphadb.verification.compatibility import incompatible_types_with_autoincrement
 
 class SourceVeficication():
 
@@ -50,10 +51,22 @@ class SourceVeficication():
     def createtable(self, createtable: dict, index=0):
         "Verify a single versions createtable"
 
-        if not len(createtable.keys()) == 0: self.issues.append(("LOW", f"Createtable method on version at index {index} does not contain any data"))
-        else: self.column_compatibility(createtable)
+        if len(createtable) == 0: 
+            self.issues.append(("LOW", f"Createtable method on version at index {index} does not contain any data"))
+        else: 
+            self.column_compatibility(createtable, method="createtable", index=index)
 
-    def column_compatibility(self, data: dict):
-        return
+    def column_compatibility(self, data: dict, method: Method, index: int = 0):
+        "Verify column attribute compatibility"
 
+        #### NULL and AUTO_INCREMENT
+        if "null" in data and "a_i" in data:
+            self.issues.append(("CRITICAL", "Column attributes NULL and AUTO_INCREMENT are incompatible"))
+
+        #### If type is defined
+        if not "type" in data: self.issues.append(("CRITICAL", f"{method.capitalize()} method on version at index {index} does not contain a column type"))
+        else:
+            #### Types incompatible with AUTO_INCREMENT
+            if data["type"].lower() in incompatible_types_with_autoincrement and "a_i" in data:
+                self.issues.append(("CRITICAL", f"{method.capitalize()} method on version at index {index} is of type '{data['type']}' which is incompatible with AUTO_INCREMENT"))
 

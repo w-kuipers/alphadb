@@ -13,27 +13,5 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Literal, List, Tuple
-
-Database = Literal["mysql", "sqlite"]
-DatabaseColumnType = Literal[
-    "INT",
-    "FLOAT",
-    "DECIMAL",
-    "VARCHAR",
-    "TEXT",
-    "LONGTEXT",
-    "BIGINT",
-    "TINYINT",
-    "DATETIME",
-    "JSON",
-]
-
-SQLEscapeString = Literal["?", "%s"]
-
-Method = Literal["createtable"] | Literal["altertable"]
-Method.__doc__ = "Available version source methods"
-
-ValidationIssueLevel = Literal["LOW"] | Literal["NORMAL"] | Literal["CRITICAL"]
-ValidationIssuesList = List[Tuple[ValidationIssueLevel, str]]
-ValidationIssuesList.__doc__ = "An issue is structured like Tuple(level, issue)"
+incompatible_types_with_autoincrement = ["varchar", "text", "longtext", "datetime", "decimal", "json"]
+incompatible_types_with_unique = ["json"]

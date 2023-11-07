@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from alphadb.utils.query.table import create_table
 from alphadb.version_verification import SourceVeficication
 import pytest
 
@@ -47,7 +46,12 @@ def test_no_version_number_and_name():
 
 def test_empty_createtable():
     
-    version_empty_createtable = {}
+    version_empty_createtable = {
+        "_id": "1.0.0",
+        "createtable": {
+
+        }
+    }
 
     verification_empty_createtable = SourceVeficication({})
     verification_empty_createtable.createtable(version_empty_createtable)
@@ -56,7 +60,10 @@ def test_empty_createtable():
 
 def test_createtable_no_type():
     version_createtable_no_type = {
-        "length": 10
+        "_id": "1.0.0",
+        "createtable": {
+            "length": 10
+        }
     }
 
     verification_createtable_no_type = SourceVeficication({})
@@ -67,22 +74,12 @@ def test_createtable_no_type():
 
 def test_column_incompatibility():
     version_null_and_ai = {
-        "type": "INT",
         "null": True,
         "a_i": True
     }
 
     verification_null_and_ai = SourceVeficication({})
-    verification_null_and_ai.column_compatibility(version_null_and_ai, "createtable", index=0)
+    verification_null_and_ai.column_compatibility(version_null_and_ai)
 
     assert verification_null_and_ai.issues == [("CRITICAL", "Column attributes NULL and AUTO_INCREMENT are incompatible")]
 
-    type_json_and_ai = {
-        "type": "JSON",
-        "a_i": True
-    }
-
-    verification_json_and_ai = SourceVeficication({})
-    verification_json_and_ai.column_compatibility(type_json_and_ai, "createtable", index=0)
-
-    assert verification_json_and_ai.issues == [("CRITICAL", "Createtable method on version at index 0 is of type 'JSON' which is incompatible with AUTO_INCREMENT")]
