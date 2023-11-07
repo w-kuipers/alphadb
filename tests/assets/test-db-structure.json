@@ -1,26 +1,91 @@
 {
-	"name": "test",
-	"version": [
-		{
-			"_id": "0.0.1",
-			"createtable": {
-				"table1": {
-					"primary_key": "col1",
-					"col1": {
-						"type": "INT",
-						"a_i": true
-					},
-					"col2": {
-						"type": "VARCHAR",
-						"length": 100,
-						"unique": true
-					},
-					"col3": {
-						"type": "TEXT",
-						"null": true
-					}
-				}
-			}
-		}
-	]
-}
+  {
+    "name": "test",
+    "version": [
+      {
+        "_id": "0.0.1",
+        "createtable": {
+          "table1": {
+            "primary_key": "col1",
+            "col1": {
+              "type": "INT",
+              "a_i": true
+            },
+            "col2": {
+              "type": "VARCHAR",
+              "length": 100,
+              "unique": true
+            },
+            "col3": {
+              "type": "TEXT",
+              "null": true
+            }
+          }
+        }
+      },
+      {
+        "_id": "0.0.2",
+        "createtable": {
+          "table2": {
+            "primary_key": "col1",
+            "col1": {
+              "type": "INT",
+              "a_i": true
+            },
+            "col2": {
+              "type": "VARCHAR",
+              "length": 100,
+              "default": "default value"
+            }
+          }
+        }
+      },
+      {
+        "_id": "0.1.0",
+        "altertable": {
+          "table1": {
+            "dropcolumn": [
+              "col1",
+              "col3"
+            ],
+            "addcolumn": {
+              "col4": {
+                "type": "TEXT",
+                "length": 1000
+              }
+            }
+          }
+        }
+      },
+      {
+        "_id": "0.2.0",
+        "altertable": {
+          "table2": {
+            "modifycolumn": {
+              "col2": {
+                "type": "INT"
+              }
+            }
+          }
+        }
+      },
+      {
+        "_id": "0.2.1",
+        "altertable": {
+          "table2": {
+            "renamecolumn": {
+              "col1": "wasoriginalycol1"
+            }
+          }
+        }
+      },
+      {
+        "_id": "0.2.2",
+        "altertable": {
+          "table2": {
+            "primary_key": null
+          }
+        }
+      }
+    ]
+  }
