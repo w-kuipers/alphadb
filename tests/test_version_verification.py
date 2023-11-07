@@ -76,7 +76,8 @@ def test_column_incompatibility():
     verification_null_and_ai.column_compatibility(version_null_and_ai, "createtable", index=0)
 
     assert verification_null_and_ai.issues == [("CRITICAL", "Column attributes NULL and AUTO_INCREMENT are incompatible")]
-
+    
+    #### JSON is one of the column types incompatible with AUTO_INCREMENT
     type_json_and_ai = {
         "type": "JSON",
         "a_i": True
@@ -86,3 +87,15 @@ def test_column_incompatibility():
     verification_json_and_ai.column_compatibility(type_json_and_ai, "createtable", index=0)
 
     assert verification_json_and_ai.issues == [("CRITICAL", "Createtable method on version at index 0 is of type 'JSON' which is incompatible with AUTO_INCREMENT")]
+
+    #### JSON is one of the column types incompatible with UNIQUE
+    type_json_and_unique = {
+        "type": "JSON",
+        "unique": True
+    }
+
+    verification_json_and_unique = SourceVeficication({})
+    verification_json_and_unique.column_compatibility(type_json_and_unique, "createtable", index=0)
+
+    assert verification_json_and_unique.issues == [("CRITICAL", "Createtable method on version at index 0 is of type 'JSON' which is incompatible with UNIQUE")]
+

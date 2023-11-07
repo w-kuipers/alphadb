@@ -15,7 +15,7 @@
 
 from typing import Literal
 from alphadb.utils.types import ValidationIssuesList, Method
-from alphadb.verification.compatibility import incompatible_types_with_autoincrement
+from alphadb.verification.compatibility import incompatible_types_with_autoincrement, incompatible_types_with_unique
 
 class SourceVeficication():
 
@@ -38,7 +38,7 @@ class SourceVeficication():
         #### Version list
         if not "version" in self.version_source:
             self.issues.append(("LOW", "This version source does not contain any versions"))
-        
+    
         else:
             for i, version in enumerate(self.version_source["version"]):
                 if not "_id" in version:
@@ -56,6 +56,16 @@ class SourceVeficication():
         else: 
             self.column_compatibility(createtable, method="createtable", index=index)
 
+    def altertable(self, altertable: dict, index=0):
+        "Verify a single versions altertable"
+
+        if len(altertable) == 0:
+            self.issues.append(("LOW", f"Altertable method on version at index {index} does not contain any data"))
+        else:
+            if "modifycolumn" in altertable:
+            
+            # self.column_compatibility(altertable, method="altertable", index=index)
+
     def column_compatibility(self, data: dict, method: Method, index: int = 0):
         "Verify column attribute compatibility"
 
@@ -69,4 +79,7 @@ class SourceVeficication():
             #### Types incompatible with AUTO_INCREMENT
             if data["type"].lower() in incompatible_types_with_autoincrement and "a_i" in data:
                 self.issues.append(("CRITICAL", f"{method.capitalize()} method on version at index {index} is of type '{data['type']}' which is incompatible with AUTO_INCREMENT"))
-
+            
+            #### Types incompatible with UNIQUE
+            if data["type"].lower() in incompatible_types_with_unique and "unique" in data:
+                self.issues.append(("CRITICAL", f"{method.capitalize()} method on version at index {index} is of type '{data['type']}' which is incompatible with UNIQUE"))
