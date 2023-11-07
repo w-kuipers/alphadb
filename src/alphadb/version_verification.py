@@ -60,10 +60,12 @@ class SourceVerification():
 
                     #### Primary key
                     if column == "primary_key":
-                        
+                       
+                        if not createtable[table]["primary_key"] in createtable[table]:
+                            self.issues.append(("CRITICAL", f"{version_output} -> createtable -> table:{table}: Primary key does not match any column name"))
                         continue    
-
                     
+                    #### Columns
                     self.column_compatibility(table, column, createtable[table][column], method="createtable", version_output=version_output)
 
     def altertable(self, altertable: dict, version_output: str = "Unknown version"):

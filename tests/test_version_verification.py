@@ -81,6 +81,8 @@ def test_bad_primarykey():
     verification_bad_primarykey = SourceVerification({})
     verification_bad_primarykey.createtable(version_bad_primarykey)
 
+    assert verification_bad_primarykey.issues == [("CRITICAL", "Unknown version -> createtable -> table:test_table: Primary key does not match any column name")]
+
 def test_column_incompatibility():
     version_null_and_ai = {
         "type": "INT",
