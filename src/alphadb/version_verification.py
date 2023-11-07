@@ -17,7 +17,7 @@ from typing import Literal
 from alphadb.utils.types import ValidationIssuesList, Method
 from alphadb.verification.compatibility import incompatible_types_with_autoincrement, incompatible_types_with_unique
 
-class SourceVerification():
+class VersionSourceVerification():
 
     def __init__(self, version_source):
         self.version_source = version_source
