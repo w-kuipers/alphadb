@@ -17,3 +17,4 @@
 from .alphadb import AlphaDB
 from .mysql import AlphaDBMySQL
 from .sqlite import AlphaDBSQLite
+from .version_verification import VersionSourceVerification
