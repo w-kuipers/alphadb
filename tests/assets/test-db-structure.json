@@ -62,7 +62,9 @@
         "table2": {
           "modifycolumn": {
             "col2": {
-              "type": "INT"
+              "type": "INT",
+              "unique": true,
+              "null": true
             }
           }
         }
