@@ -73,10 +73,16 @@ class VersionSourceVerification():
 
         if len(altertable) == 0:
             self.issues.append(("LOW", f"{version_output} -> altertable: Does not contain any data"))
-        # else:
-            # if "modifycolumn" in altertable:
-            
-            # self.column_compatibility(altertable, method="altertable", index=index)
+        else:
+
+
+            ############################# UNABLE TO TEST, This logic is not yet merged into this branch
+            for table in altertable:
+
+                #### Modify column
+                if "modifycolumn" in table:
+                    for column in altertable[table]["modifycolumn"]:
+                        self.column_compatibility(table, column, altertable[table]["modifycolumn"][column], method="altertable", version_output=version_output)
 
     def column_compatibility(self, table_name: str, column_name: str, data: dict, method: Method, version_output: str = "Unknown version"):
         "Verify column attribute compatibility"

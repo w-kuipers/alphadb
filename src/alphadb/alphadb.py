@@ -216,12 +216,14 @@ class AlphaDB:
                     if "createtable" in version:
                         for table in version["createtable"]:
                             query = create_table(table_data=version["createtable"][table], table_name=table, engine=self.engine)
+                            print(query)
                             cursor.execute(query)
 
                     #### Alter tables
                     if "altertable" in version:
                         for table in version["altertable"]:
                             query = alter_table(table_data=version["altertable"][table], table_name=table, engine=self.engine)
+                            print(query)
                             cursor.execute(query)
 
                     #### Insert default data
