@@ -1,4 +1,4 @@
-![AlphaDB](https://github.com/w-kuipers/alphadb/blob/main/ALPHADB_Github-Social-Preview.png?raw=true)
+![AlphaDB](https://github.com/w-kuipers/alphadb/blob/main/assets/ALPHADB_Github-Social-Preview.png?raw=true)
 
 [![GitHub releases](https://img.shields.io/github/v/release/w-kuipers/alphadb)](https://github.com/w-kuipers/alphadb/releases)
 [![PyPI release](https://img.shields.io/pypi/v/alphadb.svg)](https://pypi.org/project/alphadb/)
