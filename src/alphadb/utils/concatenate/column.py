@@ -25,9 +25,32 @@ def concatenate_column(version_list: list, table_name: str, column_name: str):
 
         if "altertable" in version:
             if table_name in version["altertable"]:
+
+                #### Modify column
                 if "modifycolumn" in version["altertable"][table_name]:
                     if column_name in version["altertable"][table_name]["modifycolumn"]:
                         for attr in version["altertable"][table_name]["modifycolumn"][column_name]:
+                            if attr == "recreate": continue ## Recreate is not an attribute but an instruction for the updater
                             column[attr] = version["altertable"][table_name]["modifycolumn"][column_name][attr]
 
+                #### Drop column
+                if "dropcolumn" in version["altertable"][table_name]:
+                    if column_name in version["altertable"][table_name]["dropcolumn"]:
+                        column = {}
+
+                #### Add column
+                if "addcolumn" in version["altertable"][table_name]:
+                    if column_name in version["altertable"][table_name]["addcolumn"]:
+                        for attr in version["altertable"][table_name]["addcolumn"][column_name]:
+                            column[attr] = version["altertable"][table_name]["addcolumn"][column_name][attr]
+
+                #### Rename column
+                if "renamecolumn" in version["altertable"][table_name]:
+                    if column_name in version["altertable"][table_name]["renamecolumn"]:
+                        renamed_column = concatenate_column(version_list, table_name, version["altertable"][table_name]["renamecolumn"][column_name]) 
+                        for attr in renamed_column:
+                            column[attr] = renamed_column[attr]
+
+                        #### The column has been renamed, so no need to continue this loop
+                        continue
     return column
