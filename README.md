@@ -1,3 +1,5 @@
+![AlphaDB](https://github.com/w-kuipers/alphadb/blob/main/ALPHADB_Github-Social-Preview.png?raw=true)
+
 [![GitHub releases](https://img.shields.io/github/v/release/w-kuipers/alphadb)](https://github.com/w-kuipers/alphadb/releases)
 [![PyPI release](https://img.shields.io/pypi/v/alphadb.svg)](https://pypi.org/project/alphadb/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
