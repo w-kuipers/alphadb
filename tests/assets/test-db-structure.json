@@ -84,6 +84,11 @@
       "_id": "0.2.2",
       "altertable": {
         "table2": {
+          "modifycolumn": {
+            "col2": {
+              "length": 2
+            }
+          },
           "primary_key": null
         }
       }
