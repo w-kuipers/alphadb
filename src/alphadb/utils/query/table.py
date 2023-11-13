@@ -117,7 +117,8 @@ def alter_table(table_data: dict, table_name: str, engine: Database = "mysql"):
         if table_data["primary_key"] == None:
             query += " DROP PRIMARY KEY" ## Fails when AI, AI column must be key
             query += ","
-
+        
+        #### Change the primary key
         if table_data["primary_key"] in table_data:
             ...
 

@@ -97,3 +97,4 @@ def prepare_create_column_data(table_name: str, column: str, table_data: dict):
         "default": qdefault,
         "auto_increment": qautoincrement
     }
+
