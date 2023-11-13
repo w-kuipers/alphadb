@@ -118,6 +118,9 @@ def alter_table(table_data: dict, table_name: str, engine: Database = "mysql"):
             query += " DROP PRIMARY KEY" ## Fails when AI, AI column must be key
             query += ","
 
+        if table_data["primary_key"] in table_data:
+            ...
+
     #### Remove trailing comma
     query = query[:-1]
 
