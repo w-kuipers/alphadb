@@ -84,6 +84,10 @@ class VersionSourceVerification():
                     for column in altertable[table]["modifycolumn"]:
                         self.column_compatibility(table, column, altertable[table]["modifycolumn"][column], method="altertable", version_output=version_output)
 
+                #### Primary key
+                # if "primary_key" in table:
+                #     if 
+
     def column_compatibility(self, table_name: str, column_name: str, data: dict, method: Method, version_output: str = "Unknown version"):
         "Verify column attribute compatibility"
 
