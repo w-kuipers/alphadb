@@ -18,14 +18,13 @@ from alphadb.utils.common import convert_version_number
 def concatenate_column(version_list: list, table_name: str, column_name: str):
     column = {}
     rename_data = []
-    
+
     #### Function to check if the column has been renamed
-    def get_renames(column_name: str):
+    def get_renames(rename_column_name: str):
         for version in reversed(version_list): ## Descending because we can't know previous column names
 
             if "altertable" in version:
                 if table_name in version["altertable"]:
-
                     v = convert_version_number(version["_id"])
 
                     #### Skip versions that are already processed
@@ -33,9 +32,16 @@ def concatenate_column(version_list: list, table_name: str, column_name: str):
                         continue
 
                     if "renamecolumn" in version["altertable"][table_name]:
-                        
                         #### Get old name, and version in which the column has been renamed
-                        old_name = list(version["altertable"][table_name]["renamecolumn"].keys())[list(version["altertable"][table_name]["renamecolumn"].values()).index(column_name)]
+                        
+                        renamecolumn_values = list(version["altertable"][table_name]["renamecolumn"].values())
+                        
+                        #### If the current column is not the one being renamed, continue
+                        if not rename_column_name in renamecolumn_values:
+                            continue
+
+                        renamecolumn_keys = list(version["altertable"][table_name]["renamecolumn"].keys())
+                        old_name = renamecolumn_keys[renamecolumn_values.index(rename_column_name)]
                         rename_data.append({
                             "old_name": old_name,
                             "rename_version": v
@@ -43,7 +49,7 @@ def concatenate_column(version_list: list, table_name: str, column_name: str):
 
                         #### Now recursively call it again with the new column column_name
                         get_renames(old_name)
-                        continue ## Break the loop as the current column name does not exist
+                        break ## Break the loop as the current column name does not exist
 
     #### Recursively check for column renames
     get_renames(column_name)
@@ -62,7 +68,6 @@ def concatenate_column(version_list: list, table_name: str, column_name: str):
                 break ## If the name has been found, break out of the loop
             else: version_column_name = column_name
         
-
         #### Create table
         if "createtable" in version:
             if table_name in version["createtable"]:
@@ -83,7 +88,6 @@ def concatenate_column(version_list: list, table_name: str, column_name: str):
 
                         recreate = True if not "recreate" in this_mod or this_mod["recreate"] == True else False
                         if recreate: column = {}
-
                         for attr in version["altertable"][table_name]["modifycolumn"][version_column_name]:
                             if attr == "recreate": continue ## Recreate is not an attribute but an instruction for the updater
                             column[attr] = version["altertable"][table_name]["modifycolumn"][version_column_name][attr]

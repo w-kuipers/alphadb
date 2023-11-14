@@ -51,6 +51,10 @@
             "col4": {
               "type": "TEXT",
               "length": 1000
+            },
+            "col5": {
+              "type": "JSON",
+              "null": true
             }
           }
         }
@@ -65,6 +69,11 @@
               "type": "INT",
               "unique": true,
               "null": true
+            },
+            "col1": {
+              "type": "INT",
+              "a_i": true,
+              "length": 11
             }
           }
         }
@@ -86,6 +95,7 @@
         "table2": {
           "modifycolumn": {
             "col2": {
+              "recreate": false,
               "length": 2
             }
           },

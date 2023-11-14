@@ -1,5 +1,6 @@
 from src.alphadb.utils.concatenate.column import concatenate_column
 
+#### Make sure recreate key is removed from the result
 def test_concatenate_remove_recreate():
     versions = [
         {
@@ -36,6 +37,65 @@ def test_concatenate_remove_recreate():
 
     assert concatenate_column(versions, table_name="table", column_name="col") == result
 
+def test_concatenate():
+    versions = [
+        {
+            "_id": "0.0.1",
+            "createtable": {
+                "table": {
+                    "col": {
+                        "type": "VARCHAR",
+                        "length": 200
+                    },
+                    "col2": {
+                        "type": "TEXT",
+                        "length": 9000
+                    }
+                }
+            }
+        },
+        {
+            "_id": "0.0.2",
+            "altertable": {
+                "table": {
+                    "modifycolumn": {
+                        "col": {
+                            "recreate": False,
+                            "unique": True
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "_id": "0.0.5",
+            "altertable": {
+                "table": {
+                    "modifycolumn": {
+                        "col": {
+                            "recreate": False,
+                            "null": True,
+                            "length": 240
+                        },
+                        "col2": {
+                            "type": "TEXT",
+                            "length": 200
+                        }
+                    }
+                }
+            }
+        }
+    ]
+
+    result = {
+        "type": "VARCHAR",
+        "length": 240,
+        "unique": True,
+        "null": True
+    }
+
+    assert concatenate_column(versions, table_name="table", column_name="col") == result
+
 def test_rename_single_column():
     versions = [
         {
@@ -44,6 +104,10 @@ def test_rename_single_column():
                 "table": {
                     "col": {
                         "type": "VARCHAR",
+                        "length": 200
+                    },
+                    "col2": {
+                        "type": "TEXT",
                         "length": 200
                     }
                 }
@@ -80,6 +144,10 @@ def test_rename_single_column():
                         "renamed": {
                             "recreate": False,
                             "null": True
+                        },
+                        "col2": {
+                            "type": "TEXT",
+                            "length": 935
                         }
                     }
                 }
@@ -94,6 +162,14 @@ def test_rename_single_column():
     }
 
     assert concatenate_column(versions, table_name="table", column_name="renamed") == result
+
+    #### Don't break on column that has not been renamed
+    result_col2 = {
+        "type": "TEXT",
+        "length": 935
+    }
+
+    assert concatenate_column(versions, table_name="table", column_name="col2") == result_col2
 
 def test_rename_multiply_columns():
     versions = [

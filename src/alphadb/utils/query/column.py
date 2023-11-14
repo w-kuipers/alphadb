@@ -15,7 +15,7 @@
 
 from typing import Optional, get_args
 from alphadb.utils.exceptions import IncompleteVersionObject, IncompatibleColumnAttributes
-from ..types import Database, DatabaseColumnType
+from alphadb.utils.types import Database, DatabaseColumnType
 
 
 def create_table_column(
@@ -57,15 +57,14 @@ def create_table_column(
 
     return query
 
-def prepare_create_column_data(table_name: str, column: str, table_data: dict):
-
+def prepare_create_column_data(table_name: str, column: str, table_data: dict, version: str):
     #### If iteration is not of type Dict, it is not a column and should be handled later
     if not isinstance(table_data[column], dict) or column == "foreign_key":  ## Foreign key IS an object, but has to be handled later
         return None
 
     #### A column type must be defined
     if not "type" in table_data[column]:
-        raise IncompleteVersionObject(key="type", object=f"{table_name}->{column}")
+        raise IncompleteVersionObject(key="type", object=f"Version {version}->{table_name}->{column}")
 
     #### Define query attributes
     qlength = table_data[column]["length"] if "length" in table_data[column] else None

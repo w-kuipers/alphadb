@@ -17,16 +17,20 @@
 from ...utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionObject
 from ...utils.query.column import create_table_column, prepare_create_column_data
 from ...utils.types import Database
+from ...utils.concatenate.column import concatenate_column
 
 
-def create_table(table_data: dict, table_name: str, engine: Database = "mysql"):
+def create_table(version_source: dict, table_name: str, version: str, engine: Database = "mysql"):
     #### Define query base
     query = f" CREATE TABLE `{table_name}` ("
+    
+    #### Get the data for the current table
+    table_data = next(v["createtable"][table_name] for v in version_source["version"] if v["_id"] == version)
 
     #### Loop through table columns
     for column in table_data:
         
-        column_data = prepare_create_column_data(table_name, column, table_data)
+        column_data = prepare_create_column_data(table_name, column, table_data, version)
 
         #### If column data is null, its some attribute that should be handled later (foreign_key, primary_key, etc...)
         if column_data == None: continue
@@ -74,9 +78,12 @@ def create_table(table_data: dict, table_name: str, engine: Database = "mysql"):
     return query
 
 
-def alter_table(table_data: dict, table_name: str, engine: Database = "mysql"):
+def alter_table(version_source: dict, table_name: str, version: str, engine: Database = "mysql"):
     #### Define query base
     query = f" ALTER TABLE `{table_name}`"
+
+    #### Get the data for the current table
+    table_data = next(v["altertable"][table_name] for v in version_source["version"] if v["_id"] == version)
 
     #### Drop column
     if "dropcolumn" in table_data:
@@ -87,7 +94,7 @@ def alter_table(table_data: dict, table_name: str, engine: Database = "mysql"):
     #### Add column
     if "addcolumn" in table_data:
         for column in table_data["addcolumn"]:
-            column_data = prepare_create_column_data(table_name, column, table_data["addcolumn"])
+            column_data = prepare_create_column_data(table_name, column, table_data["addcolumn"], version)
             
             #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
             if column_data == None: continue
@@ -98,12 +105,17 @@ def alter_table(table_data: dict, table_name: str, engine: Database = "mysql"):
     #### Modify column
     if "modifycolumn" in table_data:
         for column in table_data["modifycolumn"]:
-            column_data = prepare_create_column_data(table_name, column, table_data["modifycolumn"])
+    
+            if "recreate" in table_data["modifycolumn"][column] and table_data["modifycolumn"][column]["recreate"] == False:
+                this_column = {column: concatenate_column(version_source["version"], table_name=table_name, column_name=column)}
+            else:
+                this_column = table_data["modifycolumn"]
+
+            column_data = prepare_create_column_data(table_name, column, this_column, version)
 
             #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
             if column_data == None: continue
-
-            query += " MODIFY COLUMN" + create_table_column(column_name=column, column_type=table_data["modifycolumn"][column]["type"], length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
+            query += " MODIFY COLUMN" + create_table_column(column_name=column, column_type=this_column[column]["type"], length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
             query += ","
 
     #### Rename column
@@ -127,7 +139,5 @@ def alter_table(table_data: dict, table_name: str, engine: Database = "mysql"):
 
     #### Engine of query
     query += ";"
-
-    print(query)
 
     return query
