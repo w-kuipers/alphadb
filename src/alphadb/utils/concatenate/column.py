@@ -77,6 +77,13 @@ def concatenate_column(version_list: list, table_name: str, column_name: str):
                 #### Modify column
                 if "modifycolumn" in version["altertable"][table_name]:
                     if version_column_name in version["altertable"][table_name]["modifycolumn"]:
+                       
+                        this_mod = version["altertable"][table_name]["modifycolumn"][version_column_name]
+                        
+
+                        recreate = True if not "recreate" in this_mod or this_mod["recreate"] == True else False
+                        if recreate: column = {}
+
                         for attr in version["altertable"][table_name]["modifycolumn"][version_column_name]:
                             if attr == "recreate": continue ## Recreate is not an attribute but an instruction for the updater
                             column[attr] = version["altertable"][table_name]["modifycolumn"][version_column_name][attr]
