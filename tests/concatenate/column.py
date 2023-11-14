@@ -1,6 +1,6 @@
 from src.alphadb.utils.concatenate.column import concatenate_column
 
-def test_full_column_concatenate():
+def test_concatenate_remove_recreate():
     versions = [
         {
             "_id": "0.0.1",
@@ -26,13 +26,107 @@ def test_full_column_concatenate():
                 }
             }
         },
+    ]
+
+    result = {
+        "type": "VARCHAR",
+        "length": 200,
+        "unique": True
+    }
+
+    assert concatenate_column(versions, table_name="table", column_name="col") == result
+
+# def test_rename_single_column():
+#     versions = [
+#         {
+#             "_id": "0.0.1",
+#             "createtable": {
+#                 "table": {
+#                     "col": {
+#                         "type": "VARCHAR",
+#                         "length": 200
+#                     }
+#                 }
+#             }
+#         },
+#         {
+#             "_id": "0.0.2",
+#             "altertable": {
+#                 "table": {
+#                     "renamecolumn": {
+#                         "col": "renamed"
+#                     }
+#                 }
+#             }
+#         },
+#         {
+#             "_id": "0.0.3",
+#             "altertable": {
+#                 "table": {
+#                     "modifycolumn": {
+#                         "col": {
+#                             "recreate": False,
+#                             "unique": True
+#                         }
+#                     }
+#                 }
+#             }
+#         },
+#         {
+#             "_id": "0.0.4",
+#             "altertable": {
+#                 "table": {
+#                     "modifycolumn": {
+#                         "renamed": {
+#                             "recreate": False,
+#                             "null": True
+#                         }
+#                     }
+#                 }
+#             }
+#         }
+#     ]
+#
+#     result = {
+#         "type": "VARCHAR",
+#         "length": 200,
+#         "null": True,
+#         "unique": True
+#     }
+#
+#     assert concatenate_column(versions, table_name="table", column_name="renamed") == result
+
+def test_rename_multiply_columns():
+    versions = [
         {
-            "_id": "0.0.3",
+            "_id": "0.0.1",
+            "createtable": {
+                "table": {
+                    "col": {
+                        "type": "VARCHAR",
+                        "length": 200
+                    }
+                }
+            }
+        },
+        {
+            "_id": "0.0.2",
+            "altertable": {
+                "table": {
+                    "renamecolumn": {
+                        "col": "renamed"
+                    }
+                }
+            }
+        },
+        {
+            "_id": "0.0.3", ## Should be ignored because uses old column name
             "altertable": {
                 "table": {
                     "modifycolumn": {
                         "col": {
-                            "length": 100
+                            "recreate": False,
+                            "unique": True
                         }
                     }
                 }
@@ -42,7 +136,12 @@ def test_full_column_concatenate():
             "_id": "0.0.4",
             "altertable": {
                 "table": {
-                    "dropcolumn": ["col"]
+                    "modifycolumn": {
+                        "renamed": {
+                            "recreate": False,
+                            "null": True
+                        }
+                    }
                 }
             }
         },
@@ -50,11 +149,8 @@ def test_full_column_concatenate():
             "_id": "0.0.5",
             "altertable": {
                 "table": {
-                    "addcolumn": {
-                        "col": {
-                            "type": "TEXT",
-                            "length": 7000
-                        }
+                    "renamecolumn": {
+                        "renamed": "rerenamed"
                     }
                 }
             }
@@ -63,19 +159,10 @@ def test_full_column_concatenate():
             "_id": "0.0.6",
             "altertable": {
                 "table": {
-                    "renamecolumn": {
-                        "col": "renamedcol"
-                    }
-                }
-            }
-        },
-        {
-            "_id": "0.0.7",
-            "altertable": {
-                "table": {
                     "modifycolumn": {
-                        "col": {
-                            "length": 300
+                        "rerenamed": {
+                            "recreate": False,
+                            "unique": False
                         }
                     }
                 }
@@ -83,9 +170,11 @@ def test_full_column_concatenate():
         }
     ]
 
-    concatenated = {
-        "type": "TEXT",
-        "length": 300
+    result = {
+        "type": "VARCHAR",
+        "length": 200,
+        "null": True,
+        "unique": False
     }
 
-    assert concatenate_column(versions, table_name="table", column_name="col") == concatenated
+    assert concatenate_column(versions, table_name="table", column_name="rerenamed") == result
