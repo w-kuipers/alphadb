@@ -18,6 +18,7 @@ from ...utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionO
 from ...utils.query.column import create_table_column, prepare_create_column_data
 from ...utils.types import Database
 from ...utils.concatenate.column import concatenate_column
+from ...utils.concatenate.primary_key import get_primary_key
 
 
 def create_table(version_source: dict, table_name: str, version: str, engine: Database = "mysql"):
@@ -127,6 +128,9 @@ def alter_table(version_source: dict, table_name: str, version: str, engine: Dat
     #### Alter/drop primary key
     if "primary_key" in table_data:
         if table_data["primary_key"] == None:
+            
+            # old_primary_key = get_primary_key(version_source["version"], table_name=table_name, before_version=version)
+            
             query += " DROP PRIMARY KEY" ## Fails when AI, AI column must be key
             query += ","
         
