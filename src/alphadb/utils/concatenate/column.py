@@ -17,42 +17,9 @@ from alphadb.utils.common import convert_version_number
 
 def concatenate_column(version_list: list, table_name: str, column_name: str):
     column = {}
-    rename_data = []
-
-    #### Function to check if the column has been renamed
-    def get_renames(rename_column_name: str):
-        for version in reversed(version_list): ## Descending because we can't know previous column names
-
-            if "altertable" in version:
-                if table_name in version["altertable"]:
-                    v = convert_version_number(version["_id"])
-
-                    #### Skip versions that are already processed
-                    if any(r["rename_version"] <= v for r in rename_data):
-                        continue
-
-                    if "renamecolumn" in version["altertable"][table_name]:
-                        #### Get old name, and version in which the column has been renamed
-                        
-                        renamecolumn_values = list(version["altertable"][table_name]["renamecolumn"].values())
-                        
-                        #### If the current column is not the one being renamed, continue
-                        if not rename_column_name in renamecolumn_values:
-                            continue
-
-                        renamecolumn_keys = list(version["altertable"][table_name]["renamecolumn"].keys())
-                        old_name = renamecolumn_keys[renamecolumn_values.index(rename_column_name)]
-                        rename_data.append({
-                            "old_name": old_name,
-                            "rename_version": v
-                        })
-
-                        #### Now recursively call it again with the new column column_name
-                        get_renames(old_name)
-                        break ## Break the loop as the current column name does not exist
 
     #### Recursively check for column renames
-    get_renames(column_name)
+    rename_data = get_column_renames(version_list=version_list, column_name=column_name, table_name=table_name)
 
     #### Create new variable for column name to assign old names to if the column has been renamed
     version_column_name = column_name
@@ -104,3 +71,39 @@ def concatenate_column(version_list: list, table_name: str, column_name: str):
                             column[attr] = version["altertable"][table_name]["addcolumn"][version_column_name][attr]
 
     return column
+
+#### Function to check if the column has been renamed
+def get_column_renames(version_list: list, column_name: str, table_name: str):
+    rename_data = []
+
+    for version in reversed(version_list): ## Descending because we can't know previous column names
+
+        if "altertable" in version:
+            if table_name in version["altertable"]:
+                v = convert_version_number(version["_id"])
+
+                #### Skip versions that are already processed
+                if any(r["rename_version"] <= v for r in rename_data):
+                    continue
+
+                if "renamecolumn" in version["altertable"][table_name]:
+                    #### Get old name, and version in which the column has been renamed
+                    
+                    renamecolumn_values = list(version["altertable"][table_name]["renamecolumn"].values())
+                    
+                    #### If the current column is not the one being renamed, continue
+                    if not column_name in renamecolumn_values:
+                        continue
+
+                    renamecolumn_keys = list(version["altertable"][table_name]["renamecolumn"].keys())
+                    old_name = renamecolumn_keys[renamecolumn_values.index(column_name)]
+                    rename_data.append({
+                        "old_name": old_name,
+                        "rename_version": v
+                    })
+
+                    #### Now recursively call it again with the new column column_name
+                    rename_data += get_column_renames(version_list, old_name, table_name)
+                    break ## Break the loop as the current column name does not exist
+
+    return rename_data
