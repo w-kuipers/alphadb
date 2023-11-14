@@ -14,11 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from ...utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionObject
+from ...utils.exceptions import VersionSourceValueError, IncompleteVersionObject
 from ...utils.query.column import create_table_column, prepare_create_column_data
 from ...utils.types import Database
-from ...utils.concatenate.column import concatenate_column
+from ...utils.concatenate.column import concatenate_column, get_column_renames
 from ...utils.concatenate.primary_key import get_primary_key
+from ...utils.common import convert_version_number
 
 
 def create_table(version_source: dict, table_name: str, version: str, engine: Database = "mysql"):
@@ -86,6 +87,41 @@ def alter_table(version_source: dict, table_name: str, version: str, engine: Dat
     #### Get the data for the current table
     table_data = next(v["altertable"][table_name] for v in version_source["version"] if v["_id"] == version)
 
+    #### If primary key is changed, AUTO_INCREMENT must be removed from the column
+    if "primary_key" in table_data:
+        #### Creating the query for the primary key is done after all column modification
+        #### Here we create a modifycolumn to remove the AUTO_INCREMENT from the old primary key column
+        old_primary_key = get_primary_key(version_source["version"], table_name=table_name, before_version=version)
+
+        if not old_primary_key == None:
+
+            column_renames = get_column_renames(version_source["version"], column_name=old_primary_key, table_name=table_name, order="ASC")
+
+            #### If the column is renamed, get historycal column name for version
+            version_column_name = old_primary_key
+            for rename in reversed(column_renames):
+                if convert_version_number(version) >= rename["rename_version"]: 
+                    version_column_name = rename["new_name"]
+                    break ## If the name has been found, break out of the loop
+                else: version_column_name = old_primary_key
+            
+            #### Append change to modifycolumn
+            if "modifycolumn" in table_data:
+                if version_column_name in table_data["modifycolumn"]:
+                    table_data["modifycolumn"][version_column_name]["a_i"] = False
+                else:
+                    table_data["modifycolumn"][version_column_name] = {
+                        "recreate": False,
+                        "a_i": False
+                    }
+            else:
+                table_data["modifycolumn"] = {
+                    version_column_name: {
+                        "recreate": False,
+                        "a_i": False
+                    }
+                }
+    
     #### Drop column
     if "dropcolumn" in table_data:
         for column in table_data["dropcolumn"]:
@@ -129,10 +165,11 @@ def alter_table(version_source: dict, table_name: str, version: str, engine: Dat
     if "primary_key" in table_data:
         if table_data["primary_key"] == None:
             
-            # old_primary_key = get_primary_key(version_source["version"], table_name=table_name, before_version=version)
+                
             
-            query += " DROP PRIMARY KEY" ## Fails when AI, AI column must be key
-            query += ","
+
+                query += " DROP PRIMARY KEY" ## Fails when AI, AI column must be key
+                query += ","
         
         #### Change the primary key
         if table_data["primary_key"] in table_data:

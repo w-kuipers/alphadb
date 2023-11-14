@@ -93,7 +93,21 @@
       "_id": "0.2.2",
       "altertable": {
         "table2": {
+          "renamecolumn": {
+            "wasoriginalycol1": "secondrenameoncol1"
+          }
+        }
+      }
+    },
+    {
+      "_id": "0.2.3",
+      "altertable": {
+        "table2": {
           "modifycolumn": {
+            "secondrenameoncol1": {
+              "recreate": false,
+              "null": true
+            },
             "col2": {
               "recreate": false,
               "length": 2
