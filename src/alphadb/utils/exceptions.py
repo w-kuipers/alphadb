@@ -84,3 +84,7 @@ class IncompatibleColumnAttributes(ValueError):
             attr_list.append(f'"{attr}"')
 
         super().__init__(f'Column attributes {", ".join(attr_list)} are not compatible.')
+
+class VersionSourceValueError(ValueError):
+    def __init__(self, message: str):
+        super().__init__(message)
