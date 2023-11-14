@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Literal, Optional
 from alphadb.utils.common import convert_version_number
 
 def concatenate_column(version_list: list, table_name: str, column_name: str):
@@ -73,37 +74,47 @@ def concatenate_column(version_list: list, table_name: str, column_name: str):
     return column
 
 #### Function to check if the column has been renamed
-def get_column_renames(version_list: list, column_name: str, table_name: str):
+def get_column_renames(version_list: list, column_name: str, table_name: str, order: Optional[Literal["DESC", "ASC"]] = "DESC"):
     rename_data = []
 
-    for version in reversed(version_list): ## Descending because we can't know previous column names
-
+    for version in reversed(version_list) if order == "DESC" else version_list:
         if "altertable" in version:
             if table_name in version["altertable"]:
                 v = convert_version_number(version["_id"])
 
                 #### Skip versions that are already processed
-                if any(r["rename_version"] <= v for r in rename_data):
-                    continue
+                if order == "DESC":
+                    if any(r["rename_version"] <= v for r in rename_data):
+                        continue
+                else:
+                    if any(r["rename_version"] >= v for r in rename_data):
+                        continue
 
                 if "renamecolumn" in version["altertable"][table_name]:
-                    #### Get old name, and version in which the column has been renamed
-                    
+
                     renamecolumn_values = list(version["altertable"][table_name]["renamecolumn"].values())
                     
                     #### If the current column is not the one being renamed, continue
-                    if not column_name in renamecolumn_values:
+                    if order == "DESC" and not column_name in renamecolumn_values:
                         continue
 
                     renamecolumn_keys = list(version["altertable"][table_name]["renamecolumn"].keys())
-                    old_name = renamecolumn_keys[renamecolumn_values.index(column_name)]
+
+                    #### If the current column is not the one being renamed, continue
+                    if order == "ASC" and not column_name in renamecolumn_keys:
+                        continue
+                    
+                    #### Get old or new name based on order
+                    if order == "DESC": name = renamecolumn_keys[renamecolumn_values.index(column_name)]
+                    else: name = renamecolumn_values[renamecolumn_keys.index(column_name)]
+
                     rename_data.append({
-                        "old_name": old_name,
+                        "old_name" if order == "DESC" else "new_name": name,
                         "rename_version": v
                     })
 
                     #### Now recursively call it again with the new column column_name
-                    rename_data += get_column_renames(version_list, old_name, table_name)
+                    rename_data += get_column_renames(version_list, name, table_name, order)
                     break ## Break the loop as the current column name does not exist
 
     return rename_data

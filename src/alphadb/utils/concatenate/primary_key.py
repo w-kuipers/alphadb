@@ -16,7 +16,7 @@
 from typing import Optional
 from alphadb.utils.common import convert_version_number
 
-def get_primary_key(version_list: list, table_name: str, before_version: Optional[str] = None):
+def get_primary_key(version_list: list, table_name: str, before_version: Optional[str] = None) -> str | None:
     "Get tables primary key from full version source."
 
     primary_key = None
