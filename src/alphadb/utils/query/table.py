@@ -31,7 +31,6 @@ def create_table(version_source: dict, table_name: str, version: str, engine: Da
 
     #### Loop through table columns
     for column in table_data:
-        
         column_data = prepare_create_column_data(table_name, column, table_data, version)
 
         #### If column data is null, its some attribute that should be handled later (foreign_key, primary_key, etc...)
@@ -76,7 +75,8 @@ def create_table(version_source: dict, table_name: str, version: str, engine: Da
         query += " );"
     else:
         query += " ) ENGINE = InnoDB;"
-
+    
+    print(query)
     return query
 
 
