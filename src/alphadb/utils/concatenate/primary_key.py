@@ -13,12 +13,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-def get_primary_key(version_list: list, table_name: str):
+from typing import Optional
+from alphadb.utils.common import convert_version_number
+
+def get_primary_key(version_list: list, table_name: str, before_version: Optional[str] = None):
     "Get tables primary key from full version source."
 
     primary_key = None
     
     for version in version_list:
+        
+        #### Skip if version is after or equal to the "before version"
+        if not before_version == None and convert_version_number(before_version) <= convert_version_number(version["_id"]):
+            continue
+
         if "createtable" in version:
             if table_name in version["createtable"]:
                 if "primary_key" in version["createtable"][table_name]:
