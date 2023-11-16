@@ -76,7 +76,6 @@ def create_table(version_source: dict, table_name: str, version: str, engine: Da
     else:
         query += " ) ENGINE = InnoDB;"
     
-    print(query)
     return query
 
 
@@ -164,9 +163,6 @@ def alter_table(version_source: dict, table_name: str, version: str, engine: Dat
     #### Alter/drop primary key
     if "primary_key" in table_data:
         if table_data["primary_key"] == None:
-            
-                
-            
 
                 query += " DROP PRIMARY KEY" ## Fails when AI, AI column must be key
                 query += ","
