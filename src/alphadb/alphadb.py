@@ -14,15 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Callable
-
-
 from .utils.decorators import conn_test, init_test
 from .utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseEngineSpecified
 from .utils.globals import CONFIG_TABLE_NAME
 from .utils.query.default_data import create_default_data
 from .utils.query.table import alter_table, create_table
 from .utils.types import Database, SQLEscapeString
-
 
 class AlphaDB:
     engine: Database
@@ -90,7 +87,6 @@ class AlphaDB:
         try:
             with self.cursor() as cursor:
                 #### Create configuration table
-
                 if self.engine == "sqlite":
                     cursor.execute(f"CREATE TABLE IF NOT EXISTS `{CONFIG_TABLE_NAME}` (`db` VARCHAR(100) NOT NULL, `version` VARCHAR(50) NOT NULL, `template` VARCHAR(50) NULL, PRIMARY KEY (`db`));")
                 else:
@@ -158,7 +154,7 @@ class AlphaDB:
         else:
             if not "version" in version_source or not "name" in version_source:
                 raise IncompleteVersionData()
-
+        
         #### Start update process
         database_version = None
         with self.cursor() as cursor:
@@ -215,13 +211,13 @@ class AlphaDB:
                     #### Create tables
                     if "createtable" in version:
                         for table in version["createtable"]:
-                            query = create_table(table_data=version["createtable"][table], table_name=table, engine=self.engine)
+                            query = create_table(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
                             cursor.execute(query)
 
                     #### Alter tables
                     if "altertable" in version:
                         for table in version["altertable"]:
-                            query = alter_table(table_data=version["altertable"][table], table_name=table, engine=self.engine)
+                            query = alter_table(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
                             cursor.execute(query)
 
                     #### Insert default data
