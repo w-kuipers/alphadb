@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="alphadb",
-    version="1.0.0a0",
+    version="1.0.0a1",
     author="Wibo Kuipers",
     author_email="wibokuip@gmail.com",
     description="SQL Database versioning toolset",
