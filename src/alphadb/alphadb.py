@@ -87,14 +87,14 @@ class AlphaDB:
         try:
             with self.cursor() as cursor:
                 #### Create configuration table
-                if self.engine == "sqlite":
-                    cursor.execute(f"CREATE TABLE IF NOT EXISTS `{CONFIG_TABLE_NAME}` (`db` VARCHAR(100) NOT NULL, `version` VARCHAR(50) NOT NULL, `template` VARCHAR(50) NULL, PRIMARY KEY (`db`));")
+                if self.engine == "sqlite" or self.engine == "postgres":
+                    cursor.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG_TABLE_NAME} (db VARCHAR(100) NOT NULL, version VARCHAR(50) NOT NULL, template VARCHAR(50) NULL, PRIMARY KEY (db));")
                 else:
-                    cursor.execute(f"CREATE TABLE IF NOT EXISTS `{CONFIG_TABLE_NAME}` (`db` VARCHAR(100) NOT NULL, `version` VARCHAR(50) NOT NULL, `template` VARCHAR(50) NULL, PRIMARY KEY (`db`)) ENGINE = InnoDB;")
+                    cursor.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG_TABLE_NAME} (db VARCHAR(100) NOT NULL, version VARCHAR(50) NOT NULL, template VARCHAR(50) NULL, PRIMARY KEY (db)) ENGINE = InnoDB;")
 
                 #### Set the version to 0.0.0
                 cursor.execute(
-                    f"INSERT INTO {CONFIG_TABLE_NAME} (`db`, `version`) values ({self.sql_escape_string}, {self.sql_escape_string})",
+                    f"INSERT INTO {CONFIG_TABLE_NAME} (db, version) values ({self.sql_escape_string}, {self.sql_escape_string})",
                     (self.db_name, "0.0.0"),
                 )
         except Exception as e:

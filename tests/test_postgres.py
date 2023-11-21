@@ -15,13 +15,13 @@ db.connect(host="localhost", user="root", password="test", database="test")
 #     assert "name" in status and "version" in status and "init" in status and "template" in status
 #
 #
-# #### Init method
-# def test_mysql_init():
-#     init = db.init()
-#     assert init == True
-#     init = db.init()
-#     assert init == "already-initialized"
-#
+#### Init method
+def test_postgres_init():
+    init = db.init()
+    assert init == True
+    init = db.init()
+    assert init == "already-initialized"
+
 #
 # #### Update method
 # def test_mysql_update():
