@@ -20,6 +20,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     package_dir={"": "src"},
-    packages=["alphadb", "alphadb.utils", "alphadb.utils.query", "alphadb.utils.concatenate"],
+    packages=["alphadb", "alphadb.utils", "alphadb.utils.query", "alphadb.verification", "alphadb.utils.concatenate"],
     python_requires=">=3.6",
 )

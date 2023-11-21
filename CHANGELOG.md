@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - Better error handling.
  - `Altertable` option to update method.
+ - Version source validation
 
 ### Changed
  - **BREAKING**: `update` method parameter `version_information` changed to `version_source`.

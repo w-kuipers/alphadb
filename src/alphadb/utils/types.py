@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Literal
+from typing import Literal, List, Tuple
 
 Database = Literal["mysql", "sqlite"]
 DatabaseColumnType = Literal[
@@ -31,3 +31,9 @@ DatabaseColumnType = Literal[
 
 SQLEscapeString = Literal["?", "%s"]
 
+Method = Literal["createtable"] | Literal["altertable"]
+Method.__doc__ = "Available version source methods"
+
+ValidationIssueLevel = Literal["LOW"] | Literal["NORMAL"] | Literal["CRITICAL"]
+ValidationIssuesList = List[Tuple[ValidationIssueLevel, str]]
+ValidationIssuesList.__doc__ = "An issue is structured like Tuple(level, issue)"
