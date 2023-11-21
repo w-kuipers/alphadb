@@ -1,6 +1,7 @@
 version: '3.7'
 services:
   mysql:
+    container_name: alphadb_mysql
     image: mysql:8
     volumes:
       - mysql_data:/var/lib/mysql
@@ -13,20 +14,9 @@ services:
     networks:
       - db_server
   
-  postgres:
-    image: arm64v8/postgres
-    restart: always
-    environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: test
-    ports:
-      - '5432:5432'
-    volumes:
-      - postgres_data:/var/lib/postgres
-    networks:
-      - db_server
 
   phpmyadmin:
+    container_name: alphadb_phpmyadmin
     depends_on:
       - mysql
     image: arm64v8/phpmyadmin
@@ -38,6 +28,23 @@ services:
       MYSQL_ROOT_PASSWORD: test 
     networks:
       - db_server
+
+
+  postgres:
+    container_name: alphadb_postgres
+    image: arm64v8/postgres
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgres
+    networks:
+      - db_server
+
 networks:
   db_server:
 volumes:

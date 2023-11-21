@@ -34,7 +34,7 @@ class AlphaDB:
         self.connection = None
 
     def get_sql_escape_string(self):
-        if self.engine == "mysql":
+        if self.engine == "mysql" or self.engine == "postgres":
             self.sql_escape_string = "%s"
         if self.engine == "sqlite":
             self.sql_escape_string = "?"

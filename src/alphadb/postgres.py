@@ -27,7 +27,7 @@ from alphadb import AlphaDB
 
 class AlphaDBPostgreSQL(AlphaDB):
     engine = "postgres"
-    cursor: Callable[..., MySQLCursor]
+    cursor: Callable
 
     def __init__(self):
         self.get_sql_escape_string()
