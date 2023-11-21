@@ -6,7 +6,7 @@ from alphadb import AlphaDBMySQL
 from alphadb.utils.exceptions import NeedsConfirmation
 
 db = AlphaDBMySQL()
-db.connect(host="localhost", user="root", password="fmm", database="fmm")
+db.connect(host="localhost", user="root", password="test", database="test")
 
 
 #### Status method

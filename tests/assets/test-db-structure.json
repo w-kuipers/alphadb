@@ -51,6 +51,10 @@
             "col4": {
               "type": "TEXT",
               "length": 1000
+            },
+            "col5": {
+              "type": "JSON",
+              "null": true
             }
           }
         }
@@ -63,8 +67,13 @@
           "modifycolumn": {
             "col2": {
               "type": "INT",
-              "null": true,
-              "unique": true
+              "unique": true,
+              "null": true
+            },
+            "col1": {
+              "type": "INT",
+              "a_i": true,
+              "length": 11
             }
           }
         }
@@ -84,6 +93,26 @@
       "_id": "0.2.2",
       "altertable": {
         "table2": {
+          "renamecolumn": {
+            "wasoriginalycol1": "secondrenameoncol1"
+          }
+        }
+      }
+    },
+    {
+      "_id": "0.2.3",
+      "altertable": {
+        "table2": {
+          "modifycolumn": {
+            "secondrenameoncol1": {
+              "recreate": false,
+              "null": true
+            },
+            "col2": {
+              "recreate": false,
+              "length": 2
+            }
+          },
           "primary_key": null
         }
       }

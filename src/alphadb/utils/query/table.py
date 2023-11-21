@@ -14,57 +14,37 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from ...utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionObject
-from ...utils.query.column import create_table_column
+from ...utils.exceptions import VersionSourceValueError, IncompleteVersionObject
+from ...utils.query.column import create_table_column, prepare_create_column_data
 from ...utils.types import Database
+from ...utils.concatenate.column import concatenate_column, get_column_renames
+from ...utils.concatenate.primary_key import get_primary_key
+from ...utils.common import convert_version_number
 
 
-def create_table(table_data: dict, table_name: str, engine: Database = "mysql"):
+def create_table(version_source: dict, table_name: str, version: str, engine: Database = "mysql"):
     #### Define query base
     query = f" CREATE TABLE `{table_name}` ("
+    
+    #### Get the data for the current table
+    table_data = next(v["createtable"][table_name] for v in version_source["version"] if v["_id"] == version)
 
     #### Loop through table columns
     for column in table_data:
-        #### If iteration is not of type Dict, it is not a column and should be handled later
-        if not isinstance(table_data[column], dict) or column == "foreign_key":  ## Foreign key IS an object, but has to be handled later
-            continue
+        column_data = prepare_create_column_data(table_name, column, table_data, version)
 
-        #### A column type must be defined
-        if not "type" in table_data[column]:
-            raise IncompleteVersionObject(key="type", object=f"{table_name}->{column}")
-
-        #### Define query attributes
-        qlength = table_data[column]["length"] if "length" in table_data[column] else None
-        qnull = table_data[column]["null"] if "null" in table_data[column] else False
-        qunique = table_data[column]["unique"] if "unique" in table_data[column] else False
-        qdefault = table_data[column]["default"] if "default" in table_data[column] else None
-        qautoincrement = table_data[column]["a_i"] if "a_i" in table_data[column] else False
-
-        #### Check for column type compatibility with AUTO_INCREMENT
-        incompatible_types_with_autoincrement = ["varchar", "text", "longtext", "datetime", "decimal", "json"]
-        if table_data[column]["type"].lower() in incompatible_types_with_autoincrement and qautoincrement == True:
-            raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "AUTO_INCREMENT")
-
-        #### Check for column type compatibility with UNIQUE
-        incompatible_types_with_unique = [
-            "json",
-        ]
-        if table_data[column]["type"].lower() in incompatible_types_with_unique and qunique == True:
-            raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "UNIQUE")
-
-        #### Null will be ignored by the database engine when AUTO_INCREMENT is specified
-        if qnull == True and qautoincrement == True:
-            raise IncompatibleColumnAttributes("NULL", "AUTO_INCREMENT")
+        #### If column data is null, its some attribute that should be handled later (foreign_key, primary_key, etc...)
+        if column_data == None: continue
 
         #### Create query chunk
         query += create_table_column(
             column_name=column,
             column_type=table_data[column]["type"],
-            length=qlength,
-            null=qnull,
-            unique=qunique,
-            default=qdefault,
-            auto_increment=qautoincrement,
+            length=column_data["length"],
+            null=column_data["null"],
+            unique=column_data["unique"],
+            default=column_data["default"],
+            auto_increment=column_data["auto_increment"],
             engine=engine,
         )
 
@@ -95,19 +75,101 @@ def create_table(table_data: dict, table_name: str, engine: Database = "mysql"):
         query += " );"
     else:
         query += " ) ENGINE = InnoDB;"
-
+    
     return query
 
 
-def alter_table(table_data: dict, table_name: str, engine: Database = "mysql"):
+def alter_table(version_source: dict, table_name: str, version: str, engine: Database = "mysql"):
     #### Define query base
     query = f" ALTER TABLE `{table_name}`"
 
+    #### Get the data for the current table
+    table_data = next(v["altertable"][table_name] for v in version_source["version"] if v["_id"] == version)
+
+    #### If primary key is changed, AUTO_INCREMENT must be removed from the column
+    if "primary_key" in table_data:
+        #### Creating the query for the primary key is done after all column modification
+        #### Here we create a modifycolumn to remove the AUTO_INCREMENT from the old primary key column
+        old_primary_key = get_primary_key(version_source["version"], table_name=table_name, before_version=version)
+
+        if not old_primary_key == None:
+
+            column_renames = get_column_renames(version_source["version"], column_name=old_primary_key, table_name=table_name, order="ASC")
+
+            #### If the column is renamed, get historycal column name for version
+            version_column_name = old_primary_key
+            for rename in reversed(column_renames):
+                if convert_version_number(version) >= rename["rename_version"]: 
+                    version_column_name = rename["new_name"]
+                    break ## If the name has been found, break out of the loop
+                else: version_column_name = old_primary_key
+            
+            #### Append change to modifycolumn
+            if "modifycolumn" in table_data:
+                if version_column_name in table_data["modifycolumn"]:
+                    table_data["modifycolumn"][version_column_name]["a_i"] = False
+                else:
+                    table_data["modifycolumn"][version_column_name] = {
+                        "recreate": False,
+                        "a_i": False
+                    }
+            else:
+                table_data["modifycolumn"] = {
+                    version_column_name: {
+                        "recreate": False,
+                        "a_i": False
+                    }
+                }
+    
     #### Drop column
     if "dropcolumn" in table_data:
         for column in table_data["dropcolumn"]:
             query += f" DROP COLUMN `{column}`"
             query += ","
+
+    #### Add column
+    if "addcolumn" in table_data:
+        for column in table_data["addcolumn"]:
+            column_data = prepare_create_column_data(table_name, column, table_data["addcolumn"], version)
+            
+            #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
+            if column_data == None: continue
+
+            query += " ADD" + create_table_column(column_name=column, column_type=table_data["addcolumn"][column]["type"], length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
+            query += ","
+
+    #### Modify column
+    if "modifycolumn" in table_data:
+        for column in table_data["modifycolumn"]:
+    
+            if "recreate" in table_data["modifycolumn"][column] and table_data["modifycolumn"][column]["recreate"] == False:
+                this_column = {column: concatenate_column(version_source["version"], table_name=table_name, column_name=column)}
+            else:
+                this_column = table_data["modifycolumn"]
+
+            column_data = prepare_create_column_data(table_name, column, this_column, version)
+
+            #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
+            if column_data == None: continue
+            query += " MODIFY COLUMN" + create_table_column(column_name=column, column_type=this_column[column]["type"], length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
+            query += ","
+
+    #### Rename column
+    if "renamecolumn" in table_data:
+        for column in table_data["renamecolumn"]:
+            query += f" RENAME COLUMN {column} TO {table_data['renamecolumn'][column]}"
+            query += ","
+
+    #### Alter/drop primary key
+    if "primary_key" in table_data:
+        if table_data["primary_key"] == None:
+
+                query += " DROP PRIMARY KEY" ## Fails when AI, AI column must be key
+                query += ","
+        
+        #### Change the primary key
+        if table_data["primary_key"] in table_data:
+            ...
 
     #### Remove trailing comma
     query = query[:-1]

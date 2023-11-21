@@ -1,3 +1,5 @@
+![AlphaDB](https://github.com/w-kuipers/alphadb/blob/main/assets/ALPHADB_Github-Social-Preview.png?raw=true)
+
 [![GitHub releases](https://img.shields.io/github/v/release/w-kuipers/alphadb)](https://github.com/w-kuipers/alphadb/releases)
 [![PyPI release](https://img.shields.io/pypi/v/alphadb.svg)](https://pypi.org/project/alphadb/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -9,7 +11,7 @@ A toolset for SQL database versioning.
 
 ## Still in alpha stage
 
-Yes, it's ironic. But this package is still in the alpha stage. The only tested functionality is to create tables and inserting default data. Modifying/deleting tables is the next thing on the agenda!
+Yes, it's ironic. But this package is still in the alpha stage. Breaking changes should be expected.
 
 <details>
   <summary>Table of Contents</summary>
