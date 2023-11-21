@@ -249,7 +249,9 @@ class AlphaDB:
             if self.engine == "mysql":
                 cursor.execute("SET foreign_key_checks = 0;")
 
-            if self.engine == "sqlite":
+            if self.engine == "postgres":
+                cursor.execute("SELECT * FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';")
+            elif self.engine == "sqlite":
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
             else:
                 cursor.execute("show tables;")
