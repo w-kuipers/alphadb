@@ -21,7 +21,7 @@ class TestDatabaseConnectionDecorator:
     #### The function inside the decorator should be executed when a database connection exists
     def test_connected(self):
         #### Connect to a database
-        self.db.connect(host="localhost", user="root", password="fmm", database="fmm")
+        self.db.connect(host="localhost", user="root", password="test", database="test")
 
         @conn_test
         def conn_test_test(db):
