@@ -15,7 +15,7 @@
 
 from typing import Literal
 
-Database = Literal["mysql", "sqlite"]
+Database = Literal["mysql", "sqlite", "postgres"]
 DatabaseColumnType = Literal[
     "INT",
     "FLOAT",
