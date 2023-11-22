@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.8'
 services:
   mysql:
     container_name: alphadb_mysql
@@ -19,7 +19,7 @@ services:
     container_name: alphadb_phpmyadmin
     depends_on:
       - mysql
-    image: arm64v8/phpmyadmin
+    image: phpmyadmin/phpmyadmin
     restart: always
     ports:
       - '8080:80'
@@ -29,10 +29,26 @@ services:
     networks:
       - db_server
 
+  pgadmin:
+    container_name: alphadb_pgadmin
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: test@test.test
+      PGADMIN_DEFAULT_PASSWORD: test
+      PGADMIN_LISTEN_PORT: 80
+    depends_on:
+      - postgres
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - db_server
 
   postgres:
     container_name: alphadb_postgres
-    image: arm64v8/postgres
+    image: postgres
     restart: always
     environment:
       POSTGRES_USER: root
@@ -50,4 +66,6 @@ networks:
 volumes:
   mysql_data:
   postgres_data:
+    driver: local
+  pgadmin_data:
     driver: local
