@@ -16,7 +16,7 @@ services:
   phpmyadmin:
     depends_on:
       - mysql
-    image: arm64v8/phpmyadmin
+    image: phpmyadmin/phpmyadmin
     restart: always
     ports:
       - '8080:80'
