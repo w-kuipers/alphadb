@@ -15,25 +15,29 @@
 
 from typing import Optional, get_args
 from alphadb.utils.exceptions import IncompleteVersionObject, IncompatibleColumnAttributes
-from alphadb.utils.types import Database, DatabaseColumnType
+from alphadb.utils.types import Database, DatabaseColumnType, AlterTableSubMethod
 
 
 def create_table_column(
     column_name: str,
     column_type: DatabaseColumnType,
+    submethod: Optional[AlterTableSubMethod] = None,
     engine: Database = "mysql",
     null: bool = False,
     length: Optional[int] = None,
     unique: bool = False,
     default: Optional[str | int] = None,
-    auto_increment: bool = False,
+    auto_increment: bool = False
 ):
     #### Check column type
     if not column_type.upper() in get_args(DatabaseColumnType):
         raise ValueError(f"Column type {column_type} is not (yet) supported.")
 
     #### Define query base
-    query = f" `{column_name}` {column_type}"
+    if engine == "postgres" and submethod == "modifycolumn":
+        query = f" {column_name} TYPE {column_type}"
+    else:
+        query = f" {column_name} {column_type}"
 
     #### If length is defined, add it to query
     if not length == None:
@@ -57,7 +61,7 @@ def create_table_column(
 
     return query
 
-def prepare_create_column_data(table_name: str, column: str, table_data: dict, version: str):
+def prepare_create_column_data(table_name: str, column: str, table_data: dict, version: str, engine: Database):
     #### If iteration is not of type Dict, it is not a column and should be handled later
     if not isinstance(table_data[column], dict) or column == "foreign_key":  ## Foreign key IS an object, but has to be handled later
         return None
@@ -88,6 +92,10 @@ def prepare_create_column_data(table_name: str, column: str, table_data: dict, v
     #### Null will be ignored by the database engine when AUTO_INCREMENT is specified
     if qnull == True and qautoincrement == True:
         raise IncompatibleColumnAttributes("NULL", "AUTO_INCREMENT")
+
+    #### In Postgres, TEXT is not allowed to have a length specified
+    if table_data[column]["type"] == "TEXT" and engine == "postgres":
+       qlength = None 
 
     return {
         "length": qlength,

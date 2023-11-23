@@ -29,5 +29,7 @@ DatabaseColumnType = Literal[
     "JSON",
 ]
 
+AlterTableSubMethod = Literal["addcolumn"] | Literal["modifycolumn"]
+
 SQLEscapeString = Literal["?", "%s"]
 
