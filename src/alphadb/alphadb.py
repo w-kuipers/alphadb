@@ -117,16 +117,23 @@ class AlphaDB:
         with self.cursor() as cursor:
             #### Check if adb_conf (fmm config table) exists
 
-            #### SQLite does not have an information_schema, so we check for existing tables differently
+            #### Check if the config table (adb_conf) exists
+            if self.engine == "mysql":
+                cursor.execute(
+                    f"SELECT table_name FROM information_schema.tables WHERE table_schema = {self.sql_escape_string} AND table_name = {self.sql_escape_string}",
+                    (self.db_name, CONFIG_TABLE_NAME),
+                )
+
+            if self.engine == "postgres":
+                cursor.execute(
+                    f"SELECT 1 FROM information_schema.tables WHERE table_name = {self.sql_escape_string}",
+                    (CONFIG_TABLE_NAME,)
+                )
+
             if self.engine == "sqlite":
                 cursor.execute(
                     f"SELECT name FROM sqlite_master WHERE type='table' AND name={self.sql_escape_string};",
                     (CONFIG_TABLE_NAME,),
-                )
-            else:
-                cursor.execute(
-                    f"SELECT * FROM information_schema.tables WHERE table_schema = {self.sql_escape_string} AND table_name = {self.sql_escape_string}",
-                    (self.db_name, CONFIG_TABLE_NAME),
                 )
             table_check = cursor.fetchall()
 
