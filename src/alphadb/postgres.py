@@ -31,7 +31,6 @@ class AlphaDBPostgreSQL(AlphaDB):
 
     def __init__(self):
         self.get_sql_escape_string()
-        self.connection = None
 
     def connect(self, host: str, password: str, user: str, database: str, port: int = 5432) -> bool:
         self.connection = connect(
@@ -41,6 +40,7 @@ class AlphaDBPostgreSQL(AlphaDB):
             port=port,
             database=database,
         )
+        self.connection.autocommit = True
         self.cursor = self.connection.cursor
         self.db_name = database
 
