@@ -262,15 +262,18 @@ class AlphaDB:
             #### Disable foreign key checks in MySQL
             if self.engine == "mysql":
                 cursor.execute("SET foreign_key_checks = 0;")
-
+            
+            #### Get all tables in database
+            if self.engine == "mysql":
+                cursor.execute("show tables;")
             if self.engine == "postgres":
-                cursor.execute("SELECT * FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';")
+                cursor.execute("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';")
             elif self.engine == "sqlite":
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-            else:
-                cursor.execute("show tables;")
+
             tables = cursor.fetchall()
 
+            #### Loop through tables and drop
             for t in tables:
                 cursor.execute(f"DROP TABLE {t[0]}")
 
