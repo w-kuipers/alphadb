@@ -14,11 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Optional, get_args
-from alphadb.utils.exceptions import IncompleteVersionObject, IncompatibleColumnAttributes
-from alphadb.utils.types import Database, DatabaseColumnType, AlterTableSubMethod
+from alphadb.utils.types import DatabaseColumnType, Database, AlterTableSubMethod
 
-
-def create_table_column(
+def definecolumn(
     column_name: str,
     column_type: DatabaseColumnType,
     submethod: Optional[AlterTableSubMethod] = None,
@@ -61,7 +59,7 @@ def create_table_column(
 
     return query
 
-def prepare_create_column_data(table_name: str, column: str, table_data: dict, version: str, engine: Database):
+def prepare_definecolumn_data(table_name: str, column: str, table_data: dict, version: str, engine: Database):
     #### If iteration is not of type Dict, it is not a column and should be handled later
     if not isinstance(table_data[column], dict) or column == "foreign_key":  ## Foreign key IS an object, but has to be handled later
         return None
@@ -104,4 +102,3 @@ def prepare_create_column_data(table_name: str, column: str, table_data: dict, v
         "default": qdefault,
         "auto_increment": qautoincrement
     }
-

@@ -18,7 +18,8 @@ from .utils.decorators import conn_test, init_test
 from .utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseEngineSpecified
 from .utils.globals import CONFIG_TABLE_NAME
 from .utils.query.default_data import create_default_data
-from .utils.query.table import alter_table, create_table
+from .utils.query.table import create_table
+from .utils.query.table.altertable import altertable
 from .utils.types import Database, SQLEscapeString
 
 class AlphaDB:
@@ -231,7 +232,7 @@ class AlphaDB:
                     #### Alter tables
                     if "altertable" in version:
                         for table in version["altertable"]:
-                            query = alter_table(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
+                            query = altertable(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
                             cursor.execute(query)
 
                     #### Insert default data
