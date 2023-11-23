@@ -34,13 +34,13 @@ services:
     image: dpage/pgadmin4
     restart: always
     environment:
-      PGADMIN_DEFAULT_EMAIL: test@test.test
+      PGADMIN_DEFAULT_EMAIL: test@test.dev
       PGADMIN_DEFAULT_PASSWORD: test
-      PGADMIN_LISTEN_PORT: 80
+      PGADMIN_LISTEN_PORT: 5050
     depends_on:
       - postgres
     ports:
-      - "5050:80"
+      - "5050:5050"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     networks:
