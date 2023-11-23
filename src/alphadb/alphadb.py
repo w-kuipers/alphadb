@@ -95,9 +95,9 @@ class AlphaDB:
             with self.cursor() as cursor:
                 #### Create configuration table
                 if self.engine == "sqlite" or self.engine == "postgres":
-                    cursor.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG_TABLE_NAME} (db VARCHAR(100) NOT NULL, version VARCHAR(50) NOT NULL, template VARCHAR(50) NULL, PRIMARY KEY (db));")
+                    cursor.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG_TABLE_NAME} (db VARCHAR(100) NOT NULL, version VARCHAR(50) NOT NULL, version_source_template VARCHAR(50) NULL, PRIMARY KEY (db));")
                 else:
-                    cursor.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG_TABLE_NAME} (db VARCHAR(100) NOT NULL, version VARCHAR(50) NOT NULL, template VARCHAR(50) NULL, PRIMARY KEY (db)) ENGINE = InnoDB;")
+                    cursor.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG_TABLE_NAME} (db VARCHAR(100) NOT NULL, version VARCHAR(50) NOT NULL, version_source_template VARCHAR(50) NULL, PRIMARY KEY (db)) ENGINE = InnoDB;")
 
                 #### Set the version to 0.0.0
                 cursor.execute(
@@ -141,7 +141,7 @@ class AlphaDB:
             fetched = None
             if table_check:
                 cursor.execute(
-                    f"SELECT version, template FROM {CONFIG_TABLE_NAME} WHERE db = {self.sql_escape_string}",
+                    f"SELECT version, version_source_template FROM {CONFIG_TABLE_NAME} WHERE db = {self.sql_escape_string}",
                     (self.db_name,),
                 )
                 fetched = cursor.fetchone()
@@ -174,7 +174,7 @@ class AlphaDB:
         with self.cursor() as cursor:
             try:
                 cursor.execute(
-                    f"SELECT version, template FROM `{CONFIG_TABLE_NAME}` WHERE `db` = {self.sql_escape_string}",
+                    f"SELECT version, version_source_template FROM {CONFIG_TABLE_NAME} WHERE db = {self.sql_escape_string}",
                     (self.db_name,),
                 )
                 db_data = cursor.fetchone()
@@ -185,7 +185,7 @@ class AlphaDB:
                         #### If no template is defined, use the current one
                         if db_data[1] == None:
                             cursor.execute(
-                                f'UPDATE `{CONFIG_TABLE_NAME}` SET template="{version_source["name"]}" WHERE `db` = {self.sql_escape_string}',
+                                f"UPDATE {CONFIG_TABLE_NAME} SET version_source_template = '{version_source['name']}' WHERE db = {self.sql_escape_string}",
                                 (self.db_name,),
                             )
                         else:
