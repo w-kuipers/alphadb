@@ -49,24 +49,31 @@ class AlphaDB:
             current_version = None
 
             #### Check if the config table (adb_conf) exists
-            #### SQLite does not have an information_schema, so we check for existing tables differently
+            if self.engine == "mysql":
+                cursor.execute(
+                    f"SELECT table_name FROM information_schema.tables WHERE table_schema = {self.sql_escape_string} AND table_name = {self.sql_escape_string}",
+                    (self.db_name, CONFIG_TABLE_NAME),
+                )
+
+            if self.engine == "postgres":
+                cursor.execute(
+                    f"SELECT 1 FROM information_schema.tables WHERE table_name = {self.sql_escape_string}",
+                    (CONFIG_TABLE_NAME,)
+                )
+
             if self.engine == "sqlite":
                 cursor.execute(
                     f"SELECT name FROM sqlite_master WHERE type='table' AND name={self.sql_escape_string};",
                     (CONFIG_TABLE_NAME,),
                 )
-            else:
-                cursor.execute(
-                    f"SELECT table_name FROM information_schema.tables WHERE table_schema = {self.sql_escape_string} AND table_name = {self.sql_escape_string}",
-                    (self.db_name, CONFIG_TABLE_NAME),
-                )
+
             table_check = cursor.fetchall()
 
             #### If it exists, get current version
             fetched = None
             if table_check:
                 cursor.execute(
-                    f"SELECT version FROM `{CONFIG_TABLE_NAME}` WHERE db = {self.sql_escape_string}",
+                    f"SELECT version FROM {CONFIG_TABLE_NAME} WHERE db = {self.sql_escape_string}",
                     (self.db_name,),
                 )
                 fetched = cursor.fetchone()
