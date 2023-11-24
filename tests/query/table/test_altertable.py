@@ -1,4 +1,4 @@
-from alphadb.utils.query.table import alter_table
+from alphadb.utils.query.table import altertable
 from tests.test_utils.version_source import wrap_partial_in_altertable, wrap_version_list_in_base
 
 def test_drop_column():
@@ -30,4 +30,4 @@ def test_drop_primary_key():
         }
     ])
 
-    assert alter_table(version_source=test_data, table_name="table", version="0.0.2") == " ALTER TABLE `table` MODIFY COLUMN `col` INT NOT NULL, DROP PRIMARY KEY;"
+    assert altertable(version_source=test_data, table_name="table", version="0.0.2") == " ALTER TABLE `table` MODIFY COLUMN `col` INT NOT NULL, DROP PRIMARY KEY;"

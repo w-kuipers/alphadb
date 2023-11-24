@@ -14,13 +14,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Callable
-from .utils.decorators import conn_test, init_test
-from .utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseEngineSpecified
-from .utils.globals import CONFIG_TABLE_NAME
-from .utils.query.default_data import create_default_data
-from .utils.query.table import create_table
-from .utils.query.table.altertable import altertable
-from .utils.types import Database, SQLEscapeString
+from alphadb.utils.decorators import conn_test, init_test
+from alphadb.utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseEngineSpecified
+from alphadb.utils.globals import CONFIG_TABLE_NAME
+from alphadb.utils.query.default_data import create_default_data
+from alphadb.utils.query.table.createtable import createtable
+from alphadb.utils.query.table.altertable import altertable
+from alphadb.utils.types import Database, SQLEscapeString
 
 class AlphaDB:
     engine: Database
@@ -226,7 +226,7 @@ class AlphaDB:
                     #### Create tables
                     if "createtable" in version:
                         for table in version["createtable"]:
-                            query = create_table(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
+                            query = createtable(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
                             cursor.execute(query)
 
                     #### Alter tables

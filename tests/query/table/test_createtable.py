@@ -1,7 +1,7 @@
 import pytest
 
 from alphadb.utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionObject
-from alphadb.utils.query.table import create_table
+from alphadb.utils.query.table.createtable import createtable
 from tests.test_utils.version_source import wrap_partial_in_createtable
 
 def test_missing_column_type():
@@ -9,7 +9,7 @@ def test_missing_column_type():
         test_data = wrap_partial_in_createtable({
             "col": {"length": 10},
         })
-        create_table(version_source=test_data, table_name="table", version="0.0.1")
+        createtable(version_source=test_data, table_name="table", version="0.0.1")
 
 
 def test_incompatible_column_attributes():
@@ -21,19 +21,19 @@ def test_incompatible_column_attributes():
                 "a_i": True,
             },
         })
-        create_table(version_source=test_data, table_name="table", version="0.0.1")
+        createtable(version_source=test_data, table_name="table", version="0.0.1")
 
 
 def test_incomplete_foreign_key_object():
     #### Missing key
     with pytest.raises(IncompleteVersionObject):
         test_data = wrap_partial_in_createtable({"col": {"foreign_key": {"references": "test"}}})
-        create_table(version_source=test_data, table_name="table", version="0.0.1")
+        createtable(version_source=test_data, table_name="table", version="0.0.1")
 
     #### Missing references
     with pytest.raises(IncompleteVersionObject):
         test_data = wrap_partial_in_createtable({"col": {"foreign_key": {"key": "test"}}})
-        create_table(version_source=test_data, table_name="table", version="0.0.1")
+        createtable(version_source=test_data, table_name="table", version="0.0.1")
 
 
 def test_query():
@@ -53,13 +53,13 @@ def test_query():
     })
 
     assert (
-        create_table(table_name="table", version_source=test_data, version="0.0.1")
+        createtable(table_name="table", version_source=test_data, version="0.0.1")
         == " CREATE TABLE `table` ( `id` INT NOT NULL AUTO_INCREMENT, `col1` VARCHAR(30) NOT NULL UNIQUE, PRIMARY KEY (`id`), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE ) ENGINE = InnoDB;"
     )
 
     #### Test all column types (SQLite)
 
     assert (
-        create_table(table_name="table", version_source=test_data, version="0.0.1", engine="sqlite")
+        createtable(table_name="table", version_source=test_data, version="0.0.1", engine="sqlite")
         == " CREATE TABLE `table` ( `id` INT NOT NULL, `col1` VARCHAR(30) NOT NULL UNIQUE, PRIMARY KEY (`id`), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE );"
     )

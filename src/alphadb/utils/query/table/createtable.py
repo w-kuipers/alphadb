@@ -15,11 +15,10 @@
 
 
 from alphadb.utils.exceptions import IncompleteVersionObject
-from alphadb.utils.query.column import create_table_column, prepare_create_column_data
+from alphadb.utils.query.column.definecolumn import definecolumn, prepare_definecolumn_data
 from alphadb.utils.types import Database
 
-
-def create_table(version_source: dict, table_name: str, version: str, engine: Database = "mysql"):
+def createtable(version_source: dict, table_name: str, version: str, engine: Database = "mysql"):
     #### Define query base
     query = f" CREATE TABLE {table_name} ("
     
@@ -28,13 +27,13 @@ def create_table(version_source: dict, table_name: str, version: str, engine: Da
 
     #### Loop through table columns
     for column in table_data:
-        column_data = prepare_create_column_data(table_name, column, table_data, version, engine)
+        column_data = prepare_definecolumn_data(table_name, column, table_data, version, engine)
 
         #### If column data is null, its some attribute that should be handled later (foreign_key, primary_key, etc...)
         if column_data == None: continue
 
         #### Create query chunk
-        query += create_table_column(
+        query += definecolumn(
             column_name=column,
             column_type=table_data[column]["type"],
             length=column_data["length"],

@@ -1,6 +1,6 @@
 import pytest
 
-from src.alphadb.utils.query.column.definecolumn import definecolumn
+from alphadb.utils.query.column.definecolumn import definecolumn
 
 
 #### ValueError should be raised when column type is not supported
