@@ -18,7 +18,7 @@ from alphadb.utils.common import convert_version_number
 from alphadb.utils.concatenate.primary_key import get_primary_key
 from alphadb.utils.concatenate.column import get_column_renames, concatenate_column
 from alphadb.utils.query.column.addcolumn import addcolumn
-from alphadb.utils.query.column.definecolumn import definecolumn, prepare_definecolumn_data
+from alphadb.utils.query.column.modifycolumn import modifycolumn
 
 def altertable(version_source: dict, table_name: str, version: str, engine: Database):
     query = f" ALTER TABLE {table_name}"
@@ -69,26 +69,21 @@ def altertable(version_source: dict, table_name: str, version: str, engine: Data
     #### Add column
     if "addcolumn" in table_data:
         for column in table_data["addcolumn"]:
-            query += addcolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
+            partial =  addcolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
+            if partial == None: continue
+            query += partial
             query += ","
 
     #### Modify column
     if "modifycolumn" in table_data:
         for column in table_data["modifycolumn"]:
-    
-            if "recreate" in table_data["modifycolumn"][column] and table_data["modifycolumn"][column]["recreate"] == False:
-                this_column = {column: concatenate_column(version_source["version"], table_name=table_name, column_name=column)}
-            else:
-                this_column = table_data["modifycolumn"]
-
-            column_data = prepare_definecolumn_data(table_name, column, this_column, version, engine)
-
-            #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
-            if column_data == None: continue
             
-            if engine == "postgres": query += " ALTER COLUMN"
-            else: query += " MODIFY COLUMN"
-            query += definecolumn(column_name=column, column_type=this_column[column]["type"], submethod="modifycolumn", length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
+            if "recreate" in table_data["modifycolumn"][column] and table_data["modifycolumn"][column]["recreate"] == False:
+                table_data["modifycolumn"][column] = concatenate_column(version_source["version"], table_name=table_name, column_name=column)
+
+            partial = modifycolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
+            if partial == None: continue
+            query += partial
             query += ","
 
     #### Rename column
