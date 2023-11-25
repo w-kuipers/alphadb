@@ -233,6 +233,7 @@ class AlphaDB:
                     if "altertable" in version:
                         for table in version["altertable"]:
                             query = altertable(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
+                            print(query)
                             cursor.execute(query)
 
                     #### Insert default data

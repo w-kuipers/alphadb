@@ -15,6 +15,7 @@
 
 from typing import Optional, get_args
 from alphadb.utils.types import DatabaseColumnType, Database, AlterTableSubMethod
+from alphadb.utils.exceptions import IncompleteVersionObject, IncompatibleColumnAttributes
 
 def definecolumn(
     column_name: str,

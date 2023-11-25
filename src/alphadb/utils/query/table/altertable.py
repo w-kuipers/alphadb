@@ -68,8 +68,9 @@ def altertable(version_source: dict, table_name: str, version: str, engine: Data
 
     #### Add column
     if "addcolumn" in table_data:
-        query += addcolumn(table_data)
-        query += ","
+        for column in table_data["addcolumn"]:
+            query += addcolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
+            query += ","
 
     #### Modify column
     if "modifycolumn" in table_data:
