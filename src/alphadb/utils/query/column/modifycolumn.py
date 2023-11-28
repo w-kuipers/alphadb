@@ -21,15 +21,17 @@ def modifycolumn(table_data, table_name: str, column_name: str, version: str, en
     query = ""
     column_data = prepare_definecolumn_data(table_name, column_name, table_data["modifycolumn"], version, engine)
 
-    if engine == "mysql" or engine == "sqlite":
+    #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
+    if column_data == None: return None
 
-        #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
-        if column_data == None: return None
+    if engine == "mysql" or engine == "sqlite":
         
         query += " MODIFY COLUMN"
         query += definecolumn(column_name=column_name, column_type=table_data["modifycolumn"][column_name]["type"], submethod="modifycolumn", length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
 
     elif engine == "postgres":
+        
+        query += " ALTER COLUMN"
 
 
     return query
