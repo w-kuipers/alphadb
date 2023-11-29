@@ -31,7 +31,7 @@ Yes, it's ironic. But this package is still in the alpha stage. Breaking changes
 
 ## Documentation
 
-Visit the [official documentation](https://alphadb-docs.vercel.app/)
+Visit the [official documentation](https://alphadb.w-kuipers.com/)
 
 ## Installation
 
