@@ -15,7 +15,6 @@
 
 from typing import Literal, Optional
 from alphadb.utils.common import convert_version_number
-from alphadb.utils.query.table.createtable import createtable
 
 def concatenate_column(version_list: list, table_name: str, column_name: str):
     column = {}
@@ -30,7 +29,7 @@ def concatenate_column(version_list: list, table_name: str, column_name: str):
         
         v = convert_version_number(version["_id"])
 
-        #### If the column is renamed, get historycal column name for version
+        #### If the column is renamed, get historical column name for version
         for rename in reversed(rename_data):
             if v <= rename["rename_version"]: 
                 version_column_name = rename["old_name"]
@@ -92,7 +91,6 @@ def get_column_renames(version_list: list, column_name: str, table_name: str, or
                         continue
 
                 if "renamecolumn" in version["altertable"][table_name]:
-
                     renamecolumn_values = list(version["altertable"][table_name]["renamecolumn"].values())
                     
                     #### If the current column is not the one being renamed, continue
@@ -121,21 +119,31 @@ def get_column_renames(version_list: list, column_name: str, table_name: str, or
     return rename_data
 
 def get_column_type(version_list: list, table_name: str, column_name: str):
-
     column_type = None
-
+    
+    #### If the column is renamed, get historical column name for version
+    rename_data = get_column_renames(version_list=version_list, column_name=column_name, table_name=table_name, order="ASC")
+    version_column_name = column_name
+    print(rename_data)
     for version in version_list:
+        v = convert_version_number(version["_id"])
+        for rename in reversed(rename_data):
+            if v >= rename["rename_version"]: 
+                version_column_name = rename["new_name"]
+                break ## If the name has been found, break out of the loop
+            else: version_column_name = column_name
 
+        print(v, version_column_name)
         if "createtable" in version:
             if table_name in version["createtable"]:
-                if column_name in version["createtable"][table_name]:
-                    column_type = version["createtable"][table_name][column_name]["type"]
+                if version_column_name in version["createtable"][table_name]:
+                    column_type = version["createtable"][table_name][version_column_name]["type"]
         
         if "altertable" in version:
             if table_name in version["altertable"]:
                 if "modifycolumn" in version["altertable"][table_name]:
-                    if column_name in version["altertable"][table_name]["modifycolumn"]:
-                        if "type" in version["altertable"][table_name]["modifycolumn"][column_name]:
-                            column_type = version["altertable"][table_name]["modifycolumn"][column_name]["type"]
+                    if version_column_name in version["altertable"][table_name]["modifycolumn"]:
+                        if "type" in version["altertable"][table_name]["modifycolumn"][version_column_name]:
+                            column_type = version["altertable"][table_name]["modifycolumn"][version_column_name]["type"]
 
     return column_type
