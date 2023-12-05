@@ -269,7 +269,7 @@ class AlphaDB:
         
         with self.cursor() as cursor:
             for query in queries:
-                print(query)
+
                 #### If type is typle, data is passed with the query
                 if type(query) == tuple:
                     cursor.execute(*query)

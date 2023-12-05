@@ -85,8 +85,6 @@ def altertable(version_source: dict, table_name: str, version: str, engine: Data
             #### Postgres uses custom function
             if engine == "postgres":
                 column_type = get_column_type(version_list=version_source["version"], column_name=column, table_name=table_name)
-                    
-                print(column_type)
 
                 if column_type == None:
                    raise IncompleteVersionObject() 

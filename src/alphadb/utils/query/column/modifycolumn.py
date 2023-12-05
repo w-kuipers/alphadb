@@ -38,6 +38,4 @@ def modifycolumn_postgres(table_data, table_name: str, column_name: str, column_
 
     query = ""
 
-    print(column_type)
-
     return query

@@ -124,9 +124,9 @@ def get_column_type(version_list: list, table_name: str, column_name: str):
     
     #### If the column is renamed, get historical column name for version
     rename_data = get_column_renames(version_list=version_list, column_name=column_name, table_name=table_name, order="ASC")
-    if rename_data:
-        print(min(rename_data, key=lambda x:x['rename_version']), "rename index thing")
-    version_column_name = column_name
+    print(rename_data, "1")
+    version_column_name = min(rename_data, key=lambda x:x['rename_version'])["old_name"] if rename_data else column_name
+    print(rename_data, "2")
     for version in version_list:
         v = convert_version_number(version["_id"])
         for rename in reversed(rename_data):
@@ -134,7 +134,6 @@ def get_column_type(version_list: list, table_name: str, column_name: str):
                 version_column_name = rename["new_name"]
                 break ## If the name has been found, break out of the loop
             else: version_column_name = column_name
-        print(version_column_name)
         if "createtable" in version:
             if table_name in version["createtable"]:
                 if version_column_name in version["createtable"][table_name]:
