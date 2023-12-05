@@ -99,7 +99,7 @@ def test_get_column_renames_desc():
         }
     ]
 
-    assert get_column_renames(version_list=versions, table_name="table", column_name="multiplerenamed") == [{'old_name': 'rerenamed', 'rename_version': 7}, {'old_name': 'renamed', 'rename_version': 5}, {'old_name': 'col', 'rename_version': 2}]
+    assert get_column_renames(version_list=versions, table_name="table", column_name="multiplerenamed") == [{'new_name': 'multiplerenamed', 'old_name': 'rerenamed', 'rename_version': 7}, {'new_name': 'rerenamed', 'old_name': 'renamed', 'rename_version': 5}, {'new_name': 'renamed', 'old_name': 'col', 'rename_version': 2}]
 
 def test_get_column_renames_asc():
 
@@ -200,4 +200,4 @@ def test_get_column_renames_asc():
         }
     ]
 
-    assert get_column_renames(version_list=versions, table_name="table", column_name="col", order="ASC") == [{'new_name': 'renamed', 'rename_version': 2}, {'new_name': 'rerenamed', 'rename_version': 5}, {'new_name': 'multiplerenamed', 'rename_version': 7}]
+    assert get_column_renames(version_list=versions, table_name="table", column_name="col", order="ASC") == [{'new_name': 'renamed', 'old_name': 'col', 'rename_version': 2}, {'new_name': 'rerenamed', 'old_name': 'renamed', 'rename_version': 5}, {'new_name': 'multiplerenamed', "old_name": 'rerenamed', 'rename_version': 7}]
