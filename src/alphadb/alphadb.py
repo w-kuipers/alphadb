@@ -300,7 +300,10 @@ class AlphaDB:
 
             #### Loop through tables and drop
             for t in tables:
-                cursor.execute(f"DROP TABLE {t[0]}")
+                if self.engine == "postgres":
+                    cursor.execute(f"DROP TABLE {t[0]} CASCADE")
+                else:
+                    cursor.execute(f"DROP TABLE {t[0]}")
 
             #### Enable foreign key checks in MySQL
             if self.engine == "mysql":
