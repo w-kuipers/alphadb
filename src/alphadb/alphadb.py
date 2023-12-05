@@ -231,14 +231,12 @@ class AlphaDB:
                     if "createtable" in version:
                         for table in version["createtable"]:
                             query = createtable(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
-                            # cursor.execute(query)
                             query_list.append(query)
 
                     #### Alter tables
                     if "altertable" in version:
                         for table in version["altertable"]:
                             query = altertable(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
-                            # cursor.execute(query)
                             query_list.append(query)
 
                     #### Insert default data
@@ -247,17 +245,12 @@ class AlphaDB:
                             for table in version["default_data"]:
                                 for item in version["default_data"][table]:
                                     query = create_default_data(table_name=table, item=item)
-                                    # cursor.execute(query)
                                     query_list.append(query)
             except KeyError as e:
                 raise e
             except Exception as e:
                 raise e
 
-            # cursor.execute(
-            #     f"UPDATE `{CONFIG_TABLE_NAME}` SET version={self.sql_escape_string} WHERE `db` = {self.sql_escape_string}",
-            #     (database_version_latest, self.db_name),
-            # )
             query_list.append((
                 f"UPDATE `{CONFIG_TABLE_NAME}` SET version={self.sql_escape_string} WHERE `db` = {self.sql_escape_string}",
                 (database_version_latest, self.db_name),
