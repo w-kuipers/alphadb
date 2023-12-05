@@ -13,12 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from alphadb.utils.exceptions import IncompleteVersionObject
 from alphadb.utils.types import Database
 from alphadb.utils.common import convert_version_number
 from alphadb.utils.concatenate.primary_key import get_primary_key
-from alphadb.utils.concatenate.column import get_column_renames, concatenate_column
+from alphadb.utils.concatenate.column import get_column_renames, concatenate_column, get_column_type
 from alphadb.utils.query.column.addcolumn import addcolumn
-from alphadb.utils.query.column.modifycolumn import modifycolumn
+from alphadb.utils.query.column.modifycolumn import modifycolumn, modifycolumn_postgres
 
 def altertable(version_source: dict, table_name: str, version: str, engine: Database):
     query = f" ALTER TABLE {table_name}"
@@ -78,10 +79,21 @@ def altertable(version_source: dict, table_name: str, version: str, engine: Data
     if "modifycolumn" in table_data:
         for column in table_data["modifycolumn"]:
             
-            if "recreate" in table_data["modifycolumn"][column] and table_data["modifycolumn"][column]["recreate"] == False:
+            if ("recreate" in table_data["modifycolumn"][column] and table_data["modifycolumn"][column]["recreate"] == False) and not engine == "postgres":
                 table_data["modifycolumn"][column] = concatenate_column(version_source["version"], table_name=table_name, column_name=column)
 
-            partial = modifycolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
+            #### Postgres uses custom function
+            if engine == "postgres":
+                column_type = get_column_type(version_list=version_source["version"], column_name=column, table_name=table_name)
+                    
+                print(column_type)
+
+                if column_type == None:
+                   raise IncompleteVersionObject() 
+
+                partial = modifycolumn_postgres(table_data, table_name=table_name, column_name=column, column_type=column_type, version=version)
+            else:
+                partial = modifycolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
             if partial == None: continue
             query += partial
             query += ","

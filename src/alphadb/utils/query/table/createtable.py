@@ -27,7 +27,9 @@ def createtable(version_source: dict, table_name: str, version: str, engine: Dat
 
     #### Loop through table columns
     for column in table_data:
-        column_data = prepare_definecolumn_data(table_name, column, table_data, version, engine)
+
+        #### Using method `addcolumn` as the createtable column definition is identical to the addcolumn submethod of altertable
+        column_data = prepare_definecolumn_data(table_name=table_name, column=column, table_data=table_data, version=version, engine=engine)
 
         #### If column data is null, its some attribute that should be handled later (foreign_key, primary_key, etc...)
         if column_data == None: continue

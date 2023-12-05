@@ -18,7 +18,7 @@ from alphadb.utils.query.column.definecolumn import definecolumn, prepare_define
 
 def addcolumn(table_data, table_name: str, column_name: str, version: str, engine: Database):
 
-    column_data = prepare_definecolumn_data(table_name, column_name, table_data["addcolumn"], version, engine)
+    column_data = prepare_definecolumn_data(table_name=table_name, column=column_name, table_data=table_data["addcolumn"], version=version, engine=engine)
     
     #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
     if column_data == None: return None
