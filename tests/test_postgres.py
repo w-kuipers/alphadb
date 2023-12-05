@@ -1,5 +1,4 @@
 import json
-
 import pytest
 
 from alphadb import AlphaDBPostgreSQL
@@ -19,15 +18,15 @@ def test_postgres_init():
 def test_postgres_status():
     status = db.status()
     assert status == {'init': True, 'version': '0.0.0', 'name': 'test', 'template': None}
-#
+
 # #### Update method
 # def test_postgres_update():
 #     with open("../tests/assets/test-db-structure.json") as f:
 #         structure = json.loads(f.read())
 #
 #     assert db.update(version_source=structure) == True
-#
-#
+
+
 #### Vacate method
 def test_postgres_vacate():
     #### Confirm not specified

@@ -37,7 +37,6 @@ def test_incomplete_foreign_key_object():
 
 
 def test_query():
-    #### Test all column types (MYSQL)
     test_data = wrap_partial_in_createtable({
         "primary_key": "id",
         "id": {
@@ -52,14 +51,20 @@ def test_query():
         },
     })
 
+    #### Test all column types (MYSQL)
     assert (
         createtable(table_name="table", version_source=test_data, version="0.0.1")
         == " CREATE TABLE table ( id INT NOT NULL AUTO_INCREMENT, col1 VARCHAR(30) NOT NULL UNIQUE, PRIMARY KEY (id), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE ) ENGINE = InnoDB;"
     )
 
     #### Test all column types (SQLite)
-
     assert (
         createtable(table_name="table", version_source=test_data, version="0.0.1", engine="sqlite")
+        == " CREATE TABLE table ( id INT NOT NULL, col1 VARCHAR(30) NOT NULL UNIQUE, PRIMARY KEY (id), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE );"
+    )
+
+    #### Test all column types (Postgres)
+    assert (
+        createtable(table_name="table", version_source=test_data, version="0.0.1", engine="postgres")
         == " CREATE TABLE table ( id INT NOT NULL, col1 VARCHAR(30) NOT NULL UNIQUE, PRIMARY KEY (id), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE );"
     )
