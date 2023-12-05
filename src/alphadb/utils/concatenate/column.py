@@ -15,6 +15,7 @@
 
 from typing import Literal, Optional
 from alphadb.utils.common import convert_version_number
+from alphadb.utils.query.table.createtable import createtable
 
 def concatenate_column(version_list: list, table_name: str, column_name: str):
     column = {}
@@ -118,3 +119,23 @@ def get_column_renames(version_list: list, column_name: str, table_name: str, or
                     break ## Break the loop as the current column name does not exist
 
     return rename_data
+
+def get_column_type(version_list: list, table_name: str, column_name: str):
+
+    column_type = None
+
+    for version in version_list:
+
+        if "createtable" in version:
+            if table_name in version["createtable"]:
+                if column_name in version["createtable"][table_name]:
+                    column_type = version["createtable"][table_name][column_name]["type"]
+        
+        if "altertable" in version:
+            if table_name in version["altertable"]:
+                if "modifycolumn" in version["altertable"][table_name]:
+                    if column_name in version["altertable"][table_name]["modifycolumn"]:
+                        if "type" in version["altertable"][table_name]["modifycolumn"][column_name]:
+                            column_type = version["altertable"][table_name]["modifycolumn"][column_name]["type"]
+
+    return column_type
