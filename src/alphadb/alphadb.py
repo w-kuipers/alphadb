@@ -162,7 +162,7 @@ class AlphaDB:
 
     @conn_test
     @init_test
-    def update(self, version_source, update_to_version=None, no_data=False):
+    def update_queries(self, version_source, update_to_version=None, no_data=False):
         #### Some error handling
         if version_source == None:
             raise MissingVersionData()
@@ -213,6 +213,10 @@ class AlphaDB:
                 raise DBConfigIncomplete(missing="version")
 
             try:
+                
+                #### List to be populated with queries
+                query_list = []
+
                 #### Loop through update data
                 for version in version_source["version"]:
                     #### Check if version number is larger than current version
@@ -227,14 +231,15 @@ class AlphaDB:
                     if "createtable" in version:
                         for table in version["createtable"]:
                             query = createtable(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
-                            cursor.execute(query)
+                            # cursor.execute(query)
+                            query_list.append(query)
 
                     #### Alter tables
                     if "altertable" in version:
                         for table in version["altertable"]:
                             query = altertable(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
-                            print(query)
-                            cursor.execute(query)
+                            # cursor.execute(query)
+                            query_list.append(query)
 
                     #### Insert default data
                     if no_data == False:
@@ -242,18 +247,43 @@ class AlphaDB:
                             for table in version["default_data"]:
                                 for item in version["default_data"][table]:
                                     query = create_default_data(table_name=table, item=item)
-                                    cursor.execute(query)
+                                    # cursor.execute(query)
+                                    query_list.append(query)
             except KeyError as e:
                 raise e
             except Exception as e:
                 raise e
 
-            cursor.execute(
+            # cursor.execute(
+            #     f"UPDATE `{CONFIG_TABLE_NAME}` SET version={self.sql_escape_string} WHERE `db` = {self.sql_escape_string}",
+            #     (database_version_latest, self.db_name),
+            # )
+            query_list.append((
                 f"UPDATE `{CONFIG_TABLE_NAME}` SET version={self.sql_escape_string} WHERE `db` = {self.sql_escape_string}",
                 (database_version_latest, self.db_name),
-            )
+            ))
 
-            return True
+            return query_list
+    
+    
+    @conn_test
+    @init_test
+    def update(self, version_source, update_to_version=None, no_data=False):
+
+        queries = self.update_queries(version_source=version_source, update_to_version=update_to_version, no_data=no_data)
+    
+        if queries == "up-to-date": return "up-to-date"
+        
+        with self.cursor() as cursor:
+            for query in queries:
+
+                #### If type is typle, data is passed with the query
+                if type(query) == tuple:
+                    cursor.execute(*query)
+                else:
+                    cursor.execute(query)
+
+        return True
 
     @conn_test
     def vacate(self, confirm=False):
