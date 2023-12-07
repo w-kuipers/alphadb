@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from os import rename
 from typing import Literal, Optional
 from alphadb.utils.common import convert_version_number
 
@@ -115,25 +116,27 @@ def get_column_renames(version_list: list, column_name: str, table_name: str, or
 
                     #### Now recursively call it again with the new column column_name
                     rename_data += get_column_renames(version_list, name, table_name, order)
+                    print(v, column_name, rename_data)
                     break ## Break the loop as the current column name does not exist
-
+   
     return rename_data
 
 def get_column_type(version_list: list, table_name: str, column_name: str):
     column_type = None
     
-    #### If the column is renamed, get historical column name for version
+    #### If the column is renamed, get the original name
     rename_data = get_column_renames(version_list=version_list, column_name=column_name, table_name=table_name, order="ASC")
-    print(rename_data, "1")
     version_column_name = min(rename_data, key=lambda x:x['rename_version'])["old_name"] if rename_data else column_name
-    print(rename_data, "2")
+    print(table_name, column_name, version_column_name)
     for version in version_list:
+        
+        #### Get the column name for the current version
         v = convert_version_number(version["_id"])
         for rename in reversed(rename_data):
             if v >= rename["rename_version"]: 
                 version_column_name = rename["new_name"]
                 break ## If the name has been found, break out of the loop
-            else: version_column_name = column_name
+
         if "createtable" in version:
             if table_name in version["createtable"]:
                 if version_column_name in version["createtable"][table_name]:
