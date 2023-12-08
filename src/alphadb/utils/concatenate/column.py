@@ -116,7 +116,6 @@ def get_column_renames(version_list: list, column_name: str, table_name: str, or
 
                     #### Now recursively call it again with the new column column_name
                     rename_data += get_column_renames(version_list, name, table_name, order)
-                    print(v, column_name, rename_data)
                     break ## Break the loop as the current column name does not exist
    
     return rename_data
@@ -125,9 +124,8 @@ def get_column_type(version_list: list, table_name: str, column_name: str):
     column_type = None
     
     #### If the column is renamed, get the original name
-    rename_data = get_column_renames(version_list=version_list, column_name=column_name, table_name=table_name, order="ASC")
+    rename_data = get_column_renames(version_list=version_list, column_name=column_name, table_name=table_name)
     version_column_name = min(rename_data, key=lambda x:x['rename_version'])["old_name"] if rename_data else column_name
-    print(table_name, column_name, version_column_name)
     for version in version_list:
         
         #### Get the column name for the current version
