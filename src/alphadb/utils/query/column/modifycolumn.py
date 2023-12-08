@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from alphadb.utils.types import Database
+from typing import get_args
+from alphadb.utils.types import Database, DatabaseColumnType
 from alphadb.utils.query.column.definecolumn import prepare_definecolumn_data, definecolumn
 
 def modifycolumn(table_data, table_name: str, column_name: str, version: str, engine: Database):
@@ -37,7 +38,16 @@ def modifycolumn(table_data, table_name: str, column_name: str, version: str, en
 def modifycolumn_postgres(table_data, table_name: str, column_name: str, column_type: str, version: str):
 
     query = ""
+    for col in table_data["modifycolumn"]:
+        
+        #### Check if column type is supported
+        if not column_type.upper() in get_args(DatabaseColumnType):
+            raise ValueError(f"Column type {column_type} is not (yet) supported.")
+        
+        query += " ALTER COLUMN"
 
-    
+        if "type" in table_data["modifycolumn"][col]:
+            query += f" TYPE {table_data["modifycolumn"][col]["type"]}"
 
     return query
+
