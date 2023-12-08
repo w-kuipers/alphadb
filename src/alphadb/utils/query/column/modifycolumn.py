@@ -28,26 +28,42 @@ def modifycolumn(table_data, table_name: str, column_name: str, version: str, en
     #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
     if column_data == None: return None
 
-    if engine == "mysql" or engine == "sqlite":
-        
-        query += " MODIFY COLUMN"
-        query += definecolumn(column_name=column_name, column_type=table_data["modifycolumn"][column_name]["type"], submethod="modifycolumn", length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
+    query += " MODIFY COLUMN"
+    query += definecolumn(column_name=column_name, column_type=table_data["modifycolumn"][column_name]["type"], submethod="modifycolumn", length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
 
     return query
 
 def modifycolumn_postgres(table_data, table_name: str, column_name: str, column_type: str, version: str):
 
     query = ""
-    for col in table_data["modifycolumn"]:
-        
-        #### Check if column type is supported
-        if not column_type.upper() in get_args(DatabaseColumnType):
-            raise ValueError(f"Column type {column_type} is not (yet) supported.")
-        
-        query += " ALTER COLUMN"
+    altercolumn_base = f" ALTER COLUMN {column_name}"
+    this_column = table_data["modifycolumn"][column_name]
 
-        if "type" in table_data["modifycolumn"][col]:
-            query += f" TYPE {table_data["modifycolumn"][col]["type"]}"
+    #### Check if column type is supported
+    if not column_type.upper() in get_args(DatabaseColumnType):
+        raise ValueError(f"Column type {column_type} is not (yet) supported.")
+
+    #### Unique 
+    if "unique" in this_column:
+        if this_column["unique"] == True:
+            query += f" ADD CONSTRAINT {column_name}_u UNIQUE ({column_name}),"
+        else:
+            query += f" DROP CONSTRAINT {column_name}_u"     
+
+    ###y Type
+    if "type" in this_column:
+        query += f" {altercolumn_base} TYPE {this_column["type"]}"
+
+        if "length" in this_column:
+            query += f"({this_column["length"]})"
+
+    #### Null
+    if "null" in this_column:
+        if this_column["null"] == True:
+            query += f" {altercolumn_base} DROP NOT NULL"
+        else:
+            query += f" {altercolumn_base} SET NOT NULL"
+
 
     return query
 

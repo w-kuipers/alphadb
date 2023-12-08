@@ -96,7 +96,8 @@
           "modifycolumn": {
             "wasoriginalycol1": {
               "recreate": false,
-              "length": 30
+              "length": 30,
+              "type": "VARCHAR"
             }
           }
         }
