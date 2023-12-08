@@ -95,6 +95,7 @@
         "table2": {
           "modifycolumn": {
             "wasoriginalycol1": {
+              "recreate": false,
               "length": 30
             }
           }
