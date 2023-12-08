@@ -34,6 +34,11 @@ SQLEscapeString = Literal["?", "%s"]
 Method = Literal["createtable"] | Literal["altertable"]
 Method.__doc__ = "Available version source methods"
 
-ValidationIssueLevel = Literal["LOW"] | Literal["NORMAL"] | Literal["CRITICAL"]
+ValidationIssueLevel = Literal["LOW"] | Literal["HIGH"] | Literal["CRITICAL"]
+ValidationIssueLevel.__doc__ = """
+LOW: Will work, but will not have any effect on the database.
+HIGH: Will still work, but might produce a different result than desired.
+CRITICAL: Will not execute.
+"""
 ValidationIssuesList = List[Tuple[ValidationIssueLevel, str]]
 ValidationIssuesList.__doc__ = "An issue is structured like Tuple(level, issue)"
