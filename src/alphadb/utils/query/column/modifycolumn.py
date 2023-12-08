@@ -19,7 +19,7 @@ from alphadb.utils.query.column.definecolumn import prepare_definecolumn_data, d
 def modifycolumn(table_data, table_name: str, column_name: str, version: str, engine: Database):
     
     #### Postgres uses the custom `modifycolumn_postgres` function
-    if engine == "postgres": raise ValueError("Postgres uses custom `modifycolumn_postgres` function instead of this `modifycolumn` one.")
+    if engine == "postgres": raise ValueError("Postgres uses custom `modifycolumn_postgres` function instead of the `modifycolumn` one.")
 
     query = ""
     column_data = prepare_definecolumn_data(table_name=table_name, column=column_name, table_data=table_data["modifycolumn"], version=version, engine=engine)
@@ -37,5 +37,7 @@ def modifycolumn(table_data, table_name: str, column_name: str, version: str, en
 def modifycolumn_postgres(table_data, table_name: str, column_name: str, column_type: str, version: str):
 
     query = ""
+
+    
 
     return query
