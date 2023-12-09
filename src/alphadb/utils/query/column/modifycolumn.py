@@ -16,6 +16,7 @@
 from typing import get_args
 from alphadb.utils.types import Database, DatabaseColumnType
 from alphadb.utils.query.column.definecolumn import prepare_definecolumn_data, definecolumn
+from alphadb.utils.exceptions import IncompatibleColumnAttributes
 
 def modifycolumn(table_data, table_name: str, column_name: str, version: str, engine: Database):
     
@@ -38,24 +39,46 @@ def modifycolumn_postgres(table_data, table_name: str, column_name: str, column_
     query = ""
     altercolumn_base = f" ALTER COLUMN {column_name}"
     this_column = table_data["modifycolumn"][column_name]
-
+    print(column_type)
     #### Check if column type is supported
     if not column_type.upper() in get_args(DatabaseColumnType):
         raise ValueError(f"Column type {column_type} is not (yet) supported.")
 
-    #### Unique 
+    #### Will only be used for type compatibility checks
+    qnull = this_column["null"] if "null" in this_column else False
+    qunique = this_column["unique"] if "unique" in this_column else False
+    qautoincrement = this_column["a_i"] if "a_i" in this_column else False
+
+    #### Check for column type compatibility with AUTO_INCREMENT
+    incompatible_types_with_autoincrement = ["varchar", "text", "longtext", "datetime", "decimal", "json"]
+    if column_type.lower() in incompatible_types_with_autoincrement and qautoincrement == True:
+        raise IncompatibleColumnAttributes(f"type=={column_type}", "AUTO_INCREMENT")
+
+    #### Check for column type compatibility with UNIQUE
+    incompatible_types_with_unique = [
+        "json",
+    ]
+    if column_type.lower() in incompatible_types_with_unique and qunique == True:
+        raise IncompatibleColumnAttributes(f"type=={column_type}", "UNIQUE")
+
+    #### Null will be ignored by the database engine when AUTO_INCREMENT is specified
+    if qnull == True and qautoincrement == True:
+        raise IncompatibleColumnAttributes("NULL", "AUTO_INCREMENT")
+
+    #### Unique (Not using the 'qunique' var because this should only be executed if unique is actually specified in the vs) 
     if "unique" in this_column:
         if this_column["unique"] == True:
             query += f" ADD CONSTRAINT {column_name}_u UNIQUE ({column_name}),"
         else:
-            query += f" DROP CONSTRAINT {column_name}_u"     
+            query += f" DROP CONSTRAINT {column_name}_u"
 
-    ###y Type
+    #### Type
     if "type" in this_column:
-        query += f" {altercolumn_base} TYPE {this_column["type"]}"
+
+        query += f" {altercolumn_base} TYPE {this_column['type']}"
 
         if "length" in this_column:
-            query += f"({this_column["length"]})"
+            query += f"({this_column['length']})"
 
     #### Null
     if "null" in this_column:
