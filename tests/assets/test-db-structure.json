@@ -8,6 +8,7 @@
           "primary_key": "col1",
           "col1": {
             "type": "INT",
+            "length": 7,
             "a_i": true
           },
           "col2": {
@@ -97,7 +98,7 @@
             "wasoriginalycol1": {
               "recreate": false,
               "length": 30,
-              "type": "VARCHAR"
+              "type": "TINYINT"
             }
           }
         }

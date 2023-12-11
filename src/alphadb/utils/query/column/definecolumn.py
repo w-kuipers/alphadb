@@ -14,13 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Optional, get_args
-from alphadb.utils.types import DatabaseColumnType, Database, AlterTableSubMethod
+from alphadb.utils.types import DatabaseColumnType, Database, DatabaseColumnTypeIntVariations
 from alphadb.utils.exceptions import IncompleteVersionObject, IncompatibleColumnAttributes
 
 def definecolumn(
     column_name: str,
     column_type: DatabaseColumnType,
-    submethod: Optional[AlterTableSubMethod] = None,
     engine: Database = "mysql",
     null: bool = False,
     length: Optional[int] = None,
@@ -32,21 +31,25 @@ def definecolumn(
     if not column_type.upper() in get_args(DatabaseColumnType):
         raise ValueError(f"Column type {column_type} is not (yet) supported.")
 
-    #### Define query base
-    if engine == "postgres" and submethod == "modifycolumn":
-        query = f" {column_name} TYPE {column_type}"
-    else:
-        query = f" {column_name} {column_type}"
+    query = f" {column_name} {column_type}"
 
     #### If length is defined, add it to query
     if not length == None:
-        query += f"({length})"
+        
+        #### If length is defined for a TEXT column, add a constraint as Postgres does not support type modifiers for type TEXT
+        if engine == "postgres" and column_type == "TEXT" or column_type == "LONGTEXT":
+            query += f" CONSTRAINT {column_name}_tl CHECK (char_length({column_name}) <= {length})"
+        else:
+
+            #### Postgres can't set the length modifier for INT types
+            if not (engine == "postgres" and column_type in get_args(DatabaseColumnTypeIntVariations)):
+                query += f"({length})"
 
     #### Null
     query += " NULL" if null else " NOT NULL"
 
-    #### Unique
-    if unique:
+    #### Unique (For postgres this is added as a table constraint in the createtable_postgres function)
+    if unique and not engine == "postgres":
         query += " UNIQUE"
 
     #### Default:

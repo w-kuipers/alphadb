@@ -16,20 +16,19 @@
 from typing import Literal
 
 Database = Literal["mysql", "sqlite", "postgres"]
+
+DatabaseColumnTypeIntVariations = Literal["INT", "TINYINT", "BIGINT"]
+DatabaseColumnTypeTextVariations = Literal["TEXT", "LONGTEXT"]
 DatabaseColumnType = Literal[
-    "INT",
+    DatabaseColumnTypeIntVariations,
+    DatabaseColumnTypeTextVariations,
     "FLOAT",
     "DECIMAL",
     "VARCHAR",
-    "TEXT",
-    "LONGTEXT",
-    "BIGINT",
-    "TINYINT",
     "DATETIME",
     "JSON",
 ]
 
-AlterTableSubMethod = Literal["addcolumn"] | Literal["modifycolumn"]
-
 SQLEscapeString = Literal["?", "%s"]
 
+Constraint = Literal[""]

@@ -18,7 +18,7 @@ from alphadb.utils.decorators import conn_test, init_test
 from alphadb.utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseEngineSpecified
 from alphadb.utils.globals import CONFIG_TABLE_NAME
 from alphadb.utils.query.default_data import create_default_data
-from alphadb.utils.query.table.createtable import createtable
+from alphadb.utils.query.table.createtable import createtable, createtable_postgres
 from alphadb.utils.query.table.altertable import altertable
 from alphadb.utils.types import Database, SQLEscapeString
 
@@ -230,7 +230,10 @@ class AlphaDB:
                     #### Create tables
                     if "createtable" in version:
                         for table in version["createtable"]:
-                            query = createtable(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
+                            if self.engine == "postgres":
+                                query = createtable_postgres(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
+                            else:
+                                query = createtable(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
                             query_list.append(query)
 
                     #### Alter tables

@@ -16,7 +16,7 @@
 from alphadb.utils.types import Database
 from alphadb.utils.common import convert_version_number
 from alphadb.utils.concatenate.primary_key import get_primary_key
-from alphadb.utils.concatenate.column import get_column_renames, concatenate_column, get_column_type
+from alphadb.utils.concatenate.column import get_column_renames, concatenate_column
 from alphadb.utils.query.column.addcolumn import addcolumn
 from alphadb.utils.query.column.modifycolumn import modifycolumn, modifycolumn_postgres
 
@@ -87,8 +87,6 @@ def altertable(version_source: dict, table_name: str, version: str, engine: Data
                 partial = modifycolumn_postgres(version_list=version_source["version"], table_name=table_name, column_name=column, version=version)
             else:
                 partial = modifycolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
-
-            print(partial, version, column)
 
             #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
             if partial == None: continue

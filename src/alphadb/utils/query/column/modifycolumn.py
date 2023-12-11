@@ -14,10 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import get_args
-from alphadb.utils.types import Database, DatabaseColumnType
+from alphadb.utils.types import Database, DatabaseColumnType, DatabaseColumnTypeIntVariations
 from alphadb.utils.query.column.definecolumn import prepare_definecolumn_data, definecolumn
 from alphadb.utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionObject
-from alphadb.utils.concatenate.column import concatenate_column, get_column_type
+from alphadb.utils.concatenate.column import concatenate_column
 
 def modifycolumn(table_data, table_name: str, column_name: str, version: str, engine: Database):
     
@@ -31,7 +31,7 @@ def modifycolumn(table_data, table_name: str, column_name: str, version: str, en
     if column_data == None: return None
 
     query += " MODIFY COLUMN"
-    query += definecolumn(column_name=column_name, column_type=table_data["modifycolumn"][column_name]["type"], submethod="modifycolumn", length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
+    query += definecolumn(column_name=column_name, column_type=table_data["modifycolumn"][column_name]["type"], length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
 
     return query
 
@@ -77,21 +77,43 @@ def modifycolumn_postgres(version_list: list, table_name: str, column_name: str,
         if this_column["unique"] == True:
             query += f" ADD CONSTRAINT {column_name}_u UNIQUE ({column_name}),"
         else:
-            query += f" DROP CONSTRAINT {column_name}_u"
+            query += f" DROP CONSTRAINT {column_name}_u,"
 
     #### Type
     if "type" in this_column:
+        this_column_type = this_column["type"]
+
+        #### Postgres does not have a LONGTEXT datatype
+        if this_column_type == "LONGTEXT": this_column_type = "TEXT"
+
+        #### If length is defined for a TEXT column, add a constraint as Postgres does not support type modifiers for type TEXT
+        if this_column_type == "TEXT" and "length" in this_column:
+            query += f" ADD CONSTRAINT {column_name}_tl CHECK (char_length({column_name}) <= {this_column["length"]}),"
 
         query += f"{altercolumn_base} TYPE {this_column['type']}"
-
         if "length" in this_column:
-            query += f"({this_column['length']})"
+
+            #### Constraint for TEXT length is added already
+            if not this_column_type == "TEXT":
+                #### Postgres can't set the length modifier for INT types
+                if not this_column_type in get_args(DatabaseColumnTypeIntVariations):
+                    query += f"({this_column['length']})"
+
+        query += ","
+
+    #### Length if type is not defined
+    else:
+        if "length" in this_column:
+            query += f"{altercolumn_base} TYPE {concatenated['type']}({this_column['length']}),"
 
     #### Null
     if "null" in this_column:
         if this_column["null"] == True:
-            query += f"{altercolumn_base} DROP NOT NULL"
+            query += f"{altercolumn_base} DROP NOT NULL,"
         else:
-            query += f"{altercolumn_base} SET NOT NULL"
+            query += f"{altercolumn_base} SET NOT NULL,"
+
+    #### Remove trailing comma
+    query = query[:-1]
 
     return query
