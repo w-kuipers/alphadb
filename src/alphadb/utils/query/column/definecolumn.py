@@ -79,22 +79,18 @@ def prepare_definecolumn_data(table_name: str, column: str, table_data: dict, ve
     #### Check for column type compatibility with AUTO_INCREMENT
     incompatible_types_with_autoincrement = ["varchar", "text", "longtext", "datetime", "decimal", "json"]
     if table_data[column]["type"].lower() in incompatible_types_with_autoincrement and qautoincrement == True:
-        raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "AUTO_INCREMENT")
+        raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "AUTO_INCREMENT", version = f"Version {version}->{table_name}->{column}")
 
     #### Check for column type compatibility with UNIQUE
     incompatible_types_with_unique = [
         "json",
     ]
     if table_data[column]["type"].lower() in incompatible_types_with_unique and qunique == True:
-        raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "UNIQUE")
+        raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "UNIQUE", version=f"Version {version}->{table_name}->{column}")
 
     #### Null will be ignored by the database engine when AUTO_INCREMENT is specified
     if qnull == True and qautoincrement == True:
-        raise IncompatibleColumnAttributes("NULL", "AUTO_INCREMENT")
-
-    #### In Postgres, TEXT is not allowed to have a length specified
-    if table_data[column]["type"] == "TEXT" and engine == "postgres":
-       qlength = None 
+        raise IncompatibleColumnAttributes("NULL", "AUTO_INCREMENT", version=f"Version {version}->{table_name}->{column}")
 
     return {
         "length": qlength,

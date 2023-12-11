@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from alphadb.utils.exceptions import IncompleteVersionObject
 from alphadb.utils.types import Database
 from alphadb.utils.common import convert_version_number
 from alphadb.utils.concatenate.primary_key import get_primary_key
@@ -84,14 +83,14 @@ def altertable(version_source: dict, table_name: str, version: str, engine: Data
 
             #### Postgres uses custom function
             if engine == "postgres":
-                column_type = get_column_type(version_list=version_source["version"], column_name=column, table_name=table_name)
 
-                if column_type == None:
-                   raise IncompleteVersionObject() 
-
-                partial = modifycolumn_postgres(table_data, table_name=table_name, column_name=column, column_type=column_type, version=version)
+                partial = modifycolumn_postgres(version_list=version_source["version"], table_name=table_name, column_name=column, version=version)
             else:
                 partial = modifycolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
+
+            print(partial, version, column)
+
+            #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
             if partial == None: continue
             query += partial
             query += ","
