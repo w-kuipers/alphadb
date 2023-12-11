@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .globals import CONFIG_TABLE_NAME
-
+from typing import Optional
 
 class NoConnection(Exception):
     def __init__(self):
@@ -78,12 +78,19 @@ class MissingDependencies(ModuleNotFoundError):
 
 
 class IncompatibleColumnAttributes(ValueError):
-    def __init__(self, *args) -> None:
+    def __init__(self, *args, version:Optional[str]=None) -> None:
         attr_list = []
         for attr in args:
             attr_list.append(f'"{attr}"')
 
-        super().__init__(f'Column attributes {", ".join(attr_list)} are not compatible.')
+        message = ""
+
+        if not version == None:
+            message += f"{version}: "
+        
+        message += f'Column attributes {", ".join(attr_list)} are not compatible.'
+
+        super().__init__(message)
 
 class VersionSourceValueError(ValueError):
     def __init__(self, message: str):
