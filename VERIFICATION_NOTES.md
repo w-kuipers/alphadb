@@ -5,3 +5,4 @@
 ### Postgres
 - **HIGH** Priority: `rebuild` will be ignored for `postgres` databases.
 - **HIGH** Priority: `length` attribute on a column with type `text` will be ignored for `postgres` databases.
+- **LOW** Priority: `LONGTEXT` datatype will be changed to `TEXT` for postgres databased. 
