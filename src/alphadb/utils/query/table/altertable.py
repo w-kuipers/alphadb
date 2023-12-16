@@ -13,12 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from alphadb.utils.types import Database
 from alphadb.utils.common import convert_version_number
+from alphadb.utils.concatenate.column import concatenate_column, get_column_renames
 from alphadb.utils.concatenate.primary_key import get_primary_key
-from alphadb.utils.concatenate.column import get_column_renames, concatenate_column
 from alphadb.utils.query.column.addcolumn import addcolumn
 from alphadb.utils.query.column.modifycolumn import modifycolumn, modifycolumn_postgres
+from alphadb.utils.types import Database
+
 
 def altertable(version_source: dict, table_name: str, version: str, engine: Database):
     query = f" ALTER TABLE {table_name}"
@@ -33,33 +34,25 @@ def altertable(version_source: dict, table_name: str, version: str, engine: Data
         old_primary_key = get_primary_key(version_source["version"], table_name=table_name, before_version=version)
 
         if not old_primary_key == None:
-
             column_renames = get_column_renames(version_source["version"], column_name=old_primary_key, table_name=table_name, order="ASC")
 
             #### If the column is renamed, get historycal column name for version
             version_column_name = old_primary_key
             for rename in reversed(column_renames):
-                if convert_version_number(version) >= rename["rename_version"]: 
+                if convert_version_number(version) >= rename["rename_version"]:
                     version_column_name = rename["new_name"]
-                    break ## If the name has been found, break out of the loop
-                else: version_column_name = old_primary_key
-            
+                    break  ## If the name has been found, break out of the loop
+                else:
+                    version_column_name = old_primary_key
+
             #### Append change to modifycolumn
             if "modifycolumn" in table_data:
                 if version_column_name in table_data["modifycolumn"]:
                     table_data["modifycolumn"][version_column_name]["a_i"] = False
                 else:
-                    table_data["modifycolumn"][version_column_name] = {
-                        "recreate": False,
-                        "a_i": False
-                    }
+                    table_data["modifycolumn"][version_column_name] = {"recreate": False, "a_i": False}
             else:
-                table_data["modifycolumn"] = {
-                    version_column_name: {
-                        "recreate": False,
-                        "a_i": False
-                    }
-                }
+                table_data["modifycolumn"] = {version_column_name: {"recreate": False, "a_i": False}}
     #### Drop column
     if "dropcolumn" in table_data:
         for column in table_data["dropcolumn"]:
@@ -69,27 +62,27 @@ def altertable(version_source: dict, table_name: str, version: str, engine: Data
     #### Add column
     if "addcolumn" in table_data:
         for column in table_data["addcolumn"]:
-            partial =  addcolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
-            if partial == None: continue
+            partial = addcolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
+            if partial == None:
+                continue
             query += partial
             query += ","
 
     #### Modify column
     if "modifycolumn" in table_data:
         for column in table_data["modifycolumn"]:
-            
             if ("recreate" in table_data["modifycolumn"][column] and table_data["modifycolumn"][column]["recreate"] == False) and not engine == "postgres":
                 table_data["modifycolumn"][column] = concatenate_column(version_source["version"], table_name=table_name, column_name=column)
 
             #### Postgres uses custom function
             if engine == "postgres":
-
                 partial = modifycolumn_postgres(version_list=version_source["version"], table_name=table_name, column_name=column, version=version)
             else:
                 partial = modifycolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
 
             #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
-            if partial == None: continue
+            if partial == None:
+                continue
             query += partial
             query += ","
 
@@ -102,10 +95,9 @@ def altertable(version_source: dict, table_name: str, version: str, engine: Data
     #### Alter/drop primary key
     if "primary_key" in table_data:
         if table_data["primary_key"] == None:
+            query += " DROP PRIMARY KEY"  ## Fails when AI, AI column must be key
+            query += ","
 
-                query += " DROP PRIMARY KEY" ## Fails when AI, AI column must be key
-                query += ","
-        
         #### Change the primary key
         if table_data["primary_key"] in table_data:
             ...
