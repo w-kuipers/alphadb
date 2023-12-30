@@ -32,7 +32,6 @@ class AlphaDBMySQL(AlphaDB):
     cursor: Callable[..., MySQLCursor]
 
     def __init__(self):
-        self.get_sql_escape_string()
         self.connection = None
 
     def connect(self, host: str, password: str, user: str, database: str, port: int = 3306) -> bool:

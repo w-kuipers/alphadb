@@ -15,8 +15,6 @@
 
 from typing import Literal
 
-Database = Literal["mysql", "sqlite", "postgres"]
-
 DatabaseColumnTypeIntVariations = Literal["INT", "TINYINT", "BIGINT"]
 DatabaseColumnTypeTextVariations = Literal["TEXT", "LONGTEXT"]
 DatabaseColumnType = Literal[
@@ -28,7 +26,3 @@ DatabaseColumnType = Literal[
     "DATETIME",
     "JSON",
 ]
-
-SQLEscapeString = Literal["?", "%s"]
-
-Constraint = Literal[""]

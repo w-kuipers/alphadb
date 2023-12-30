@@ -14,31 +14,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Callable
+
 from alphadb.utils.decorators import conn_test, init_test
 from alphadb.utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseEngineSpecified
 from alphadb.utils.globals import CONFIG_TABLE_NAME
 from alphadb.utils.query.default_data import create_default_data
-from alphadb.utils.query.table.createtable import createtable, createtable_postgres
 from alphadb.utils.query.table.altertable import altertable
-from alphadb.utils.types import Database, SQLEscapeString
+from alphadb.utils.query.table.createtable import createtable
+
 
 class AlphaDB:
-    engine: Database
-    sql_escape_string: SQLEscapeString
     db_name: str
     cursor: Callable
 
-    def __init__(self, engine: Database):
-        self.engine = engine
-        self.get_sql_escape_string()
-
+    def __init__(self):
         self.connection = None
-
-    def get_sql_escape_string(self):
-        if self.engine == "mysql" or self.engine == "postgres":
-            self.sql_escape_string = "%s"
-        if self.engine == "sqlite":
-            self.sql_escape_string = "?"
 
     @conn_test
     def check(self):
@@ -50,23 +40,10 @@ class AlphaDB:
             current_version = None
 
             #### Check if the config table (adb_conf) exists
-            if self.engine == "mysql":
-                cursor.execute(
-                    f"SELECT table_name FROM information_schema.tables WHERE table_schema = {self.sql_escape_string} AND table_name = {self.sql_escape_string}",
-                    (self.db_name, CONFIG_TABLE_NAME),
-                )
-
-            if self.engine == "postgres":
-                cursor.execute(
-                    f"SELECT 1 FROM information_schema.tables WHERE table_name = {self.sql_escape_string}",
-                    (CONFIG_TABLE_NAME,)
-                )
-
-            if self.engine == "sqlite":
-                cursor.execute(
-                    f"SELECT name FROM sqlite_master WHERE type='table' AND name={self.sql_escape_string};",
-                    (CONFIG_TABLE_NAME,),
-                )
+            cursor.execute(
+                f"SELECT table_name FROM information_schema.tables WHERE table_schema = %s AND table_name = %s",
+                (self.db_name, CONFIG_TABLE_NAME),
+            )
 
             table_check = cursor.fetchall()
 
@@ -74,7 +51,7 @@ class AlphaDB:
             fetched = None
             if table_check:
                 cursor.execute(
-                    f"SELECT version FROM {CONFIG_TABLE_NAME} WHERE db = {self.sql_escape_string}",
+                    f"SELECT version FROM {CONFIG_TABLE_NAME} WHERE db = %s",
                     (self.db_name,),
                 )
                 fetched = cursor.fetchone()
@@ -95,14 +72,11 @@ class AlphaDB:
         try:
             with self.cursor() as cursor:
                 #### Create configuration table
-                if self.engine == "sqlite" or self.engine == "postgres":
-                    cursor.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG_TABLE_NAME} (db VARCHAR(100) NOT NULL, version VARCHAR(50) NOT NULL, version_source_template VARCHAR(50) NULL, PRIMARY KEY (db));")
-                else:
-                    cursor.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG_TABLE_NAME} (db VARCHAR(100) NOT NULL, version VARCHAR(50) NOT NULL, version_source_template VARCHAR(50) NULL, PRIMARY KEY (db)) ENGINE = InnoDB;")
+                cursor.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG_TABLE_NAME} (db VARCHAR(100) NOT NULL, version VARCHAR(50) NOT NULL, version_source_template VARCHAR(50) NULL, PRIMARY KEY (db)) ENGINE = InnoDB;")
 
                 #### Set the version to 0.0.0
                 cursor.execute(
-                    f"INSERT INTO {CONFIG_TABLE_NAME} (db, version) values ({self.sql_escape_string}, {self.sql_escape_string})",
+                    f"INSERT INTO {CONFIG_TABLE_NAME} (db, version) values (%s, %s)",
                     (self.db_name, "0.0.0"),
                 )
         except Exception as e:
@@ -119,30 +93,17 @@ class AlphaDB:
             #### Check if adb_conf (fmm config table) exists
 
             #### Check if the config table (adb_conf) exists
-            if self.engine == "mysql":
-                cursor.execute(
-                    f"SELECT table_name FROM information_schema.tables WHERE table_schema = {self.sql_escape_string} AND table_name = {self.sql_escape_string}",
-                    (self.db_name, CONFIG_TABLE_NAME),
-                )
-
-            if self.engine == "postgres":
-                cursor.execute(
-                    f"SELECT 1 FROM information_schema.tables WHERE table_name = {self.sql_escape_string}",
-                    (CONFIG_TABLE_NAME,)
-                )
-
-            if self.engine == "sqlite":
-                cursor.execute(
-                    f"SELECT name FROM sqlite_master WHERE type='table' AND name={self.sql_escape_string};",
-                    (CONFIG_TABLE_NAME,),
-                )
+            cursor.execute(
+                f"SELECT table_name FROM information_schema.tables WHERE table_schema = %s AND table_name = %s",
+                (self.db_name, CONFIG_TABLE_NAME),
+            )
             table_check = cursor.fetchall()
 
             #### If it exists, get current version
             fetched = None
             if table_check:
                 cursor.execute(
-                    f"SELECT version, version_source_template FROM {CONFIG_TABLE_NAME} WHERE db = {self.sql_escape_string}",
+                    f"SELECT version, version_source_template FROM {CONFIG_TABLE_NAME} WHERE db = %s",
                     (self.db_name,),
                 )
                 fetched = cursor.fetchone()
@@ -169,13 +130,13 @@ class AlphaDB:
         else:
             if not "version" in version_source or not "name" in version_source:
                 raise IncompleteVersionData()
-        
+
         #### Start update process
         database_version = None
         with self.cursor() as cursor:
             try:
                 cursor.execute(
-                    f"SELECT version, version_source_template FROM {CONFIG_TABLE_NAME} WHERE db = {self.sql_escape_string}",
+                    f"SELECT version, version_source_template FROM {CONFIG_TABLE_NAME} WHERE db = %s",
                     (self.db_name,),
                 )
                 db_data = cursor.fetchone()
@@ -186,7 +147,7 @@ class AlphaDB:
                         #### If no template is defined, use the current one
                         if db_data[1] == None:
                             cursor.execute(
-                                f"UPDATE {CONFIG_TABLE_NAME} SET version_source_template = '{version_source['name']}' WHERE db = {self.sql_escape_string}",
+                                f"UPDATE {CONFIG_TABLE_NAME} SET version_source_template = '{version_source['name']}' WHERE db = %s",
                                 (self.db_name,),
                             )
                         else:
@@ -213,7 +174,6 @@ class AlphaDB:
                 raise DBConfigIncomplete(missing="version")
 
             try:
-                
                 #### List to be populated with queries
                 query_list = []
 
@@ -230,16 +190,13 @@ class AlphaDB:
                     #### Create tables
                     if "createtable" in version:
                         for table in version["createtable"]:
-                            if self.engine == "postgres":
-                                query = createtable_postgres(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
-                            else:
-                                query = createtable(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
+                            query = createtable(version_source=version_source, table_name=table, version=version["_id"])
                             query_list.append(query)
 
                     #### Alter tables
                     if "altertable" in version:
                         for table in version["altertable"]:
-                            query = altertable(version_source=version_source, table_name=table, version=version["_id"], engine=self.engine)
+                            query = altertable(version_source=version_source, table_name=table, version=version["_id"])
                             query_list.append(query)
 
                     #### Insert default data
@@ -254,25 +211,25 @@ class AlphaDB:
             except Exception as e:
                 raise e
 
-            query_list.append((
-                f"UPDATE `{CONFIG_TABLE_NAME}` SET version={self.sql_escape_string} WHERE `db` = {self.sql_escape_string}",
-                (database_version_latest, self.db_name),
-            ))
+            query_list.append(
+                (
+                    f"UPDATE `{CONFIG_TABLE_NAME}` SET version=%s WHERE `db` = %s",
+                    (database_version_latest, self.db_name),
+                )
+            )
 
             return query_list
-    
-    
+
     @conn_test
     @init_test
     def update(self, version_source, update_to_version=None, no_data=False):
-
         queries = self.update_queries(version_source=version_source, update_to_version=update_to_version, no_data=no_data)
-    
-        if queries == "up-to-date": return "up-to-date"
-        
+
+        if queries == "up-to-date":
+            return "up-to-date"
+
         with self.cursor() as cursor:
             for query in queries:
-
                 #### If type is typle, data is passed with the query
                 if type(query) == tuple:
                     cursor.execute(*query)
@@ -287,30 +244,14 @@ class AlphaDB:
             raise NeedsConfirmation()
 
         with self.cursor() as cursor:
-            #### Disable foreign key checks in MySQL
-            if self.engine == "mysql":
-                cursor.execute("SET foreign_key_checks = 0;")
-            
-            #### Get all tables in database
-            if self.engine == "mysql":
-                cursor.execute("show tables;")
-            if self.engine == "postgres":
-                cursor.execute("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';")
-            elif self.engine == "sqlite":
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-
+            cursor.execute("SET foreign_key_checks = 0;")
+            cursor.execute("show tables;")
             tables = cursor.fetchall()
 
-            #### Loop through tables and drop
             for t in tables:
-                if self.engine == "postgres":
-                    cursor.execute(f"DROP TABLE {t[0]} CASCADE")
-                else:
-                    cursor.execute(f"DROP TABLE {t[0]}")
+                cursor.execute(f"DROP TABLE {t[0]}")
 
-            #### Enable foreign key checks in MySQL
-            if self.engine == "mysql":
-                cursor.execute("SET foreign_key_checks = 1;")
+            cursor.execute("SET foreign_key_checks = 1;")
 
         return True
 

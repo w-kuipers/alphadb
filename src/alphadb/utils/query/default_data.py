@@ -49,4 +49,3 @@ def create_default_data(table_name: str, item: dict):
 
     #### Return query
     return f"INSERT INTO `{table_name}` ({keys}) VALUES ({values});"
-

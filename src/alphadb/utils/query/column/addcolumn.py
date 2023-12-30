@@ -13,14 +13,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from alphadb.utils.types import Database
 from alphadb.utils.query.column.definecolumn import definecolumn, prepare_definecolumn_data
 
-def addcolumn(table_data, table_name: str, column_name: str, version: str, engine: Database):
 
-    column_data = prepare_definecolumn_data(table_name=table_name, column=column_name, table_data=table_data["addcolumn"], version=version, engine=engine)
-    
+def addcolumn(table_data, table_name: str, column_name: str, version: str):
+    column_data = prepare_definecolumn_data(table_name=table_name, column=column_name, table_data=table_data["addcolumn"], version=version)
+
     #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
-    if column_data == None: return None
+    if column_data == None:
+        return None
 
-    return " ADD" + definecolumn(column_name=column_name, column_type=table_data["addcolumn"][column_name]["type"], length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
+    return " ADD" + definecolumn(
+        column_name=column_name,
+        column_type=table_data["addcolumn"][column_name]["type"],
+        length=column_data["length"],
+        null=column_data["null"],
+        unique=column_data["unique"],
+        default=column_data["default"],
+        auto_increment=column_data["auto_increment"],
+    )

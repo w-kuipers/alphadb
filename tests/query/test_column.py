@@ -17,12 +17,3 @@ def test_query():
     assert definecolumn(column_name="test", column_type="VARCHAR", unique=True) == " test VARCHAR NOT NULL UNIQUE"
     assert definecolumn(column_name="test", column_type="VARCHAR", default="fiets") == " test VARCHAR NOT NULL DEFAULT 'fiets'"
     assert definecolumn(column_name="test", column_type="VARCHAR", auto_increment=True) == " test VARCHAR NOT NULL AUTO_INCREMENT"
-    assert (
-        definecolumn(
-            column_name="test",
-            column_type="VARCHAR",
-            engine="sqlite",
-            auto_increment=True,
-        )
-        == " test VARCHAR NOT NULL"
-    )

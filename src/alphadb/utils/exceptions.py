@@ -13,8 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .globals import CONFIG_TABLE_NAME
 from typing import Optional
+
+from .globals import CONFIG_TABLE_NAME
+
 
 class NoConnection(Exception):
     def __init__(self):
@@ -78,7 +80,7 @@ class MissingDependencies(ModuleNotFoundError):
 
 
 class IncompatibleColumnAttributes(ValueError):
-    def __init__(self, *args, version:Optional[str]=None) -> None:
+    def __init__(self, *args, version: Optional[str] = None) -> None:
         attr_list = []
         for attr in args:
             attr_list.append(f'"{attr}"')
@@ -87,10 +89,11 @@ class IncompatibleColumnAttributes(ValueError):
 
         if not version == None:
             message += f"{version}: "
-        
+
         message += f'Column attributes {", ".join(attr_list)} are not compatible.'
 
         super().__init__(message)
+
 
 class VersionSourceValueError(ValueError):
     def __init__(self, message: str):

@@ -17,11 +17,10 @@ from alphadb.utils.common import convert_version_number
 from alphadb.utils.concatenate.column import concatenate_column, get_column_renames
 from alphadb.utils.concatenate.primary_key import get_primary_key
 from alphadb.utils.query.column.addcolumn import addcolumn
-from alphadb.utils.query.column.modifycolumn import modifycolumn, modifycolumn_postgres
-from alphadb.utils.types import Database
+from alphadb.utils.query.column.modifycolumn import modifycolumn
 
 
-def altertable(version_source: dict, table_name: str, version: str, engine: Database):
+def altertable(version_source: dict, table_name: str, version: str):
     query = f" ALTER TABLE {table_name}"
 
     #### Get the data for the current table
@@ -62,7 +61,7 @@ def altertable(version_source: dict, table_name: str, version: str, engine: Data
     #### Add column
     if "addcolumn" in table_data:
         for column in table_data["addcolumn"]:
-            partial = addcolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
+            partial = addcolumn(table_data, table_name=table_name, column_name=column, version=version)
             if partial == None:
                 continue
             query += partial
@@ -71,14 +70,10 @@ def altertable(version_source: dict, table_name: str, version: str, engine: Data
     #### Modify column
     if "modifycolumn" in table_data:
         for column in table_data["modifycolumn"]:
-            if ("recreate" in table_data["modifycolumn"][column] and table_data["modifycolumn"][column]["recreate"] == False) and not engine == "postgres":
+            if "recreate" in table_data["modifycolumn"][column] and table_data["modifycolumn"][column]["recreate"] == False:
                 table_data["modifycolumn"][column] = concatenate_column(version_source["version"], table_name=table_name, column_name=column)
 
-            #### Postgres uses custom function
-            if engine == "postgres":
-                partial = modifycolumn_postgres(version_list=version_source["version"], table_name=table_name, column_name=column, version=version)
-            else:
-                partial = modifycolumn(table_data, table_name=table_name, column_name=column, version=version, engine=engine)
+            partial = modifycolumn(table_data, table_name=table_name, column_name=column, version=version)
 
             #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
             if partial == None:

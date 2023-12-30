@@ -13,107 +13,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import get_args
-from alphadb.utils.types import Database, DatabaseColumnType, DatabaseColumnTypeIntVariations
-from alphadb.utils.query.column.definecolumn import prepare_definecolumn_data, definecolumn
-from alphadb.utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionObject
-from alphadb.utils.concatenate.column import concatenate_column
+from alphadb.utils.query.column.definecolumn import definecolumn, prepare_definecolumn_data
 
-def modifycolumn(table_data, table_name: str, column_name: str, version: str, engine: Database):
-    
-    #### Postgres uses the custom `modifycolumn_postgres` function
-    if engine == "postgres": raise ValueError("Postgres uses custom `modifycolumn_postgres` function instead of the `modifycolumn` one.")
 
+def modifycolumn(table_data, table_name: str, column_name: str, version: str):
     query = ""
-    column_data = prepare_definecolumn_data(table_name=table_name, column=column_name, table_data=table_data["modifycolumn"], version=version, engine=engine)
+    column_data = prepare_definecolumn_data(table_name=table_name, column=column_name, table_data=table_data["modifycolumn"], version=version)
 
     #### If column data is None, its some attribute that should be handled later (foreign_key, primary_key, etc...)
-    if column_data == None: return None
+    if column_data == None:
+        return None
 
     query += " MODIFY COLUMN"
-    query += definecolumn(column_name=column_name, column_type=table_data["modifycolumn"][column_name]["type"], length=column_data["length"], null=column_data["null"], unique=column_data["unique"], default=column_data["default"], auto_increment=column_data["auto_increment"], engine=engine)
-
-    return query
-
-def modifycolumn_postgres(version_list: list, table_name: str, column_name: str, version: str):
-    
-    #### Concatenate column to do compatibility checks later
-    concatenated = concatenate_column(version_list=version_list, table_name=table_name, column_name=column_name)
-    if not "type" in concatenated:
-        raise IncompleteVersionObject() 
-    column_type = concatenated["type"]
-
-    query = ""
-    altercolumn_base = f" ALTER COLUMN {column_name}"
-    this_column = next(v["altertable"][table_name] for v in version_list if v["_id"] == version)["modifycolumn"][column_name]
-
-    #### Check if column type is supported
-    if not column_type.upper() in get_args(DatabaseColumnType):
-        raise ValueError(f"Column type {column_type} is not (yet) supported.")
-
-    #### Will only be used for type compatibility checks
-    qnull = concatenated["null"] if "null" in concatenated else False
-    qunique = concatenated["unique"] if "unique" in concatenated else False
-    qautoincrement = concatenated["a_i"] if "a_i" in concatenated else False
-
-    #### Check for column type compatibility with AUTO_INCREMENT
-    incompatible_types_with_autoincrement = ["varchar", "text", "longtext", "datetime", "decimal", "json"]
-    if column_type.lower() in incompatible_types_with_autoincrement and qautoincrement == True:
-        raise IncompatibleColumnAttributes(f"type=={column_type}", "AUTO_INCREMENT", version=f"Version {version}->{table_name}->{column_name}")
-
-    #### Check for column type compatibility with UNIQUE
-    incompatible_types_with_unique = [
-        "json",
-    ]
-    if column_type.lower() in incompatible_types_with_unique and qunique == True:
-        raise IncompatibleColumnAttributes(f"type=={column_type}", "UNIQUE", version=f"Version {version}->{table_name}->{column_name}")
-
-    #### Null will be ignored by the database engine when AUTO_INCREMENT is specified
-    if qnull == True and qautoincrement == True:
-        raise IncompatibleColumnAttributes("NULL", "AUTO_INCREMENT", version=f"Version {version}->{table_name}->{column_name}")
-
-    #### Unique (Not using the 'qunique' var because this should only be executed if unique is actually specified in the vs) 
-    if "unique" in this_column:
-        if this_column["unique"] == True:
-            query += f" ADD CONSTRAINT {column_name}_u UNIQUE ({column_name}),"
-        else:
-            query += f" DROP CONSTRAINT {column_name}_u,"
-
-    #### Type
-    if "type" in this_column:
-        this_column_type = this_column["type"]
-
-        #### Postgres does not have a LONGTEXT datatype
-        if this_column_type == "LONGTEXT": this_column_type = "TEXT"
-
-        #### If length is defined for a TEXT column, add a constraint as Postgres does not support type modifiers for type TEXT
-        if this_column_type == "TEXT" and "length" in this_column:
-            query += f" ADD CONSTRAINT {column_name}_tl CHECK (char_length({column_name}) <= {this_column["length"]}),"
-
-        query += f"{altercolumn_base} TYPE {this_column['type']}"
-        if "length" in this_column:
-
-            #### Constraint for TEXT length is added already
-            if not this_column_type == "TEXT":
-                #### Postgres can't set the length modifier for INT types
-                if not this_column_type in get_args(DatabaseColumnTypeIntVariations):
-                    query += f"({this_column['length']})"
-
-        query += ","
-
-    #### Length if type is not defined
-    else:
-        if "length" in this_column:
-            query += f"{altercolumn_base} TYPE {concatenated['type']}({this_column['length']}),"
-
-    #### Null
-    if "null" in this_column:
-        if this_column["null"] == True:
-            query += f"{altercolumn_base} DROP NOT NULL,"
-        else:
-            query += f"{altercolumn_base} SET NOT NULL,"
-
-    #### Remove trailing comma
-    query = query[:-1]
+    query += definecolumn(
+        column_name=column_name,
+        column_type=table_data["modifycolumn"][column_name]["type"],
+        length=column_data["length"],
+        null=column_data["null"],
+        unique=column_data["unique"],
+        default=column_data["default"],
+        auto_increment=column_data["auto_increment"],
+    )
 
     return query
