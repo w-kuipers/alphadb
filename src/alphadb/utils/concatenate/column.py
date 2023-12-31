@@ -140,12 +140,11 @@ def get_column_type(version_list: list, table_name: str, column_name: str):
 
     rename_data = get_column_renames(version_list=version_list, column_name=column_name, table_name=table_name)
     version_column_name = min(rename_data, key=lambda x: x["rename_version"])["old_name"] if rename_data else column_name
-    print(rename_data)
     for version in version_list:
         #### Get the column name for the current version
         v = convert_version_number(version["_id"])
-        for rename in reversed(rename_data):
-            if v <= rename["rename_version"]:
+        for rename in rename_data:
+            if v >= rename["rename_version"]:
                 version_column_name = rename["new_name"]
                 break
 
@@ -156,9 +155,9 @@ def get_column_type(version_list: list, table_name: str, column_name: str):
 
         if "altertable" in version:
             if table_name in version["altertable"]:
+                print(version)
+                print(version_column_name)
                 if "modifycolumn" in version["altertable"][table_name]:
-                    print(version_column_name)
-                    print(version)
                     if version_column_name in version["altertable"][table_name]["modifycolumn"]:
                         if "type" in version["altertable"][table_name]["modifycolumn"][version_column_name]:
                             column_type = version["altertable"][table_name]["modifycolumn"][version_column_name]["type"]
