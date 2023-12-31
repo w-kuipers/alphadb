@@ -56,8 +56,8 @@ def test_get_column_type_multiple_renamed():
 
     assert get_column_type(version_list=versions, table_name="table", column_name="secondrename") == "DATE"
 
-    # versions.append(
-    #     {"_id": "0.0.6", "altertable": {"table": {"modifycolumn": {"secondrename": {"type": "JSON"}}}}},
-    # )
-    #
-    # assert get_column_type(version_list=versions, table_name="table", column_name="secondrename") == "JSON"
+    versions.append(
+        {"_id": "0.0.6", "altertable": {"table": {"modifycolumn": {"secondrename": {"type": "JSON"}}}}},
+    )
+
+    assert get_column_type(version_list=versions, table_name="table", column_name="secondrename") == "JSON"
