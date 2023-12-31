@@ -11,7 +11,7 @@ A toolset for MySQL database versioning.
 
 ## Still in alpha stage
 
-Yes, it's ironic. But this package is still in the alpha stage. Breaking changes should be expected.
+AlphaDB is currently in `beta` stage. Breaking changes should be expected.
 
 <details>
   <summary>Table of Contents</summary>
