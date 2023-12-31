@@ -13,6 +13,5 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
-from .alphadb import AlphaDB
-from .version_verification import VersionSourceVerification
+incompatible_types_with_autoincrement = ["varchar", "text", "longtext", "datetime", "decimal", "json"]
+incompatible_types_with_unique = ["json"]

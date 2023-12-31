@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - Better error handling.
  - `Altertable` option to update method.
- - Add support for `Postgres`.
+ - Add version source validation
 
 ### Changed
 - **BREAKING**: Changed `adb_conf` table column `template` to `version_source_template` due to the `template` being a keyword in PostgreSQL. This breaks old databases, `to fix` manually update column name.
