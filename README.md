@@ -7,7 +7,7 @@
 
 # AlphaDB
 
-A toolset for SQL database versioning.
+A toolset for MySQL database versioning.
 
 ## Still in alpha stage
 
@@ -43,13 +43,13 @@ Note that `pip` refers to the Python 3 package manager. In an environment where 
 
 ## Usage
 
-Import one of the prebuild AlphaDB classes (Here we will use Mysql).
+Import AlphaDB
 ``` python
-from alphadb import AlphaDBMysql
+from alphadb import AlphaDB
 ```
 Connect to a database.
 ``` python
-db = AlphaDBMysql()
+db = AlphaDB()
 db.connect(
     host="localhost",
     user="user",
