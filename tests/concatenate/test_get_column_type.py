@@ -1,7 +1,6 @@
 from alphadb.utils.concatenate.column import get_column_type
 
 
-
 def test_get_column_type_createtable():
     versions = [
         {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},

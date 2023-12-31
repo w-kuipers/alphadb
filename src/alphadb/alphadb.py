@@ -16,26 +16,29 @@
 from typing import Callable
 
 from alphadb.utils.decorators import conn_test, init_test
-from alphadb.utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation, NoDatabaseEngineSpecified
+from alphadb.utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingDependencies, MissingVersionData, NeedsConfirmation
 from alphadb.utils.globals import CONFIG_TABLE_NAME
 from alphadb.utils.query.default_data import create_default_data
 from alphadb.utils.query.table.altertable import altertable
 from alphadb.utils.query.table.createtable import createtable
 
+try:
+    from mysql.connector import MySQLConnection
+    from mysql.connector.cursor import MySQLCursor
+except ModuleNotFoundError:
+    raise MissingDependencies(class_name="AlphaDBMysql", dependency="mysql-connector-python==8.2.0")
+
 
 class AlphaDB:
     db_name: str
-    cursor: Callable
+    connection: MySQLConnection | None = None
+    cursor: Callable[..., MySQLCursor]
 
     def __init__(self):
         self.connection = None
 
     @conn_test
     def check(self):
-        #### Database type is needed to know how to check for existing tables
-        if not hasattr(self, "engine"):
-            raise NoDatabaseEngineSpecified()
-
         with self.cursor() as cursor:
             current_version = None
 
@@ -62,6 +65,21 @@ class AlphaDB:
             check = True if table_check and fetched else False
 
         return {"check": check, "current_version": current_version}
+
+    def connect(self, host: str, password: str, user: str, database: str, port: int = 3306) -> bool:
+        self.connection = MySQLConnection(
+            host=host,
+            user=user,
+            password=password,
+            port=port,
+            database=database,
+            buffered=True,
+        )
+        self.connection.autocommit = True
+        self.cursor = self.connection.cursor
+        self.db_name = database
+
+        return self.check()["check"] == True
 
     @conn_test
     def init(self):

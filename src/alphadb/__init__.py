@@ -15,4 +15,3 @@
 
 
 from .alphadb import AlphaDB
-from .mysql import AlphaDBMySQL
