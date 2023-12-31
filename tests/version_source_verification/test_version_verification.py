@@ -22,7 +22,7 @@ def test_no_version_number_and_name():
         "name": "name",
     }
 
-    version_source_no_name = {"version": [{"create_table": {"table1": {"col1": {"type": "VARCHAR", "length": 100}}}}]}
+    version_source_no_name = {"version": [{"createtable": {"table1": {"col1": {"type": "VARCHAR", "length": 100}}}}]}
 
     verification_no_version = VersionSourceVerification(version_source_no_version)
     assert verification_no_version.verify() == [("LOW", "This version source does not contain any versions")]

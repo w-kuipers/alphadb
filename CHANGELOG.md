@@ -14,7 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Add version source validation
 
 ### Changed
-- **BREAKING**: Changed `adb_conf` table column `template` to `version_source_template` due to the `template` being a keyword in PostgreSQL. This breaks old databases, `to fix` manually update column name.
 - **BREAKING**: `update` method parameter `version_information` changed to `version_source`.
  - Latest version does not have to be specified in the version information anymore. Will be looked up in the version list.
 
