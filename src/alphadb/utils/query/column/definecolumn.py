@@ -14,50 +14,36 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Optional, get_args
-from alphadb.utils.exceptions import IncompleteVersionObject, IncompatibleColumnAttributes
-from alphadb.utils.types import Database, DatabaseColumnType
+
+from alphadb.utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionObject
+from alphadb.utils.types import DatabaseColumnType
 
 
-def create_table_column(
-    column_name: str,
-    column_type: DatabaseColumnType,
-    engine: Database = "mysql",
-    null: bool = False,
-    length: Optional[int] = None,
-    unique: bool = False,
-    default: Optional[str | int] = None,
-    auto_increment: bool = False,
-):
-    #### Check column type
+def definecolumn(column_name: str, column_type: DatabaseColumnType, null: bool = False, length: Optional[int] = None, unique: bool = False, default: Optional[str | int] = None, auto_increment: bool = False):
     if not column_type.upper() in get_args(DatabaseColumnType):
         raise ValueError(f"Column type {column_type} is not (yet) supported.")
 
-    #### Define query base
-    query = f" `{column_name}` {column_type}"
+    query = f" {column_name} {column_type}"
 
-    #### If length is defined, add it to query
     if not length == None:
         query += f"({length})"
 
-    #### Null
     query += " NULL" if null else " NOT NULL"
 
-    #### Unique
     if unique:
         query += " UNIQUE"
 
-    #### Default:
     if default:
         query += f" DEFAULT '{default}'"
 
     #### Auto increment
     if auto_increment:
-        if engine == "mysql":
-            query += " AUTO_INCREMENT"
+        query += " AUTO_INCREMENT"
 
     return query
 
-def prepare_create_column_data(table_name: str, column: str, table_data: dict, version: str):
+
+def prepare_definecolumn_data(table_name: str, column: str, table_data: dict, version: str):
     #### If iteration is not of type Dict, it is not a column and should be handled later
     if not isinstance(table_data[column], dict) or column == "foreign_key":  ## Foreign key IS an object, but has to be handled later
         return None
@@ -76,24 +62,17 @@ def prepare_create_column_data(table_name: str, column: str, table_data: dict, v
     #### Check for column type compatibility with AUTO_INCREMENT
     incompatible_types_with_autoincrement = ["varchar", "text", "longtext", "datetime", "decimal", "json"]
     if table_data[column]["type"].lower() in incompatible_types_with_autoincrement and qautoincrement == True:
-        raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "AUTO_INCREMENT")
+        raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "AUTO_INCREMENT", version=f"Version {version}->{table_name}->{column}")
 
     #### Check for column type compatibility with UNIQUE
     incompatible_types_with_unique = [
         "json",
     ]
     if table_data[column]["type"].lower() in incompatible_types_with_unique and qunique == True:
-        raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "UNIQUE")
+        raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "UNIQUE", version=f"Version {version}->{table_name}->{column}")
 
     #### Null will be ignored by the database engine when AUTO_INCREMENT is specified
     if qnull == True and qautoincrement == True:
-        raise IncompatibleColumnAttributes("NULL", "AUTO_INCREMENT")
+        raise IncompatibleColumnAttributes("NULL", "AUTO_INCREMENT", version=f"Version {version}->{table_name}->{column}")
 
-    return {
-        "length": qlength,
-        "null": qnull,
-        "unique": qunique,
-        "default": qdefault,
-        "auto_increment": qautoincrement
-    }
-
+    return {"length": qlength, "null": qnull, "unique": qunique, "default": qdefault, "auto_increment": qautoincrement}

@@ -8,6 +8,7 @@
           "primary_key": "col1",
           "col1": {
             "type": "INT",
+            "length": 7,
             "a_i": true
           },
           "col2": {
@@ -93,6 +94,20 @@
       "_id": "0.2.2",
       "altertable": {
         "table2": {
+          "modifycolumn": {
+            "wasoriginalycol1": {
+              "recreate": false,
+              "length": 30,
+              "type": "TINYINT"
+            }
+          }
+        }
+      }
+    },
+    {
+      "_id": "0.2.3",
+      "altertable": {
+        "table2": {
           "renamecolumn": {
             "wasoriginalycol1": "secondrenameoncol1"
           }
@@ -100,7 +115,7 @@
       }
     },
     {
-      "_id": "0.2.3",
+      "_id": "0.2.4",
       "altertable": {
         "table2": {
           "modifycolumn": {

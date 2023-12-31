@@ -1,9 +1,10 @@
-version: '3.7'
+version: '3.8'
 services:
   mysql:
+    container_name: alphadb_mysql
     image: mysql:8
     volumes:
-      - db_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: test
@@ -12,8 +13,10 @@ services:
       - "3306:3306"
     networks:
       - db_server
-    
+  
+
   phpmyadmin:
+    container_name: alphadb_phpmyadmin
     depends_on:
       - mysql
     image: phpmyadmin/phpmyadmin
@@ -25,7 +28,8 @@ services:
       MYSQL_ROOT_PASSWORD: test 
     networks:
       - db_server
+
 networks:
   db_server:
 volumes:
-  db_data:
+  mysql_data:

@@ -9,18 +9,18 @@ db = AlphaDBMySQL()
 db.connect(host="localhost", user="root", password="test", database="test")
 
 
-#### Status method
-def test_mysql_status():
-    status = db.status()
-    assert "name" in status and "version" in status and "init" in status and "template" in status
-
-
 #### Init method
 def test_mysql_init():
     init = db.init()
     assert init == True
     init = db.init()
     assert init == "already-initialized"
+
+
+#### Status method
+def test_mysql_status():
+    status = db.status()
+    assert status == {"init": True, "version": "0.0.0", "name": "test", "template": None}
 
 
 #### Update method

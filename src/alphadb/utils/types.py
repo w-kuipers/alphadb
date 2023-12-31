@@ -15,19 +15,14 @@
 
 from typing import Literal
 
-Database = Literal["mysql", "sqlite"]
+DatabaseColumnTypeIntVariations = Literal["INT", "TINYINT", "BIGINT"]
+DatabaseColumnTypeTextVariations = Literal["TEXT", "LONGTEXT"]
 DatabaseColumnType = Literal[
-    "INT",
+    DatabaseColumnTypeIntVariations,
+    DatabaseColumnTypeTextVariations,
     "FLOAT",
     "DECIMAL",
     "VARCHAR",
-    "TEXT",
-    "LONGTEXT",
-    "BIGINT",
-    "TINYINT",
     "DATETIME",
     "JSON",
 ]
-
-SQLEscapeString = Literal["?", "%s"]
-

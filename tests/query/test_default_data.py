@@ -1,8 +1,6 @@
 import json
 
-import pytest
-
-from src.alphadb.utils.query.default_data import create_default_data
+from alphadb.utils.query.default_data import create_default_data
 
 
 def test_query():
