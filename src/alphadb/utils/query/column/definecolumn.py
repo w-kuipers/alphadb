@@ -17,7 +17,7 @@ from typing import Optional, get_args
 
 from alphadb.utils.exceptions import IncompatibleColumnAttributes, IncompleteVersionObject
 from alphadb.utils.types import DatabaseColumnType
-
+from alphadb.verification.compatibility import incompatible_types_with_unique, incompatible_types_with_autoincrement
 
 def definecolumn(column_name: str, column_type: DatabaseColumnType, null: bool = False, length: Optional[int] = None, unique: bool = False, default: Optional[str | int] = None, auto_increment: bool = False):
     if not column_type.upper() in get_args(DatabaseColumnType):
@@ -52,7 +52,6 @@ def prepare_definecolumn_data(table_name: str, column: str, table_data: dict, ve
     if not "type" in table_data[column]:
         raise IncompleteVersionObject(key="type", object=f"Version {version}->{table_name}->{column}")
 
-    #### Define query attributes
     qlength = table_data[column]["length"] if "length" in table_data[column] else None
     qnull = table_data[column]["null"] if "null" in table_data[column] else False
     qunique = table_data[column]["unique"] if "unique" in table_data[column] else False
@@ -60,14 +59,10 @@ def prepare_definecolumn_data(table_name: str, column: str, table_data: dict, ve
     qautoincrement = table_data[column]["a_i"] if "a_i" in table_data[column] else False
 
     #### Check for column type compatibility with AUTO_INCREMENT
-    incompatible_types_with_autoincrement = ["varchar", "text", "longtext", "datetime", "decimal", "json"]
     if table_data[column]["type"].lower() in incompatible_types_with_autoincrement and qautoincrement == True:
         raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "AUTO_INCREMENT", version=f"Version {version}->{table_name}->{column}")
 
     #### Check for column type compatibility with UNIQUE
-    incompatible_types_with_unique = [
-        "json",
-    ]
     if table_data[column]["type"].lower() in incompatible_types_with_unique and qunique == True:
         raise IncompatibleColumnAttributes(f"type=={table_data[column]['type']}", "UNIQUE", version=f"Version {version}->{table_name}->{column}")
 
