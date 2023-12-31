@@ -2,10 +2,10 @@ import json
 
 import pytest
 
-from alphadb import AlphaDBMySQL
+from alphadb import AlphaDB
 from alphadb.utils.exceptions import NeedsConfirmation
 
-db = AlphaDBMySQL()
+db = AlphaDB()
 db.connect(host="localhost", user="root", password="test", database="test")
 
 
