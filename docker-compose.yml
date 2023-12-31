@@ -29,43 +29,7 @@ services:
     networks:
       - db_server
 
-  pgadmin:
-    container_name: alphadb_pgadmin
-    image: dpage/pgadmin4
-    restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: test@test.dev
-      PGADMIN_DEFAULT_PASSWORD: test
-      PGADMIN_LISTEN_PORT: 5050
-    depends_on:
-      - postgres
-    ports:
-      - "5050:5050"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - db_server
-
-  postgres:
-    container_name: alphadb_postgres
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: test
-      POSTGRES_DB: test
-    ports:
-      - '5432:5432'
-    volumes:
-      - postgres_data:/var/lib/postgres
-    networks:
-      - db_server
-
 networks:
   db_server:
 volumes:
   mysql_data:
-  postgres_data:
-    driver: local
-  pgadmin_data:
-    driver: local
