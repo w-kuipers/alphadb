@@ -16,17 +16,14 @@
 from typing import Callable
 
 from alphadb.utils.decorators import conn_test, init_test
-from alphadb.utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingDependencies, MissingVersionData, NeedsConfirmation
+from alphadb.utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation
 from alphadb.utils.globals import CONFIG_TABLE_NAME
 from alphadb.utils.query.default_data import create_default_data
 from alphadb.utils.query.table.altertable import altertable
 from alphadb.utils.query.table.createtable import createtable
 
-try:
-    from mysql.connector import MySQLConnection
-    from mysql.connector.cursor import MySQLCursor
-except ModuleNotFoundError:
-    raise MissingDependencies(class_name="AlphaDBMysql", dependency="mysql-connector-python==8.2.0")
+from mysql.connector import MySQLConnection
+from mysql.connector.cursor import MySQLCursor
 
 
 class AlphaDB:
@@ -50,7 +47,6 @@ class AlphaDB:
 
             table_check = cursor.fetchall()
 
-            #### If it exists, get current version
             fetched = None
             if table_check:
                 cursor.execute(
@@ -92,7 +88,6 @@ class AlphaDB:
                 #### Create configuration table
                 cursor.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG_TABLE_NAME} (db VARCHAR(100) NOT NULL, version VARCHAR(50) NOT NULL, template VARCHAR(50) NULL, PRIMARY KEY (db)) ENGINE = InnoDB;")
 
-                #### Set the version to 0.0.0
                 cursor.execute(
                     f"INSERT INTO {CONFIG_TABLE_NAME} (db, version) values (%s, %s)",
                     (self.db_name, "0.0.0"),
@@ -108,7 +103,6 @@ class AlphaDB:
         template = None
 
         with self.cursor() as cursor:
-            #### Check if adb_conf (fmm config table) exists
 
             #### Check if the config table (adb_conf) exists
             cursor.execute(

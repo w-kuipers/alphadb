@@ -22,4 +22,5 @@ setuptools.setup(
     package_dir={"": "src"},
     packages=["alphadb", "alphadb.utils", "alphadb.utils.query", "alphadb.utils.query.column", "alphadb.utils.query.table", "alphadb.verification", "alphadb.utils.concatenate"],
     python_requires=">=3.6",
+    install_requires=["mysql-connector-python==8.2.0"],
 )

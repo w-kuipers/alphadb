@@ -74,11 +74,6 @@ class DBTemplateNoMatch(ValueError):
         super().__init__("This database uses a different database version source. The template name does not match the one previously used to update this database.")
 
 
-class MissingDependencies(ModuleNotFoundError):
-    def __init__(self, class_name: str, dependency: str) -> None:
-        super().__init__(f'"{class_name}" requires "{dependency}" to be installed manually.')
-
-
 class IncompatibleColumnAttributes(ValueError):
     def __init__(self, *args, version: Optional[str] = None) -> None:
         attr_list = []
