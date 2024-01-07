@@ -1,4 +1,4 @@
-name: Publish AlphaDB to TestPyPI
+name: Publish to TestPyPI
 
 on:
   push:
