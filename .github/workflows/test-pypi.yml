@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: Build distribution
-    runs-on: unbuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
