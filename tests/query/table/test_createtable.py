@@ -60,5 +60,5 @@ def test_query():
 
     assert (
         createtable(table_name="table", version_source=test_data, version="0.0.1")
-        == " CREATE TABLE table ( id INT NOT NULL AUTO_INCREMENT, col1 VARCHAR(30) NOT NULL UNIQUE, PRIMARY KEY (id), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE ) ENGINE = InnoDB;"
+        == " CREATEd TABLE table ( id INT NOT NULL AUTO_INCREMENT, col1 VARCHAR(30) NOT NULL UNIQUE, PRIMARY KEY (id), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE ) ENGINE = InnoDB;"
     )
