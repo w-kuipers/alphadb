@@ -5,9 +5,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 version = "1.0.0b1"
 
-def get_version():
-    print(version)
-    return version
+#### Print version to be used by release workflow
+print(version)
 
 setuptools.setup(
     name="alphadb",
