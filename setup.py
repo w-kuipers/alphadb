@@ -3,9 +3,12 @@ import setuptools
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+with open("src/version.py", "r") as v:
+    version = v.readline().strip("\n")
+
 setuptools.setup(
     name="alphadb",
-    version="1.0.0dev0",
+    version=version,
     author="Wibo Kuipers",
     author_email="wibokuip@gmail.com",
     description="MySQL Database versioning toolset",
@@ -20,7 +23,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     package_dir={"": "src"},
-    packages=["alphadb", "alphadb.utils", "alphadb.utils.query", "alphadb.utils.query.column", "alphadb.utils.query.table", "alphadb.verification", "alphadb.utils.concatenate"],
     python_requires=">=3.6",
     install_requires=["mysql-connector-python==8.2.0"],
 )
