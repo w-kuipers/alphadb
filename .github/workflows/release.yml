@@ -74,7 +74,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           version=$(cat ./dist/version.py)
-          gh release create --target latest '${{ github.ref_name }}' --repo '${{ github.repository }}' --generate-notes
+          else gh release create -p '${{ github.ref_name }}' --repo '${{ github.repository }}' --generate-notes;
+
       - name: Upload artifact signatures to GitHub Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
