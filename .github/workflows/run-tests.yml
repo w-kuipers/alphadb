@@ -1,0 +1,5 @@
+name: Run unit tests using Pytest
+
+on:
+  push:
+    branches: "latest"
