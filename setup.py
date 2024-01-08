@@ -3,10 +3,8 @@ import setuptools
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-version = "1.0.0b1"
-
-#### Print version to be used by release workflow
-print(version)
+with open("version", "r", encoding="utf-8") as v:
+    version = v.readline().strip('\n')
 
 setuptools.setup(
     name="alphadb",
