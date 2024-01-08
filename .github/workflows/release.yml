@@ -64,7 +64,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: python-package-distributions
-          path: /
+          path: dist/
       - name: Sign the dists with Sigstore
         uses: sigstore/gh-action-sigstore-python@v1.2.3
         with:
@@ -75,7 +75,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          version=$(cat src/version.py);
+          version=$(cat ./src/version.py);
           gh release create --target latest '${{ github.ref_name }}' --repo '${{ github.repository }}' --notes --title $version""
       - name: Upload artifact signatures to GitHub Release
         env:
