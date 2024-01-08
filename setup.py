@@ -1,8 +1,13 @@
 import setuptools
-from version import version
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
+
+version = "1.0.0b1"
+
+def get_version():
+    print(version)
+    return version
 
 setuptools.setup(
     name="alphadb",
