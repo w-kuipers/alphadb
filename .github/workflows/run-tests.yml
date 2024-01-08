@@ -13,6 +13,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: adambirds/docker-compose-action@v1.3.0
+        with:
+          compose-file: "./docker-compose.yml"
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -27,8 +30,6 @@ jobs:
           ruff --format=github --target-version=py310 .
         continue-on-error: true
       - name: Run docker container
-        run: |
-          docker compose up 
       - name: Test with pytest
         run: |
           cd src
