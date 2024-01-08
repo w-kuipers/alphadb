@@ -13,6 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
+with open("version.py", "r") as v:
+    version = v.readline().strip("\n")
+
 __app_name__ = "alphadb-cli"
-__version__ = "1.0.0-alpha.2"
+__version__ = version
 

@@ -1,6 +1,7 @@
 test.py
 test.db
 .DS_Store
+temp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
