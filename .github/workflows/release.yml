@@ -64,7 +64,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: python-package-distributions
-          path: dist/
+          path: [dist/, src/]
       - name: Sign the dists with Sigstore
         uses: sigstore/gh-action-sigstore-python@v1.2.3
         with:
@@ -84,27 +84,3 @@ jobs:
           gh release upload
           '${{ github.ref_name }}' dist/**
           --repo '${{ github.repository }}'
-
-  # publish-testpypi:
-  #   name: Publish to TestPyPI
-  #   needs:
-  #     - build
-  #   runs-on: ubuntu-latest
-  #
-  #   environment:
-  #     name: testpypi
-  #     url: https://test.pypi.org/p/alphadb/
-  #
-  #   permissions:
-  #     id-token: write
-  #
-  #   steps:
-  #     - name: Download all dists
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: python-package-distributions
-  #         path: dist/
-  #     - name: Publish
-  #       uses: pypa/gh-action-pypi-publish@release/v1
-  #       with:
-  #         repository-url: https://test.pypi.org/legacy/
