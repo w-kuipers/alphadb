@@ -1,11 +1,12 @@
 import setuptools
+from version import version
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="alphadb",
-    version="1.0.0dev0",
+    version=version,
     author="Wibo Kuipers",
     author_email="wibokuip@gmail.com",
     description="MySQL Database versioning toolset",
