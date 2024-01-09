@@ -3,12 +3,12 @@ import setuptools
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-with open("src/version.py", "r") as v:
-    version = v.readline().strip("\n")
-
 setuptools.setup(
     name="alphadb",
-    version=version,
+
+    #### ! Do not change the version number manually, this will be handled by the build script
+    version="indev",
+
     author="Wibo Kuipers",
     author_email="wibokuip@gmail.com",
     description="MySQL Database versioning toolset",

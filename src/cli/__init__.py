@@ -14,5 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 __app_name__ = "alphadb-cli"
-__version__ = "1.0.0-alpha.2"
 
+#### ! Do not change the version number manually, this will be handled by the build script
+__version__ = "indev"

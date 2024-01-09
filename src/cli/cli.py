@@ -53,7 +53,7 @@ def verify_version_source() -> None:
 
 def version_callback(value: bool) -> None:
     if value:
-        typer.echo(f"{__app_name__} v{__version__}")
+        typer.echo(f"{__app_name__} {__version__}")
         raise typer.Exit()
     return
 
