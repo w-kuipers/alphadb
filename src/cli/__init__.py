@@ -13,10 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
-with open("version.py", "r") as v:
-    version = v.readline().strip("\n")
-
 __app_name__ = "alphadb-cli"
-__version__ = version
 
+#### ! Do not change the version number manually, this will be handled by the build script
+__version__ = "indev"
