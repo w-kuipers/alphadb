@@ -17,15 +17,15 @@ with open("src/cli/__init__.py", "r") as i:
 
 os.system("pyinstaller src/cli/__main__.py --name alphadb --onefile")
 
+os.system(f"cd dist; tar -czvf ../dist/alphadb-cli_{version}_Linux_x86_64.tar.gz alphadb")
+
+#### DEB package
 os.makedirs("temp/deb/DEBIAN")
 os.makedirs("temp/deb/usr/local/bin")
-
 os.system("cp dist/alphadb temp/deb/usr/local/bin/alphadb")
 with open("temp/deb/DEBIAN/control", "a") as cf:
     cf.write(f"Package: alphadb\nVersion: {version[1:]}\nMaintainer: Wibo Kuipers\nArchitecture: amd64\nDescription: Command line interface for Alphadb MySQL version manager\n")
-
 os.system("dpkg-deb --build temp/deb")
-
 shutil.move("temp/deb.deb", f"dist/alphadb-cli_{version}_Linux_x86_64.deb")
 
 with open("src/cli/__init__.py", "r") as i:
