@@ -18,7 +18,7 @@ jobs:
       - name: Install pypa/build
         run: python3 -m  pip install build --user
       - name: Build binary wheel and source tarball
-        run: python3 -m build
+        run: python3 scripts/build-scripts/pypi.py &{{ github.ref_name }}
       - name: Store the distribution packages
         uses: actions/upload-artifact@v3
         with:
@@ -40,9 +40,7 @@ jobs:
       - name: Install pyinstaller
         run: python3 -m pip install pyinstaller
       - name: Build executable
-        run: | 
-             
-
+        run: python3 scripts/build-scripts/linux-amd64.py &{{ github.ref_name }}           
       - name: Store the executable
         uses: actions/upload-artifact@v3
         with:
