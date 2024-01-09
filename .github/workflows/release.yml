@@ -22,7 +22,7 @@ jobs:
       - name: Store the distribution packages
         uses: actions/upload-artifact@v3
         with:
-          name: builds
+          name: python-package-distributions
           path: dist/
 
   build-cli:
@@ -44,7 +44,7 @@ jobs:
       - name: Store the executable
         uses: actions/upload-artifact@v3
         with:
-          name: builds
+          name: cli-executable-linux
           path: dist/
       
   publish-to-pypi:
@@ -62,7 +62,7 @@ jobs:
       - name: Download all the dists
         uses: actions/download-artifact@v3
         with:
-          name: builds
+          name: python-package-distributions
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -79,11 +79,17 @@ jobs:
       id-token: write
 
     steps:
-      - name: Download all the dists
+      - name: Download PyPI builds
         uses: actions/download-artifact@v3
         with:
-          name: builds
+          name: python-package-distributions
           path: dist/
+      - name: Download linux cli build
+        uses: actions/download-artifact@v3
+        with:
+          name: cli-executable-linux
+          path: dist/
+
       - name: Sign the dists with Sigstore
         uses: sigstore/gh-action-sigstore-python@v1.2.3
         with:
