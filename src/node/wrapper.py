@@ -47,8 +47,9 @@ if __name__ == "__main__":
         print(json.dumps(db.status()))
 
     if sys.argv[1] == "update_queries":
-        print(sys.argv[3])
-        print("that should do right")
-        # print(json.dumps(db.update_queries(version_source=sys.argv[3], update_to_version=None if sys.argv[4] == "undefined" else sys.argv[4], no_data=sys.argv[5] == "true")))
+        print(db.update_queries(version_source=json.loads(sys.argv[4]), update_to_version=None if sys.argv[4] == "undefined" else sys.argv[4], no_data=sys.argv[5] == "true"))
+
+    if sys.argv[1] == "update":
+        print(db.update(version_source=json.loads(sys.argv[4]), update_to_version=None if sys.argv[4] == "undefined" else sys.argv[4], no_data=sys.argv[5] == "true"))
 
     sys.stdout.flush()

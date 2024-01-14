@@ -68,9 +68,9 @@ export default class AlphaDB {
 			pyprocess.on("close", resolve);
 		});
 
-		// if (exitCode) {
-		// 	throw new Error(`subprocess error exit ${exitCode}, ${error}`);
-		// }
+		if (exitCode) {
+			throw new Error(`subprocess error exit ${exitCode}, ${error}`);
+		}
 
 		return data;
 	}
@@ -101,15 +101,23 @@ export default class AlphaDB {
 		return JSON.parse(await this.handleChildProcess(pyprocess));
 	}
 
-	async updateQueries(version_source: string, { updateToVersion = undefined, noData = false }: AlphaDBUpdateProps): Promise<AlphaDBUpdateQueries> {
+	async updateQueries(version_source: string, { updateToVersion = undefined, noData = false }: AlphaDBUpdateProps): Promise<string> {
+		// async updateQueries(version_source: string, { updateToVersion = undefined, noData = false }: AlphaDBUpdateProps): Promise<AlphaDBUpdateQueries> {
 		const pyprocess = this.callPython([
 			"update_queries",
 			this.adbInstanceId,
-			JSON.stringify(version_source),
+			`${JSON.stringify(version_source)}`,
 			`${updateToVersion}`,
 			noData.toString()
 		]);
 
-		return JSON.parse(await this.handleChildProcess(pyprocess));
+		return await this.handleChildProcess(pyprocess);
+	}
+
+	async update(version_source: string, { updateToVersion = undefined, noData = false }: AlphaDBUpdateProps): Promise<string> {
+		// async updateQueries(version_source: string, { updateToVersion = undefined, noData = false }: AlphaDBUpdateProps): Promise<AlphaDBUpdateQueries> {
+		const pyprocess = this.callPython(["update", this.adbInstanceId, `${JSON.stringify(version_source)}`, `${updateToVersion}`, noData.toString()]);
+
+		return await this.handleChildProcess(pyprocess);
 	}
 }
