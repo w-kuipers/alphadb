@@ -103,7 +103,6 @@ class AlphaDB:
         template = None
 
         with self.cursor() as cursor:
-
             #### Check if the config table (adb_conf) exists
             cursor.execute(
                 f"SELECT table_name FROM information_schema.tables WHERE table_schema = %s AND table_name = %s",
