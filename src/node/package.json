@@ -2,9 +2,11 @@
   "name": "alphadb",
   "version": "indev",
   "description": "Run AlphaDB in NodeJS",
-  "main": "index.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "test"
+    "build": "tsup index.ts --format cjs,esm --dts"
   },
   "repository": {
     "type": "git",
@@ -21,6 +23,7 @@
   "homepage": "https://github.com/w-kuipers/alphadb#readme",
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "tsup": "^8.0.1",
     "typescript": "^5.3.3"
   }
 }
