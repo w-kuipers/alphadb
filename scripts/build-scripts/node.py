@@ -27,5 +27,6 @@ shutil.copy("src/node/index.ts", "temp/node/index.ts")
 shutil.copy("src/node/tsconfig.json", "temp/node/tsconfig.json")
 shutil.copy("LICENSE", "temp/node/LICENSE")
 shutil.copy("src/node/.npmignore", "temp/node/.npmignore")
+shutil.copy("src/node/.npmrc", "temp/node/.npmrc")
 
 os.system("cd temp/node; yarn; yarn build")
