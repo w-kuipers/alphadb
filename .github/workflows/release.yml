@@ -26,7 +26,7 @@ jobs:
           path: dist/
 
   build-cli:
-    name: Build distribution
+    name: Build CLI
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
 
@@ -48,7 +48,47 @@ jobs:
         with:
           name: cli-executable-linux
           path: dist/
-      
+  
+  build-node:
+    name: Build NPM package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+
+      - name: Install pyinstaller
+        run: python3 -m pip install pyinstaller
+          
+      - name: Build Javascript wrapper
+        run: |
+            python3 -m pip install -r requirements.txt
+            python3 scripts/build-scripts/node.py ${{ github.ref_name }}           
+            
+      - name: Store the build
+        uses: actions/upload-artifact@v3
+        with:
+          name: js-wrapper
+          path: temp/node/ 
+
+      - name: Publish to NPM
+        run: |
+          cd temp/node
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ github.NPM_AUTH_TOKEN }}
+
   publish-to-pypi:
     name: Publish to PyPI
     if: startsWith(github.ref, 'refs/tags/')
