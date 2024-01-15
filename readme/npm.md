@@ -49,7 +49,7 @@ import AlphaDB from "@w-kuipers/alphadb";
 ```
 Connect to a database.
 ``` js
-const db = AlphaDB()
+const db = AlphaDB();
 db.connect({
     host: "localhost",
     user: "user",
