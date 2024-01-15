@@ -1,12 +1,23 @@
 {
-  "name": "alphadb",
+  "name": "@w-kuipers/alphadb",
   "version": "indev",
   "description": "Run AlphaDB in NodeJS",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "tsup": {
+	"entry": ["index.ts"],
+	"format": ["cjs", "esm"],
+	"dts": true,
+	"splitting": false,
+	"sourcemap": true,
+	"clean": true
+  },
   "scripts": {
-    "build": "tsup index.ts --format cjs,esm --dts"
+    "build": "tsup"
   },
   "repository": {
     "type": "git",

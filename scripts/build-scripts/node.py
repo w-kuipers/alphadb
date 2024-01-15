@@ -1,5 +1,5 @@
-import shutil
 import os
+import shutil
 import sys
 
 if len(sys.argv) == 1 or not sys.argv[1][0] == "v":
@@ -25,5 +25,7 @@ with open("src/node/package.json", "r") as fr:
 
 shutil.copy("src/node/index.ts", "temp/node/index.ts")
 shutil.copy("src/node/tsconfig.json", "temp/node/tsconfig.json")
+shutil.copy("LICENSE", "temp/node/LICENSE")
+shutil.copy("src/node/.npmignore", "temp/node/.npmignore")
 
 os.system("cd temp/node; yarn; yarn build")

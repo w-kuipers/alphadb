@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 // Dynamically get pywrapper path
-let pywrapperPath = path.join(path.dirname(require.resolve("alphadb/package.json")), "pywrapper");
+let pywrapperPath = path.join(path.dirname(require.resolve("@w-kuipers/alphadb/package.json")), "pywrapper");
 
 interface AlphaDBConnectProps {
 	host: string;
