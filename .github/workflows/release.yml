@@ -78,11 +78,11 @@ jobs:
             python3 -m pip install -r requirements.txt
             python3 scripts/build-scripts/node.py ${{ github.ref_name }}           
             
-      - name: Store the build
-        uses: actions/upload-artifact@v3
-        with:
-          name: js-wrapper
-          path: temp/node/ 
+      # - name: Store the build
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: js-wrapper
+      #     path: temp/node/ 
 
       - name: Publish to NPM
         env:
