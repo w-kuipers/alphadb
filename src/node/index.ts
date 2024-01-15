@@ -31,6 +31,7 @@ interface AlphaDBUpdateProps {
 }
 
 type AlphaDBUpdateQueries = Array<string | Array<string>>;
+type VersionSource = object;
 
 function random_string(length: number = 10): string {
 	let result = "";
@@ -79,6 +80,10 @@ export default class AlphaDB {
 		return spawn(pywrapperPath, args);
 	}
 
+	removeNewlines(val: string): string {
+		return val.replace(/\r?\n|\r/g, "");
+	}
+
 	async check(): Promise<AlphaDBCheck> {
 		const pyprocess = this.callPython(["check", this.adbInstanceId]);
 		return JSON.parse(await this.handleChildProcess(pyprocess));
@@ -92,7 +97,7 @@ export default class AlphaDB {
 	async init(): Promise<true | "already-initialized"> {
 		const pyprocess = this.callPython(["init", this.adbInstanceId]);
 		const process = await this.handleChildProcess(pyprocess);
-		if (process === "True") return true;
+		if (this.removeNewlines(process) === "True") return true;
 		else return "already-initialized";
 	}
 
@@ -101,8 +106,10 @@ export default class AlphaDB {
 		return JSON.parse(await this.handleChildProcess(pyprocess));
 	}
 
-	async updateQueries(version_source: string, { updateToVersion = undefined, noData = false }: AlphaDBUpdateProps): Promise<string> {
-		// async updateQueries(version_source: string, { updateToVersion = undefined, noData = false }: AlphaDBUpdateProps): Promise<AlphaDBUpdateQueries> {
+	async updateQueries(
+		version_source: VersionSource,
+		{ updateToVersion = undefined, noData = false }: AlphaDBUpdateProps
+	): Promise<"up-to-date" | AlphaDBUpdateQueries> {
 		const pyprocess = this.callPython([
 			"update_queries",
 			this.adbInstanceId,
@@ -111,13 +118,23 @@ export default class AlphaDB {
 			noData.toString()
 		]);
 
-		return await this.handleChildProcess(pyprocess);
+		const processed = await this.handleChildProcess(pyprocess);
+
+		if (this.removeNewlines(processed) === "up-to-date") return "up-to-date";
+		else return JSON.parse(processed);
 	}
 
-	async update(version_source: string, { updateToVersion = undefined, noData = false }: AlphaDBUpdateProps): Promise<string> {
-		// async updateQueries(version_source: string, { updateToVersion = undefined, noData = false }: AlphaDBUpdateProps): Promise<AlphaDBUpdateQueries> {
+	async update(version_source: VersionSource, { updateToVersion = undefined, noData = false }: AlphaDBUpdateProps): Promise<true | "up-to-date"> {
 		const pyprocess = this.callPython(["update", this.adbInstanceId, `${JSON.stringify(version_source)}`, `${updateToVersion}`, noData.toString()]);
+		const processed = await this.handleChildProcess(pyprocess);
 
-		return await this.handleChildProcess(pyprocess);
+		if (this.removeNewlines(processed) === "True") return true;
+		else return "up-to-date";
+	}
+
+	async vacate(confirm: boolean): Promise<boolean> {
+		const pyprocess = this.callPython(["vacate", this.adbInstanceId, `${confirm}`]);
+
+		return this.removeNewlines(await this.handleChildProcess(pyprocess)) == "True";
 	}
 }
