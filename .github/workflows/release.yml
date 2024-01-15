@@ -83,11 +83,11 @@ jobs:
           path: temp/node/ 
 
       - name: Publish to NPM
+        run: |
+          cd temp/node
+          npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ github.NPM_AUTH_TOKEN }}
-        run: |
-            cd temp/node
-            npm publish --access public
 
   publish-to-pypi:
     name: Publish to PyPI
