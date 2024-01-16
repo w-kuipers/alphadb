@@ -2,17 +2,6 @@ import { spawn, ChildProcessWithoutNullStreams } from "child_process";
 import fs from "fs";
 import path from "path";
 
-// Dynamically get pywrapper path
-let pywrapperPath = "";
-if (process.platform === "linux") {
-	let pywrapperPath = path.join(path.dirname(__dirname), "pywrapper_linux_x86_64/pywrapper_linux_x86_64");
-}
-else if (process.platform === "win32") {
-	let pywrapperPath = path.join(path.dirname(__dirname), "pywrapper_win32_x86_64/pywrapper_win32_x86_64.exe");
-}
-else {
-	throw Error("Unsupported platform");
-}
 
 interface AlphaDBConnectProps {
 	host: string;
@@ -30,8 +19,6 @@ interface AlphaDBCheck {
 interface AlphaDBStatus {
 	init: boolean;
 	version: string;
-	name: string;
-	template: string;
 }
 
 interface AlphaDBUpdateProps {
@@ -56,8 +43,21 @@ function random_string(length: number = 10): string {
 
 export default class AlphaDB {
 	adbInstanceId: string;
+	pywrapperPath: string = "";
 
 	constructor() {
+
+		// Dynamically get pywrapper path
+		if (process.platform === "linux") {
+			this.pywrapperPath = path.join(path.dirname(__dirname), "pywrapper_linux_x86_64/pywrapper_linux_x86_64");
+		}
+		else if (process.platform === "win32") {
+			this.pywrapperPath = path.join(path.dirname(__dirname), "pywrapper_win32_x86_64/pywrapper_win32_x86_64.exe");
+		}
+		else {
+			throw Error("Unsupported platform");
+		}
+
 		this.adbInstanceId = random_string();
 	}
 
@@ -86,7 +86,7 @@ export default class AlphaDB {
 	}
 
 	callPython(args: Array<string>): ChildProcessWithoutNullStreams {
-		return spawn(pywrapperPath, args);
+		return spawn(this.pywrapperPath, args);
 	}
 
 	removeNewlines(val: string): string {
