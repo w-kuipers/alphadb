@@ -57,7 +57,7 @@ jobs:
           path: dist/
           
       - name: Store JS wrapper
-        uses: actions/upload-artiface@v3
+        uses: actions/upload-artifact@v3
         with:
           name: js-wrapper
           path: dist/
