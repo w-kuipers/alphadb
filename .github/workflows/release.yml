@@ -1,6 +1,9 @@
 name: Release for production
 
-on: push
+on:
+  push:
+    tags:
+      v1.0.0b*
 
 jobs:
   build-py:
