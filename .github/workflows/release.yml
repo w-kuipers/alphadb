@@ -57,7 +57,7 @@ jobs:
         uses: actions/upload-artiface@v3
         with:
           name: js-wrapper-linux_x86_64
-          path: temp/node
+          path: temp/node/
 
   
   # build-node:

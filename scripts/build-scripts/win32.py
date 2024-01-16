@@ -4,7 +4,6 @@ import sys
 
 if len(sys.argv) == 1 or not sys.argv[1][0] == "v":
     raise Exception("No valid version supplied.")
-version = sys.argv[1]
 
 if not sys.argv[1][0] == "v":
     raise Exception("No valid version supplied.")
@@ -22,3 +21,5 @@ with open("src/cli/__init__.py", "r") as i:
 os.system(f"pyinstaller src/cli/__main__.py --name alphadb --onefile")
 os.mkdir(f"dist/win32")
 shutil.move(f"dist/alphadb.exe", f"dist/win32/alphadb.exe")
+shutil.copy("README.md", "dist/win32/README.md")
+shutil.copy("LICENSE", "dist/win32/LICENSE")

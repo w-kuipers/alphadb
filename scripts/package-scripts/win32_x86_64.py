@@ -10,4 +10,4 @@ if not sys.argv[1][0] == "v":
 version = sys.argv[1]
 
 #### Create zip file
-os.system(f"cd dist; tar -acf alphadb-cli_{version}_Windows_x86_64.zip win32")
+os.system(f"cd {os.path.join(os.getcwd(), "dist/win32")}; tar -acf alphadb-cli_{version}_Windows_x86_64.zip alphadb.exe README.md LICENSE")
