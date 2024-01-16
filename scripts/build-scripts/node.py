@@ -13,7 +13,7 @@ else:
 if not os.path.isdir("temp/node"):
     os.makedirs("temp/node")
 
-os.system("pyinstaller src/node/wrapper.py --name pywrapper --onefile")
+os.system("pyinstaller src/node/wrapper.py --name pywrapper")
 
 shutil.move("dist/pywrapper", "temp/node/pywrapper")
 
