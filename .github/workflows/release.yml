@@ -31,7 +31,7 @@ jobs:
           path: dist/
 
   build-os-specific-linux_x86_64:
-    name: Build CLI and JS wrapper
+    name: Build CLI and JS wrapper (Linux_x86_64)
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
 
@@ -66,7 +66,7 @@ jobs:
           path: dist/node/
   
   build-os-specific-windows_x86_64:
-    name: Build CLI and JS wrapper
+    name: Build CLI and JS wrapper  (Windows_x86_64)
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
 
