@@ -7,7 +7,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-	"pywrapper"
+	"pywrapper_win32_x86_64",
+	"pywrapper_linux_x86_64"
   ],
   "tsup": {
 	"entry": ["index.ts"],
