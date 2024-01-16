@@ -1,7 +1,6 @@
 import os
 import shutil
 import sys
-from os.path import isdir
 
 if len(sys.argv) == 1 or not sys.argv[1][0] == "v":
     raise Exception("No valid version supplied.")

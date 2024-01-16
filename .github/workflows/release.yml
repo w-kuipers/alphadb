@@ -125,12 +125,13 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: js-wrapper
-          path: temp/node/
+          path: dist/
 
       - name: Publish to NPM
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
         run: |
+          python3 scripts/package-scripts/node.py ${{ github.ref_name }}
           cd temp/node
           npm publish --access public
 
