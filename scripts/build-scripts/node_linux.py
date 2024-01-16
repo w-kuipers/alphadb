@@ -11,4 +11,4 @@ else:
     version = sys.argv[1]
     architecture = sys.argv[2]
 
-os.system(f"pyinstaller src/node/wrapper.py --name pywrapper_linux_{architecture}")
+os.system(f"pyinstaller src/node/wrapper.py --distpath dist/node --name pywrapper_linux_{architecture}")

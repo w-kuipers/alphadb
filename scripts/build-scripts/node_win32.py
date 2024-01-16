@@ -9,4 +9,4 @@ if not sys.argv[1][0] == "v":
 
 version = sys.argv[1]
 
-os.system(f"pyinstaller src/node/wrapper.py --name pywrapper_win32_x86_64")
+os.system(f"pyinstaller src/node/wrapper.py --distpath dist/node --name pywrapper_win32_x86_64")

@@ -20,4 +20,4 @@ os.system("cp dist/linux_x86_64/alphadb temp/deb/usr/local/bin/alphadb")
 with open("temp/deb/DEBIAN/control", "a") as cf:
     cf.write(f"Package: alphadb\nVersion: {version[1:]}\nMaintainer: Wibo Kuipers\nArchitecture: amd64\nDescription: Command line interface for Alphadb MySQL version manager\n")
 os.system("dpkg-deb --build temp/deb")
-shutil.move("temp/deb.deb", f"dist/alphadb-cli_{version}_Linux_x86_64.deb")
+shutil.move("temp/deb.deb", f"dist/cli/alphadb-cli_{version}_Linux_x86_64.deb")

@@ -54,13 +54,13 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: cli
-          path: dist/
+          path: dist/cli/
           
       - name: Store JS wrapper
         uses: actions/upload-artifact@v3
         with:
           name: js-wrapper
-          path: dist/
+          path: dist/node/
   
   build-os-specific-windows_x86_64:
     name: Build CLI and JS wrapper
@@ -89,13 +89,13 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: cli
-          path: dist/
+          path: dist/cli/
 
       - name: Store JS wrapper
         uses: actions/upload-artifact@v3
         with:
           name: js-wrapper
-          path: dist/
+          path: dist/node/
   
   publish-to-npm:
     name: Create NPM package
