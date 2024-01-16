@@ -3,11 +3,15 @@ import fs from "fs";
 import path from "path";
 
 // Dynamically get pywrapper path
+let pywrapperPath = "";
 if (process.platform === "linux") {
 	let pywrapperPath = path.join(path.dirname(require.resolve("@w-kuipers/alphadb/package.json")), "pywrapper_linux_x86_64/pywrapper_linux_x86_64");
 }
 else if (process.platform === "win32") {
 	let pywrapperPath = path.join(path.dirname(require.resolve("@w-kuipers/alphadb/package.json")), "pywrapper_win32_x86_64/pywrapper_win32_x86_64.exe");
+}
+else {
+	throw Error("Unsupported platform");
 }
 
 interface AlphaDBConnectProps {
