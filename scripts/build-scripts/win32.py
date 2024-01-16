@@ -18,8 +18,7 @@ with open("src/cli/__init__.py", "r") as i:
     with open("src/cli/__init__.py", "w") as i2:
         i2.write(c.replace('"indev"', f'"{version}"'))
 
-os.system(f"pyinstaller src/cli/__main__.py --name alphadb --onefile")
-os.mkdir(f"dist/win32")
-shutil.move(f"dist/alphadb.exe", f"dist/win32/alphadb.exe")
+os.system(f"pyinstaller src/cli/__main__.py --name alphadb")
+shutil.move(f"dist/alphadb", f"dist/win32")
 shutil.copy("README.md", "dist/win32/README.md")
 shutil.copy("LICENSE", "dist/win32/LICENSE")
