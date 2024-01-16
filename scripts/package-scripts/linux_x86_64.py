@@ -14,6 +14,7 @@ version = sys.argv[1]
 os.system(f"cd dist/linux_x86_64; tar -czvf ../../dist/alphadb-cli_{version}_Linux_x86_64.tar.gz alphadb")
 
 #### DEB package
+os.makedirs("dist/cli")
 os.makedirs("temp/deb/DEBIAN")
 os.makedirs("temp/deb/usr/local/bin")
 os.system("cp dist/linux_x86_64/alphadb temp/deb/usr/local/bin/alphadb")
