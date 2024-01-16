@@ -21,4 +21,4 @@ with open("src/cli/__init__.py", "r") as i:
 
 os.system(f"pyinstaller src/cli/__main__.py --name alphadb --onefile")
 os.mkdir(f"dist/win32")
-shutil.move(f"dist/alphadb", f"dist/win32/alphadb")
+shutil.move(f"dist/alphadb.exe", f"dist/win32/alphadb.exe")
