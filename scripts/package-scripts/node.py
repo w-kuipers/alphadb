@@ -27,6 +27,7 @@ with open("src/node/package.json", "r") as fr:
         fw.write(version_updated)
 
 shutil.copy("src/node/index.ts", "temp/node/index.ts")
+shutil.copy("src/node/alphadb.ts", "temp/node/alphadb.ts")
 shutil.copy("src/node/tsconfig.json", "temp/node/tsconfig.json")
 shutil.copy("LICENSE", "temp/node/LICENSE")
 shutil.copy("src/node/.npmignore", "temp/node/.npmignore")
