@@ -19,6 +19,10 @@
 					"col3": {
 						"type": "TEXT",
 						"null": true
+					},
+					"col4": {
+						"type": "INT",
+						"length": 7
 					}
 				}
 			}
@@ -46,11 +50,11 @@
 				"table1": {
 					"dropcolumn": ["col1", "col3"],
 					"addcolumn": {
-						"col4": {
+						"col5": {
 							"type": "TEXT",
 							"length": 1000
 						},
-						"col5": {
+						"col6": {
 							"type": "JSON",
 							"null": true
 						}
@@ -126,6 +130,15 @@
 						}
 					},
 					"primary_key": null
+				},
+				"table1": {
+					"primary_key": "col4",
+					"modifycolumn": {
+						"col1": {
+							"recreate": false,
+							"length": "200"
+						}
+					}
 				}
 			}
 		}
