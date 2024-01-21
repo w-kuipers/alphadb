@@ -2,7 +2,7 @@ import { spawn, ChildProcessWithoutNullStreams } from "child_process";
 import fs from "fs";
 import path from "path";
 
-interface AlphaDBConnectProps {
+export interface AlphaDBConnectProps {
 	host: string;
 	user: string;
 	password: string;
@@ -10,23 +10,23 @@ interface AlphaDBConnectProps {
 	port?: number;
 }
 
-interface AlphaDBCheck {
+export interface AlphaDBCheck {
 	check: boolean;
 	current_version: string | null;
 }
 
-interface AlphaDBStatus {
+export interface AlphaDBStatus {
 	init: boolean;
 	version: string;
 }
 
-interface AlphaDBUpdateProps {
+export interface AlphaDBUpdateProps {
 	updateToVersion?: string;
 	noData?: boolean;
 }
 
-type AlphaDBUpdateQueries = Array<string | Array<string>>;
-type VersionSource = object;
+export type AlphaDBUpdateQueries = Array<string | Array<string>>;
+export type VersionSource = object;
 
 function random_string(length: number = 10): string {
 	let result = "";
