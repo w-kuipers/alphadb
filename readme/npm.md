@@ -1,5 +1,4 @@
 ![AlphaDB](https://github.com/w-kuipers/alphadb/blob/main/assets/ALPHADB_Github-Social-Preview.png?raw=true)
-
 [![GitHub releases](https://img.shields.io/github/v/release/w-kuipers/alphadb)](https://github.com/w-kuipers/alphadb/releases)
 [![PyPI release](https://img.shields.io/pypi/v/alphadb.svg)](https://pypi.org/project/alphadb/)
 [![NPM release](https://img.shields.io/npm/v/%40w-kuipers%2Falphadb)](https://www.npmjs.com/package/@w-kuipers/alphadb)
@@ -37,50 +36,49 @@ Visit the [official documentation](https://alphadb.w-kuipers.com/)
 
 ## Installation
 
-### Install using `PIP`
+### Install using `NPM`
 
-    pip install alphadb
+    npm install @w-kuipers/alphadb
 
-Note that `pip` refers to the Python 3 package manager. In an environment where Python 2 is also present the correct command may be `pip3`.
 
 ## Usage
 
 Import AlphaDB
-``` python
-from alphadb import AlphaDB
+``` js
+import AlphaDB from "@w-kuipers/alphadb";
 ```
 Connect to a database.
-``` python
-db = AlphaDB()
-db.connect(
-    host="localhost",
-    user="user",
-    password="password",
-    database="database"
-)
+``` js
+const db = AlphaDB();
+db.connect({
+    host: "localhost",
+    user: "user",
+    password: "password",
+    database: "database"
+});
 ```
 Make sure the database is empty, back it up if necessary. If the database is not empty, you can use the `vacate` method.
-Note that this function will erase ALL data in the database and there is no way to get it back. For extra safety the argument `confirm=True` is required for the function to run.
-``` python
-db.vacate(confirm=True)
+Note that this function will erase ALL data in the database and there is no way to get it back. For extra safety the argument `true` is required for the function to run.
+``` js
+db.vacate(true);
 ```
 The database is now ready to be initialized. The `init` method will create the `adb_conf` table. This holds configuration data for the database.
-``` python
-db.init()
+``` js
+db.init();
 ```
 Now we update the database. For this we need to give it a structure. The database version information is a JSON structure formatted as such:
-``` python
-database_version_source = {
-    "name": "mydb", ## Database name, does not have to, but is advised to match the actual database name
-    "version": [ ## List containing database versions
+``` js
+const database_version_source = {
+    "name": "mydb", // Database name, does not have to, but is advised to match the actual database name
+    "version": [ // List containing database versions
         {
-            "_id": "0.1.0", ## Database version
-            "createtable": { ## Object containing tables to be created,
-                "customers": { ## Object key will be used as table name
+            "_id": "0.1.0", // Database version
+            "createtable": { // Object containing tables to be created,
+                "customers": { // Object key will be used as table name
                     "primary_key": "id",
-                    "name": { ## Object key will be used as column name
-                        "type": "VARCHAR", ## Data type
-                        "length": 100, ## Date max length,
+                    "name": { // Object key will be used as column name
+                        "type": "VARCHAR", // Data type
+                        "length": 100, // Date max length,
                     },
                     "id": {
                         "type": "INT",
@@ -113,25 +111,9 @@ database_version_source = {
 ```
 
 Then call the `update` method.
-``` python
-db.update(version_source=database_version_source)
+``` js
+db.update(database_version_source);
 ```
-## Exceptions
-
-#### NoConnection
-
-The `NoConnection` exception is thrown when a method is called while no database connection is active.
-
-#### DBNotInitialized
-
-The `DBNotInitialized` exception is thrown when the database is not yet initialized.
-``` python
-Database.init() ## Will initialize the database and thus resolve the error
-```
-#### DBTemplateNoMatch
-
-The `DBTemplateNoMatch` exception is thrown when de database was previously updated using another version source.
-On initialization, a table `adb_conf` is created. In this table the column `template` is used to save the version source template name. Make sure it matches.
 
 ## License
 
