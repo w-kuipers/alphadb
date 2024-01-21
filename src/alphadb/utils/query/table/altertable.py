@@ -44,7 +44,6 @@ def altertable(version_source: dict, table_name: str, version: str):
                 else:
                     version_column_name = old_primary_key
 
-            #### Append change to modifycolumn
             if "modifycolumn" in table_data:
                 if version_column_name in table_data["modifycolumn"]:
                     table_data["modifycolumn"][version_column_name]["a_i"] = False
@@ -52,13 +51,13 @@ def altertable(version_source: dict, table_name: str, version: str):
                     table_data["modifycolumn"][version_column_name] = {"recreate": False, "a_i": False}
             else:
                 table_data["modifycolumn"] = {version_column_name: {"recreate": False, "a_i": False}}
-    #### Drop column
+                print(table_data["modifycolumn"])
+
     if "dropcolumn" in table_data:
         for column in table_data["dropcolumn"]:
             query += f" DROP COLUMN {column}"
             query += ","
 
-    #### Add column
     if "addcolumn" in table_data:
         for column in table_data["addcolumn"]:
             partial = addcolumn(table_data, table_name=table_name, column_name=column, version=version)
