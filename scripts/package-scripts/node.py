@@ -13,7 +13,7 @@ version = sys.argv[1]
 if not os.path.isdir("temp/node"):
     os.makedirs("temp/node")
 
-#### Add all binaries
+#### Add all binaries (should also be defined in package.json)
 archs = ["linux_x86_64", "win32_x86_64", "darwin_x86_64"]
 
 for arch in archs:
