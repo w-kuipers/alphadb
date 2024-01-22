@@ -16,4 +16,4 @@ version = sys.argv[1]
 os.makedirs("dist/cli")
 
 #### Tarball
-os.system(f"cd dist/darwin_arm64/alphadb; tar -czvf ../../cli/alphadb-cli_{version}_Darwin_{architecture}.tar.gz .")
+os.system(f"cd dist/darwin_{architecture}/alphadb; tar -czvf ../../cli/alphadb-cli_{version}_Darwin_{architecture}.tar.gz .")
