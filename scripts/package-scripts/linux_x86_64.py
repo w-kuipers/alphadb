@@ -10,11 +10,14 @@ if not sys.argv[1][0] == "v":
 
 version = sys.argv[1]
 
+os.makedirs("dist/cli")
+
 #### Tarball
-os.system(f"cd dist/linux_x86_64; tar -czvf cli/alphadb-cli_{version}_Linux_x86_64.tar.gz alphadb")
+shutil.copy("README.md", "dist/linux_x86_64/README.md")
+shutil.copy("LICENSE", "dist/linux_x86_64/LICENSE")
+os.system(f"cd dist/linux_x86_64; tar -czvf ../cli/alphadb-cli_{version}_Linux_x86_64.tar.gz alphadb README.md LICENSE")
 
 #### DEB package
-os.makedirs("dist/cli")
 os.makedirs("temp/deb/DEBIAN")
 os.makedirs("temp/deb/usr/local/bin")
 os.system("cp dist/linux_x86_64/alphadb temp/deb/usr/local/bin/alphadb")

@@ -54,7 +54,7 @@ export default class AlphaDB {
 			this.pywrapperPath = path.join(path.dirname(__dirname), "pywrapper_win32_x86_64/pywrapper_win32_x86_64.exe");
 		}
 		else if (process.platform == "darwin") {
-			this.pywrapperPath = path.join(path.dirname(__dirname), "pywrapper_darwin_x86_64/pywrapper_darwin_x86_64.exe");
+			this.pywrapperPath = path.join(path.dirname(__dirname), "pywrapper_darwin_x86_64/pywrapper_darwin_x86_64");
 		}
 		else {
 			throw Error("Unsupported platform");

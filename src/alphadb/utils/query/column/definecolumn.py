@@ -47,7 +47,9 @@ def prepare_definecolumn_data(table_name: str, column: str, table_data: dict, ve
     #### If iteration is not of type Dict, it is not a column and should be handled later
     if not isinstance(table_data[column], dict) or column == "foreign_key":  ## Foreign key IS an object, but has to be handled later
         return None
-
+    
+    print(table_data[column], column)
+    
     #### A column type must be defined
     if not "type" in table_data[column]:
         raise IncompleteVersionObject(key="type", object=f"Version {version}->{table_name}->{column}")
