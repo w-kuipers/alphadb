@@ -199,6 +199,7 @@ jobs:
       - publish-to-pypi
       - build-os-specific-windows_x86_64
       - build-os-specific-linux_x86_64
+      - build-os-specific-darwin_x86_64
     runs-on: ubuntu-latest
 
     permissions:
