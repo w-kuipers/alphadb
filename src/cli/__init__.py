@@ -16,4 +16,4 @@
 __app_name__ = "alphadb-cli"
 
 #### ! Do not change the version number manually, this will be handled by the build script
-__version__ = "indev"
+__version__ = "v1.0.0b9"

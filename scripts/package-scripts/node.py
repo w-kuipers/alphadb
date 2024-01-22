@@ -14,7 +14,7 @@ if not os.path.isdir("temp/node"):
     os.makedirs("temp/node")
 
 #### Add all binaries
-archs = ["linux_x86_64", "win32_x86_64"]
+archs = ["linux_x86_64", "win32_x86_64", "darwin_x86_64"]
 
 for arch in archs:
     if os.path.isdir(f"dist/pywrapper_{arch}"):
