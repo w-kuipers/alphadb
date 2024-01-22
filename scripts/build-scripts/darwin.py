@@ -20,3 +20,4 @@ else:
     os.system(f"pyinstaller src/cli/__main__.py --name alphadb-{architecture}")
     os.mkdir(f"dist/darwin_{architecture}")
     shutil.move(f"dist/alphadb-{architecture}", f"dist/darwin_{architecture}/alphadb")
+    shutil.move(f"dist/darwin_{architecture}/alphadb/alphadb-{architecture}", f"dist/darwin_{architecture}/alphadb/alphadb")
