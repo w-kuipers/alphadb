@@ -66,7 +66,6 @@ def altertable(version_source: dict, table_name: str, version: str):
             query += partial
             query += ","
 
-    #### Modify column
     if "modifycolumn" in table_data:
         for column in table_data["modifycolumn"]:
             if "recreate" in table_data["modifycolumn"][column] and table_data["modifycolumn"][column]["recreate"] == False:
@@ -80,13 +79,11 @@ def altertable(version_source: dict, table_name: str, version: str):
             query += partial
             query += ","
 
-    #### Rename column
     if "renamecolumn" in table_data:
         for column in table_data["renamecolumn"]:
             query += f" RENAME COLUMN {column} TO {table_data['renamecolumn'][column]}"
             query += ","
 
-    #### Alter/drop primary key
     if "primary_key" in table_data:
         if table_data["primary_key"] == None:
             query += " DROP PRIMARY KEY"  ## Fails when AI, AI column must be key
@@ -99,7 +96,6 @@ def altertable(version_source: dict, table_name: str, version: str):
     #### Remove trailing comma
     query = query[:-1]
 
-    #### Engine of query
     query += ";"
 
     return query
