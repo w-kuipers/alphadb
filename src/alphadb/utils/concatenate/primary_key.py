@@ -38,4 +38,11 @@ def get_primary_key(version_list: list, table_name: str, before_version: Optiona
                 if "primary_key" in version["altertable"][table_name]:
                     primary_key = version["altertable"][table_name]["primary_key"]
 
+                #### If the column is dropped, primary key should reset to None
+                if "dropcolumn" in version["altertable"][table_name]:
+                    if not primary_key == None:
+                        for dropcol in version["altertable"][table_name]["dropcolumn"]:
+                            if dropcol == primary_key:
+                                primary_key = None
+
     return primary_key
