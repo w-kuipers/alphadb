@@ -59,7 +59,7 @@ class VersionSourceVerification:
                         case "createtable":
                             self.createtable(version["createtable"], version_output)
                         case "altertable":
-                            self.altertable(version["altertable"], version_output)
+                            self.altertable(version["altertable"], version_index=i, version_output=version_output)
                         case _:
                             self.issues.append(("HIGH", f"{version_output}: Method '{method}' does not exist"))
 
@@ -81,7 +81,7 @@ class VersionSourceVerification:
                     #### Columns
                     self.column_compatibility(table, column, createtable[table][column], method="createtable", version_output=version_output)
 
-    def altertable(self, altertable: dict, version_output: str = "Unknown version"):
+    def altertable(self, altertable: dict, version_index: int, version_output: str = "Unknown version"):
         "Verify a single versions altertable"
 
         if len(altertable) == 0:
@@ -94,7 +94,7 @@ class VersionSourceVerification:
 
                 if "dropcolumn" in altertable[table]:
                     #### Check if column to drop is primary key
-                    primary_key = get_primary_key(self.version_source["version"], table)
+                    primary_key = get_primary_key(self.version_source["version"], table, self.version_source["version"][version_index]["_id"])  #### Must be before current version as primary key is reset to None here
                     for dropcol in altertable[table]["dropcolumn"]:
                         if dropcol == primary_key:
                             self.issues.append(("LOW", f"{version_output} -> altertable -> table:{table} -> dropcolumn: Column {dropcol} is the tables current primary key"))
