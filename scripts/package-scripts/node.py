@@ -19,6 +19,8 @@ archs = ["linux_x86_64", "win32_x86_64", "darwin_x86_64"]
 for arch in archs:
     if os.path.isdir(f"dist/pywrapper_{arch}"):
         shutil.move(f"dist/pywrapper_{arch}", f"temp/node/pywrapper_{arch}")
+        if "linux" in arch or "darwin" in arch:
+            os.system(f"cd temp/node/pywrapper_{arch}; chmod +x pywrapper_{arch}")
 
 #### Change version number in package.json
 with open("src/node/package.json", "r") as fr:
