@@ -134,7 +134,7 @@
 				"table1": {
 					"primary_key": "col4",
 					"modifycolumn": {
-						"col1": {
+						"col2": {
 							"recreate": false,
 							"length": "200"
 						}

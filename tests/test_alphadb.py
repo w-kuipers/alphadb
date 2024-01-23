@@ -10,7 +10,7 @@ db.connect(host="localhost", user="root", password="test", database="test")
 
 
 #### Init method
-def test_mysql_init():
+def test_init():
     init = db.init()
     assert init == True
     init = db.init()
@@ -18,13 +18,13 @@ def test_mysql_init():
 
 
 #### Status method
-def test_mysql_status():
+def test_status():
     status = db.status()
     assert status == {"init": True, "version": "0.0.0", "name": "test", "template": None}
 
 
 #### Update method
-def test_mysql_update():
+def test_update():
     with open("../tests/assets/test-db-structure.json") as f:
         structure = json.loads(f.read())
 
@@ -32,7 +32,7 @@ def test_mysql_update():
 
 
 #### Vacate method
-def test_mysql_vacate():
+def test_vacate():
     #### Confirm not specified
     with pytest.raises(NeedsConfirmation):
         db.vacate()
