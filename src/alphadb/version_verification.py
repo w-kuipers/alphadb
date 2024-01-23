@@ -17,6 +17,7 @@ from typing import Literal
 
 from alphadb.utils.common import convert_version_number
 from alphadb.utils.types import Method, ValidationIssuesList
+from alphadb.utils.concatenate.primary_key import get_primary_key
 from alphadb.verification.compatibility import incompatible_types_with_autoincrement, incompatible_types_with_unique
 
 
@@ -32,11 +33,9 @@ class VersionSourceVerification:
         else it returns a list with the issues represented as strings
         """
 
-        #### Template name
         if not "name" in self.version_source:
             self.issues.append(("CRITICAL", "No rootlevel name was specified"))
 
-        #### Version list
         if not "version" in self.version_source:
             self.issues.append(("LOW", "This version source does not contain any versions"))
 
@@ -52,17 +51,17 @@ class VersionSourceVerification:
                         self.issues.append(("CRITICAL", f"{version['_id']}: Version number is not convertable to an integer"))
 
                     version_output = f"Version {version['_id']}"
-                
+
                 for method in version:
                     match method:
-                        case "_id": continue
-                        case "createtable": 
+                        case "_id":
+                            continue
+                        case "createtable":
                             self.createtable(version["createtable"], version_output)
                         case "altertable":
-                            self.altertable(version["altertable"], version_output)
+                            self.altertable(version["altertable"], version_index=i, version_output=version_output)
                         case _:
                             self.issues.append(("HIGH", f"{version_output}: Method '{method}' does not exist"))
-                    
 
         return self.issues if not len(self.issues) == 0 else True
 
@@ -74,7 +73,6 @@ class VersionSourceVerification:
         else:
             for table in createtable:
                 for column in createtable[table]:
-                    #### Primary key
                     if column == "primary_key":
                         if not createtable[table]["primary_key"] in createtable[table]:
                             self.issues.append(("CRITICAL", f"{version_output} -> createtable -> table:{table}: Primary key does not match any column name"))
@@ -83,21 +81,25 @@ class VersionSourceVerification:
                     #### Columns
                     self.column_compatibility(table, column, createtable[table][column], method="createtable", version_output=version_output)
 
-    def altertable(self, altertable: dict, version_output: str = "Unknown version"):
+    def altertable(self, altertable: dict, version_index: int, version_output: str = "Unknown version"):
         "Verify a single versions altertable"
 
         if len(altertable) == 0:
             self.issues.append(("LOW", f"{version_output} -> altertable: Does not contain any data"))
         else:
             for table in altertable:
-                #### Modify column
                 if "modifycolumn" in altertable[table]:
                     for column in altertable[table]["modifycolumn"]:
                         self.column_compatibility(table, column, altertable[table]["modifycolumn"][column], method="altertable", version_output=version_output)
 
-                #### Primary key
+                if "dropcolumn" in altertable[table]:
+                    #### Check if column to drop is primary key
+                    primary_key = get_primary_key(self.version_source["version"], table, self.version_source["version"][version_index]["_id"])  #### Must be before current version as primary key is reset to None here
+                    for dropcol in altertable[table]["dropcolumn"]:
+                        if dropcol == primary_key:
+                            self.issues.append(("LOW", f"{version_output} -> altertable -> table:{table} -> dropcolumn: Column {dropcol} is the tables current primary key"))
+
                 # if "primary_key" in table:
-                #     if
 
     def column_compatibility(self, table_name: str, column_name: str, data: dict, method: Method, version_output: str = "Unknown version"):
         "Verify column attribute compatibility"

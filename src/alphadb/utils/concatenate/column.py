@@ -155,8 +155,6 @@ def get_column_type(version_list: list, table_name: str, column_name: str):
 
         if "altertable" in version:
             if table_name in version["altertable"]:
-                print(version)
-                print(version_column_name)
                 if "modifycolumn" in version["altertable"][table_name]:
                     if version_column_name in version["altertable"][table_name]["modifycolumn"]:
                         if "type" in version["altertable"][table_name]["modifycolumn"][version_column_name]:

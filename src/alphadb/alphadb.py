@@ -135,7 +135,6 @@ class AlphaDB:
     @conn_test
     @init_test
     def update_queries(self, version_source, update_to_version=None, no_data=False):
-        print(version_source)
 
         #### Some error handling
         if version_source == None:
