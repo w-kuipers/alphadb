@@ -19,6 +19,7 @@ from alphadb.utils.exceptions import IncompatibleColumnAttributes, IncompleteVer
 from alphadb.utils.types import DatabaseColumnType
 from alphadb.verification.compatibility import incompatible_types_with_unique, incompatible_types_with_autoincrement
 
+
 def definecolumn(column_name: str, column_type: DatabaseColumnType, null: bool = False, length: Optional[int] = None, unique: bool = False, default: Optional[str | int] = None, auto_increment: bool = False):
     if not column_type.upper() in get_args(DatabaseColumnType):
         raise ValueError(f"Column type {column_type} is not (yet) supported.")
@@ -47,9 +48,7 @@ def prepare_definecolumn_data(table_name: str, column: str, table_data: dict, ve
     #### If iteration is not of type Dict, it is not a column and should be handled later
     if not isinstance(table_data[column], dict) or column == "foreign_key":  ## Foreign key IS an object, but has to be handled later
         return None
-    
-    print(table_data[column], column)
-    
+
     #### A column type must be defined
     if not "type" in table_data[column]:
         raise IncompleteVersionObject(key="type", object=f"Version {version}->{table_name}->{column}")

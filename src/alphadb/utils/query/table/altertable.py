@@ -51,7 +51,6 @@ def altertable(version_source: dict, table_name: str, version: str):
                     table_data["modifycolumn"][version_column_name] = {"recreate": False, "a_i": False}
             else:
                 table_data["modifycolumn"] = {version_column_name: {"recreate": False, "a_i": False}}
-                print(table_data["modifycolumn"])
 
     if "dropcolumn" in table_data:
         for column in table_data["dropcolumn"]:
