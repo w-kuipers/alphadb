@@ -9,9 +9,9 @@
     "dist",
 	"pywrapper_win32_x86_64",
 	"pywrapper_linux_x86_64",
-	"pywrapper_linux_x86_64/pywrapper_linux_x86_64",
 	"pywrapper_darwin_x86_64",
-	"pywrapper_darwin_x86_64/pywrapper_linux_x86_64"
+	"index.ts",
+	"alphadb.ts"
   ],
   "tsup": {
 	"entry": ["index.ts"],
