@@ -13,19 +13,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from cli import __app_name__, cli as cli_setup
+from cli import __app_name__
+from cli import cli as cli_setup
+from cli.utils.common import clear, console
 from cli.utils.decorators import config_check
-from cli.utils.common import console, clear
 
-DEV = True
+DEV = False
+
 
 def raise_error(e):
-    if DEV: raise e
-    else: 
+    if DEV:
+        raise e
+    else:
         if hasattr(e, "msg"):
             console.print(e.msg, style="white on red")
         else:
             console.print(f"[white]{e}[/white]", style="white on red")
+
 
 @config_check
 def main():
@@ -34,6 +38,7 @@ def main():
         cli_setup.app(prog_name=__app_name__)
     except Exception as e:
         raise_error(e)
+
 
 if __name__ == "__main__":
     main()

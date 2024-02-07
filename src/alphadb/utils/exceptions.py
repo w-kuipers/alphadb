@@ -16,6 +16,7 @@
 from typing import Optional
 
 from .globals import CONFIG_TABLE_NAME
+from .types import ValidationIssueLevel
 
 
 class NoConnection(Exception):

@@ -13,7 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Callable
+from typing import Callable, Literal, Optional, Union, get_args
+
+from mysql.connector import MySQLConnection
+from mysql.connector.cursor import MySQLCursor
 
 from alphadb.utils.decorators import conn_test, init_test
 from alphadb.utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, NeedsConfirmation
@@ -21,9 +24,8 @@ from alphadb.utils.globals import CONFIG_TABLE_NAME
 from alphadb.utils.query.default_data import create_default_data
 from alphadb.utils.query.table.altertable import altertable
 from alphadb.utils.query.table.createtable import createtable
-
-from mysql.connector import MySQLConnection
-from mysql.connector.cursor import MySQLCursor
+from alphadb.utils.types import ValidationIssueLevel
+from alphadb.version_verification import VersionSourceVerification
 
 
 class AlphaDB:
@@ -110,7 +112,6 @@ class AlphaDB:
             )
             table_check = cursor.fetchall()
 
-            #### If it exists, get current version
             fetched = None
             if table_check:
                 cursor.execute(
@@ -135,15 +136,12 @@ class AlphaDB:
     @conn_test
     @init_test
     def update_queries(self, version_source, update_to_version=None, no_data=False):
-
-        #### Some error handling
         if version_source == None:
             raise MissingVersionData()
         else:
             if not "version" in version_source or not "name" in version_source:
                 raise IncompleteVersionData()
 
-        #### Start update process
         database_version = None
         with self.cursor() as cursor:
             try:
@@ -186,12 +184,9 @@ class AlphaDB:
                 raise DBConfigIncomplete(missing="version")
 
             try:
-                #### List to be populated with queries
                 query_list = []
 
-                #### Loop through update data
                 for version in version_source["version"]:
-                    #### Check if version number is larger than current version
                     if int(version["_id"].replace(".", "")) <= int(database_version.replace(".", "")):
                         continue
 
@@ -199,13 +194,11 @@ class AlphaDB:
                     if int(database_version_latest.replace(".", "")) < int(version["_id"].replace(".", "")):
                         continue
 
-                    #### Create tables
                     if "createtable" in version:
                         for table in version["createtable"]:
                             query = createtable(version_source=version_source, table_name=table, version=version["_id"])
                             query_list.append(query)
 
-                    #### Alter tables
                     if "altertable" in version:
                         for table in version["altertable"]:
                             query = altertable(version_source=version_source, table_name=table, version=version["_id"])
@@ -234,7 +227,26 @@ class AlphaDB:
 
     @conn_test
     @init_test
-    def update(self, version_source, update_to_version=None, no_data=False):
+    def update(self, version_source, update_to_version=None, no_data=False, verify: Optional[bool] = True, allowed_error_priority: Union[ValidationIssueLevel, Literal["ALL"]] = "LOW"):
+        #### Start with version source verification
+        if verify == True:
+            verification = VersionSourceVerification(version_source=version_source)
+            levels = [get_args(x)[0] for x in get_args(ValidationIssueLevel)]
+
+            verified = verification.verify()
+            if not verified == True:
+                if not allowed_error_priority == "ALL":
+                    levels = levels[levels.index(allowed_error_priority.upper()) + 1 :]
+
+                failes = False
+
+                for error in verified:
+                    if error[0] in levels:
+                        failes = True
+
+                if failes:
+                    return f"The database will not update because the version source verification returned higher than '{allowed_error_priority}' priority errors."
+
         queries = self.update_queries(version_source=version_source, update_to_version=update_to_version, no_data=no_data)
 
         if queries == "up-to-date":
@@ -242,7 +254,7 @@ class AlphaDB:
 
         with self.cursor() as cursor:
             for query in queries:
-                #### If type is typle, data is passed with the query
+                #### If type is tuple, data is passed with the query
                 if type(query) == tuple:
                     cursor.execute(*query)
                 else:

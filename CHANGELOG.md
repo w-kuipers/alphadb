@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Altertable` option to update method.
 - Add version source validation
 - NodeJS API
+- Version source will be verified when the `update` method is called. Can be disabled.
 
 ### Changed
 
