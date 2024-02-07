@@ -13,24 +13,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from cli.utils.common import print_title
-from cli.utils.connect import get_mysql_creds
-from alphadb import AlphaDB, VersionSourceVerification
-from alphadb.utils.exceptions import DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, DBConfigIncomplete
-from mysql.connector import DatabaseError, InterfaceError
+from typing import Literal, Optional, Union
+
 from cryptography.fernet import Fernet
-from cli.utils.config import config_get, config_write 
-from cli.utils.common import console
+from inquirer import Confirm, prompt
+from mysql.connector import DatabaseError, InterfaceError
+
+from alphadb import AlphaDB, VersionSourceVerification
+from alphadb.utils.exceptions import DBConfigIncomplete, DBTemplateNoMatch, IncompleteVersionData, MissingVersionData
+from alphadb.utils.types import ValidationIssueLevel
+from cli.utils import globals
+from cli.utils.common import console, print_title
+from cli.utils.config import config_get, config_write
+from cli.utils.connect import get_mysql_creds
 from cli.utils.decorators import connection_check
 from cli.utils.version_source import select_version_source, vs_path_to_json
-from inquirer import prompt, Confirm
-from cli.utils import globals
+
 
 def connect():
     "Connect to a database"
 
     print_title("connect")
-        
+
     globals.db = AlphaDB()
     creds = get_mysql_creds()
 
@@ -44,33 +48,37 @@ def connect():
         )
 
     except (DatabaseError, InterfaceError) as e:
-        if hasattr(e, "msg"): console.print(f"\n[red]{e.msg}[/red]\n")
-        else: console.print(f"\n[red]{e}[/red]\n")
+        if hasattr(e, "msg"):
+            console.print(f"\n[red]{e.msg}[/red]\n")
+        else:
+            console.print(f"\n[red]{e}[/red]\n")
         return
 
     pass_bytes = creds["password"].encode()
     f = Fernet(config_get("CONFIG", "secret"))
     pass_encrypted = f.encrypt(pass_bytes)
 
-    config_write({
-        "DB_SESSION": {
-            "host": creds["host"],
-            "user": creds["user"],
-            "password": pass_encrypted,
-            "database": creds["database"],
-            "port": creds["port"],
+    config_write(
+        {
+            "DB_SESSION": {
+                "host": creds["host"],
+                "user": creds["user"],
+                "password": pass_encrypted,
+                "database": creds["database"],
+                "port": creds["port"],
+            }
         }
-    })
+    )
 
     console.print(f'\n[green]Successfully connected to database:[/green] [cyan]"{creds["database"]}"[/cyan]\n')
 
-
     return
+
 
 @connection_check()
 def init():
     "Initialize database"
-    
+
     #### Initialize loader
     with console.status("[cyan]Getting the database ready[/cyan]", spinner="bouncingBall") as _:
         init = globals.db.init()
@@ -82,6 +90,7 @@ def init():
     if init == True:
         console.print("[green]Database successfully initialized[/green]\n")
         return
+
 
 @connection_check()
 def status():
@@ -100,15 +109,15 @@ def status():
 
     return
 
+
 @connection_check()
-def update(nodata=False):
+def update(nodata=False, verify: Optional[bool] = True, allowed_error_priority: Union[ValidationIssueLevel, Literal["ALL"]] = "LOW"):
     "Update database"
 
     print_title("update")
 
     #### Initialize loader
     with console.status("[cyan]Checking database[/cyan]", spinner="bouncingBall") as loader:
-
         #### Check database status
         status = globals.db.status()
         if status["init"] == False:
@@ -116,27 +125,32 @@ def update(nodata=False):
             return
 
     try:
-
         version_source_path = select_version_source()
-    
+
         #### If source path is None, user probably aborted
-        if version_source_path == None: return
-        
+        if version_source_path == None:
+            return
+
         with console.status("[cyan]Reading version source[/cyan]", spinner="bouncingBall") as loader:
-           
             version_information = vs_path_to_json(version_source_path)
 
             #### If version information is None, an error has likely occured and we should not proceed
-            if version_information == None: return
+            if version_information == None:
+                return
 
             loader.update("[cyan]Running updates on the database[/cyan]")
 
-            update = globals.db.update(version_source=version_information, no_data=nodata)
+            update = globals.db.update(version_source=version_information, no_data=nodata, verify=verify, allowed_error_priority=allowed_error_priority)
 
             if update:
-                if update == "up-to-date":
-                    console.print(f"[blue]Database is already the latest version [cyan]({status['version']})[/cyan][/blue]\n")
-                    return
+                if not type(update) == bool:
+                    if update == "up-to-date":
+                        console.print(f"[blue]Database is already the latest version [cyan]({status['version']})[/cyan][/blue]\n")
+                        return
+
+                    if update[:10] == "The databa":
+                        console.print(f"[yellow]{update}[/yellow]\n")
+                        return
 
                 console.print("[green]Database successfully updated to the latest version[/green]\n")
             else:
@@ -145,11 +159,12 @@ def update(nodata=False):
     except (DBTemplateNoMatch, IncompleteVersionData, MissingVersionData, DBConfigIncomplete) as e:
         console.print(f"[red]{e}[/red]\n")
 
+
 @connection_check()
 def vacate(confirm=False):
     "Empty database"
     print_title("vacate")
-    
+
     #### Only works when confirm==True is specified
     if not confirm == True:
         console.print(f"[yellow]The vacate function requires the[/yellow] [red]--confirm[/red] [yellow]option.[/yellow]")
@@ -158,17 +173,17 @@ def vacate(confirm=False):
 
     console.print(f"[yellow]The vacate function[/yellow] [red]deletes all data in the database[/red].")
     console.print("[yellow]This action can [red]NOT[/red] be undone.[/yellow]\n")
-    
+
     #### Prompt user for confirmation
     questions = [Confirm("confirm", message="Are you absolutely sure you want to completely delete all data?")]
     answers = prompt(questions)
 
     #### If answers is None, user likely aborted
-    if answers == None: return
+    if answers == None:
+        return
 
     if answers["confirm"]:
         with console.status("[cyan]Removing all data from database[/cyan]", spinner="bouncingBall") as _:
-
             #### Empty db
             if globals.db.vacate(confirm=confirm):
                 console.print("[green]The database had successfully been emptied.[/green]\n")
@@ -176,18 +191,21 @@ def vacate(confirm=False):
         console.print("[cyan]Not empying[/cyan]\n")
     return
 
+
 def verify_version_source():
     print_title("verify version source")
-    
+
     version_source_path = select_version_source()
 
     #### If version source path is None, user likely aborted
-    if version_source_path == None: return
+    if version_source_path == None:
+        return
 
     version_source = vs_path_to_json(version_source_path)
 
     #### If version source is None, an error likely occured and we should not proceed
-    if version_source == None: return
+    if version_source == None:
+        return
 
     verification = VersionSourceVerification(version_source)
 
@@ -200,10 +218,8 @@ def verify_version_source():
     console.print(f"Version source at [blue]{version_source_path}[/blue] has [red]{len(output)} errors[/red]\n\n")
 
     for issue in sorted(output):
-            
-
         if ":" in issue[1]:
-            issue_path, issue_text = issue[1].rsplit(': ', 1)
+            issue_path, issue_text = issue[1].rsplit(": ", 1)
         else:
             issue_path = ""
             issue_text = issue[1]
@@ -216,5 +232,5 @@ def verify_version_source():
 
         if issue[0] == "CRITICAL":
             console.print("[white on red]CRITICAL: [/white on red]", f"[cyan]{issue_path}[/cyan]", f"[red]{issue_text}[/red]")
-        
+
     console.line()
