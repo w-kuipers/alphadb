@@ -39,7 +39,7 @@ def update(
     ),
     verify: Optional[bool] = typer.Option(
         True,
-        "--verify",
+        "--no-verify",
         help="Wether the version source should be verified before updating",
     ),
     allowed_error_priority: Optional[str] = typer.Option("LOW", "--allowed-error-priority", help="Set the priority level for the verification to cancel the update process"),
