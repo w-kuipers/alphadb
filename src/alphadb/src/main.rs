@@ -28,8 +28,10 @@ fn main() {
         3306,
     );
 
-    let check = db.check();
-    println!("{:?}", check);
+    // let check = db.check();
+    // println!("{:?}", check);
 
     // db.init();
+    let status = db.status();
+    println!("{:?}", status);
 }

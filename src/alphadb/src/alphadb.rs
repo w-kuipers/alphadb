@@ -29,6 +29,14 @@ pub struct Check {
     pub version: Option<String>,
 }
 
+#[derive(Debug)]
+pub struct Status {
+    pub init: bool,
+    pub version: Option<String>,
+    pub name: String,
+    pub template: Option<String>,
+}
+
 impl AlphaDB {
     pub fn new() -> AlphaDB {
         AlphaDB {
@@ -127,5 +135,52 @@ impl AlphaDB {
             (self.db_name.as_ref().unwrap(), "0.0.0"),
         )
         .unwrap();
+    }
+
+    pub fn status(&mut self) -> Status {
+        let mut init = false;
+        let mut version: Option<String> = None;
+        let mut template: Option<String> = None;
+        let db_name = self.db_name.as_ref().unwrap();
+
+        let conn = &mut self
+            .connection
+            .as_mut()
+            .expect("Connection could not be established");
+
+        // Check if the configuration table exists
+        let table_check: Option<String> = conn
+            .exec_first("SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?", (db_name, CONFIG_TABLE_NAME))
+            .unwrap();
+
+        if table_check.is_some() {
+            let fetched: Option<Row> = conn
+                .exec_first(
+                    format!(
+                        "SELECT version, template FROM {} where db = ?",
+                        CONFIG_TABLE_NAME
+                    ),
+                    (db_name,),
+                )
+                .unwrap();
+
+            if fetched.is_some() {
+                let c = from_row::<(String, Option<String>)>(fetched.unwrap());
+                version = Some(c.0);
+                template = c.1;
+            }
+        }
+
+        // Check true means database is initialized
+        if table_check.is_some() {
+            init = true;
+        }
+
+        Status {
+            init,
+            version,
+            name: db_name.to_string(),
+            template,
+        }
     }
 }
