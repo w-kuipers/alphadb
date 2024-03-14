@@ -13,17 +13,28 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::utils::globals::CONFIG_TABLE_NAME;
 use mysql::prelude::*;
 use mysql::*;
 
 #[derive(Debug)]
 pub struct AlphaDB {
     connection: Option<PooledConn>,
+    db_name: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct Check {
+    pub check: bool,
+    pub version: Option<String>,
 }
 
 impl AlphaDB {
     pub fn new() -> AlphaDB {
-        AlphaDB { connection: None }
+        AlphaDB {
+            connection: None,
+            db_name: None,
+        }
     }
 
     pub fn connect(
@@ -33,36 +44,53 @@ impl AlphaDB {
         password: String,
         database: String,
         port: i32,
-    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    ) {
         let url = format!(
             "mysql://{}:{}@{}:{}/{}",
             user, password, host, port, database
         );
 
-        let pool = Pool::new(&url[..])?;
+        // Establish connection to database
+        let pool = Pool::new(&url[..]).unwrap();
+        self.connection = Some(pool.get_conn().unwrap());
 
-        self.connection = Some(pool.get_conn()?);
+        // Set the database name
+        self.db_name = Some(database);
+    }
 
-        let conn = self
+    pub fn check(&mut self) -> Check {
+        let mut check = false;
+        let mut version: Option<String> = None;
+        let db_name = self.db_name.as_ref().unwrap();
+
+        let conn = &mut self
             .connection
             .as_mut()
-            .expect("Connection not established");
+            .expect("Connection could not be established");
 
-        conn.query_drop("CREATE TABLE IF NOT EXISTS test (id INT, name TEXT)")?;
+        // Check if the configuration table exists
+        let table_check: Option<String> = conn
+            .exec_first("SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?", (db_name, CONFIG_TABLE_NAME))
+            .unwrap();
 
-        let names = vec!["Steven", "John", "Jane"];
+        if !table_check.is_none() {
+            let fetched: Option<String> = conn
+                .exec_first(
+                    format!("SELECT version FROM {} where db = ?", CONFIG_TABLE_NAME),
+                    (db_name,),
+                )
+                .unwrap();
 
-        conn.exec_batch(
-            r"INSERT INTO test (id, name)
-            VALUES (:id, :name)",
-            names.iter().map(|name| {
-                params! {
-                    "id" => 0,
-                    "name" => name,
-                }
-            }),
-        )?;
+            if fetched.is_some() {
+                version = fetched;
+            }
+        }
 
-        Ok(())
+        // Check true means database is redy for use
+        if table_check.is_some() && version.is_some() {
+            check = true;
+        }
+
+        Check { check, version }
     }
 }

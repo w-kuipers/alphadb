@@ -13,22 +13,4 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::alphadb::AlphaDB;
-
-mod alphadb;
-mod utils;
-
-fn main() {
-    let mut db = AlphaDB::new();
-    let _ = db.connect(
-        "localhost".to_string(),
-        "root".to_string(),
-        "test".to_string(),
-        "test".to_string(),
-        3306,
-    );
-
-    let check = db.check();
-
-    println!("Check: {}", check.version.unwrap());
-}
+pub const CONFIG_TABLE_NAME: &str = "adb_conf";
