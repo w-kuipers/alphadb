@@ -29,6 +29,7 @@ fn main() {
     );
 
     let check = db.check();
+    println!("{:?}", check);
 
-    println!("Check: {}", check.version.unwrap());
+    // db.init();
 }

@@ -93,4 +93,39 @@ impl AlphaDB {
 
         Check { check, version }
     }
+
+    pub fn init(&mut self) {
+        // Check if the table is already initialized
+        let check = self.check();
+        if check.check {
+            panic!("already-initialized");
+        }
+
+        let conn = &mut self
+            .connection
+            .as_mut()
+            .expect("Connection could not be established");
+
+        // Create the configuration table
+        conn.query_drop(format!(
+            "CREATE TABLE {} (
+                    db VARCHAR(100) NOT NULL,
+                    version VARCHAR(50) NOT NULL,
+                    template VARCHAR(50) NULL,
+                    PRIMARY KEY (db)
+                )",
+            CONFIG_TABLE_NAME
+        ))
+        .unwrap();
+
+        // Insert db version
+        conn.exec_drop(
+            format!(
+                "INSERT INTO {} (db, version) VALUES (?, ?)",
+                CONFIG_TABLE_NAME
+            ),
+            (self.db_name.as_ref().unwrap(), "0.0.0"),
+        )
+        .unwrap();
+    }
 }
