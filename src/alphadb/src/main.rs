@@ -32,6 +32,9 @@ fn main() {
     // println!("{:?}", check);
 
     // db.init();
-    let status = db.status();
-    println!("{:?}", status);
+
+    // let status = db.status();
+    // println!("{:?}", status);
+
+    db.vacate();
 }
