@@ -226,21 +226,27 @@ impl AlphaDB {
         }
 
         // Check if templates match
-        if let Some(template) = db_version.1 {
-            println!("Database template: {}", template);
-            if template != version_source["name"].as_str().unwrap() {
-                panic!("This database uses a different database version source. The template name does not match the one previously used to update this database.");
+        let template = match db_version.1 {
+            Some(template) => {
+                if template != version_source["name"].as_str().unwrap() {
+                    panic!("This database uses a different database version source. The template name does not match the one previously used to update this database.");
+                }
+                template
             }
-        } else {
-            conn.exec_drop(
-                format!("UPDATE {} SET template = ? WHERE db = ?", CONFIG_TABLE_NAME),
-                (
-                    version_source["name"].as_str().unwrap(),
-                    self.db_name.as_ref().unwrap(),
-                ),
-            )
-            .unwrap();
-        }
+            None => {
+                conn.exec_drop(
+                    format!("UPDATE {} SET template = ? WHERE db = ?", CONFIG_TABLE_NAME),
+                    (
+                        version_source["name"].as_str().unwrap(),
+                        self.db_name.as_ref().unwrap(),
+                    ),
+                )
+                .unwrap();
+                version_source["name"].as_str().unwrap().to_string()
+            }
+        };
+
+        // Get the latest version
     }
 
     pub fn vacate(&mut self) {
