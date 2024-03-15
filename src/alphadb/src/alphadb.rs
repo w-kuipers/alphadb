@@ -207,3 +207,59 @@ impl AlphaDB {
         conn.query_drop("SET FOREIGN_KEY_CHECKS = 1").unwrap();
     }
 }
+
+#[cfg(test)]
+mod alphadb_tests {
+    use super::*;
+    static HOST: &str = "localhost";
+    static USER: &str = "root";
+    static PASSWORD: &str = "test";
+    static DATABASE: &str = "test";
+    static PORT: i32 = 3306;
+
+    #[test]
+    fn test_alphadb() {
+        let mut db = AlphaDB::new();
+        assert!(db.connection.is_none());
+
+        // Test connect
+        db.connect(
+            HOST.to_string(),
+            USER.to_string(),
+            PASSWORD.to_string(),
+            DATABASE.to_string(),
+            PORT,
+        );
+        assert!(db.connection.is_some());
+
+        // Test check
+        let check = db.check();
+        assert_eq!(check.check, false);
+        assert_eq!(check.version, None);
+
+        // Test init
+        db.init();
+        let check = db.check();
+        assert_eq!(check.check, true);
+        assert_eq!(check.version, Some("0.0.0".to_string()));
+
+        // Test status
+        let status = db.status();
+        assert_eq!(status.init, true);
+        assert_eq!(status.version, Some("0.0.0".to_string()));
+        assert_eq!(status.name, DATABASE);
+        assert_eq!(status.template, None);
+
+        // Test vacate
+        db.vacate();
+        let check = db.check();
+        assert_eq!(check.check, false);
+        assert_eq!(check.version, None);
+
+        let status = db.status();
+        assert_eq!(status.init, false);
+        assert_eq!(status.version, None);
+        assert_eq!(status.name, DATABASE);
+        assert_eq!(status.template, None);
+    }
+}
