@@ -13,6 +13,4 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod error_messages;
-pub mod globals;
-pub mod version_number;
+pub const DB_CONFIG_NO_VERSION: &str = "There seems to be an issue with the database config. It is initialized, but does not return a valid version. Please manually check the configuration table in your database.";

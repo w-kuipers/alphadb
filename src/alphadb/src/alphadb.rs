@@ -13,9 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
 use crate::utils::globals::CONFIG_TABLE_NAME;
+use crate::utils::version_number::verify_version_nummber;
 use mysql::prelude::*;
 use mysql::*;
+use std::panic;
 
 #[derive(Debug)]
 pub struct AlphaDB {
@@ -181,6 +184,62 @@ impl AlphaDB {
             version,
             name: db_name.to_string(),
             template,
+        }
+    }
+
+    pub fn update_queries(&mut self, version_source: serde_json::Value) {
+        let conn = &mut self
+            .connection
+            .as_mut()
+            .expect("Connection could not be established");
+        let versions_result = version_source["version"].as_array();
+
+        let versions = match versions_result {
+            Some(versions) => versions,
+            None => {
+                panic!("Version information data not complete. Must contain 'latest', 'version' and 'name'. Latest is the latest version number, version is a JSON object containing the database structure and name is the database template name.")
+            }
+        };
+
+        // Get database version
+        let database_version: String;
+        let db_data: Row = conn
+            .exec_first(
+                format!(
+                    "SELECT version, template FROM {} WHERE db = ?",
+                    CONFIG_TABLE_NAME
+                ),
+                (self.db_name.as_ref().unwrap(),),
+            )
+            .expect("Database configuration error")
+            .unwrap();
+
+        let db_version = from_row::<(Option<String>, Option<String>)>(db_data);
+        database_version = db_version.0.expect(DB_CONFIG_NO_VERSION);
+
+        let version_number_check = panic::catch_unwind(|| {
+            verify_version_nummber(database_version.clone());
+        });
+
+        if version_number_check.is_err() {
+            panic!("{}", DB_CONFIG_NO_VERSION);
+        }
+
+        // Check if templates match
+        if let Some(template) = db_version.1 {
+            println!("Database template: {}", template);
+            if template != version_source["name"].as_str().unwrap() {
+                panic!("This database uses a different database version source. The template name does not match the one previously used to update this database.");
+            }
+        } else {
+            conn.exec_drop(
+                format!("UPDATE {} SET template = ? WHERE db = ?", CONFIG_TABLE_NAME),
+                (
+                    version_source["name"].as_str().unwrap(),
+                    self.db_name.as_ref().unwrap(),
+                ),
+            )
+            .unwrap();
         }
     }
 

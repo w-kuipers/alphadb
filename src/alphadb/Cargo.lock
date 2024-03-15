@@ -45,6 +45,8 @@ name = "alphadb"
 version = "0.1.0"
 dependencies = [
  "mysql",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
