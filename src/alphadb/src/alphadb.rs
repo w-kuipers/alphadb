@@ -183,4 +183,27 @@ impl AlphaDB {
             template,
         }
     }
+
+    pub fn vacate(&mut self) {
+        let conn = &mut self
+            .connection
+            .as_mut()
+            .expect("Connection could not be established");
+
+        // Disable foreign key checks
+        conn.query_drop("SET FOREIGN_KEY_CHECKS = 0").unwrap();
+
+        // Get all tables
+        let tables: Vec<String> = conn
+            .query_map("SHOW TABLES", |table: String| table)
+            .unwrap();
+
+        // Drop all tables
+        for table in tables {
+            conn.query_drop(format!("DROP TABLE {}", table)).unwrap();
+        }
+
+        // Enable foreign key checks
+        conn.query_drop("SET FOREIGN_KEY_CHECKS = 1").unwrap();
+    }
 }
