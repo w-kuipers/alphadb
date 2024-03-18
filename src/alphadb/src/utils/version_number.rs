@@ -1,4 +1,4 @@
-pub fn verify_version_nummber(version_number: String) -> bool {
+pub fn verify_version_number(version_number: String) -> bool {
     let version_number = version_number.replace(".", "");
     version_number
         .parse::<i32>()

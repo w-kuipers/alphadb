@@ -15,7 +15,7 @@
 
 use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
 use crate::utils::globals::CONFIG_TABLE_NAME;
-use crate::utils::version_number::verify_version_nummber;
+use crate::utils::version_number::{get_version_number_int, verify_version_number};
 use mysql::prelude::*;
 use mysql::*;
 use std::panic;
@@ -187,7 +187,11 @@ impl AlphaDB {
         }
     }
 
-    pub fn update_queries(&mut self, version_source: serde_json::Value) {
+    pub fn update_queries(
+        &mut self,
+        version_source: serde_json::Value,
+        update_to_version: Option<&str>,
+    ) {
         let conn = &mut self
             .connection
             .as_mut()
@@ -218,7 +222,7 @@ impl AlphaDB {
         database_version = db_version.0.expect(DB_CONFIG_NO_VERSION);
 
         let version_number_check = panic::catch_unwind(|| {
-            verify_version_nummber(database_version.clone());
+            verify_version_number(database_version.clone());
         });
 
         if version_number_check.is_err() {
@@ -247,6 +251,30 @@ impl AlphaDB {
         };
 
         // Get the latest version
+        let latest_version = match update_to_version {
+            Some(version) => {
+                if verify_version_number(String::from(version)) {
+                    version.to_string()
+                } else {
+                    panic!("Invalid version number");
+                }
+            }
+            None => {
+                let mut latest_version = String::from("0.0.0");
+                for version in versions {
+                    let version = version["_id"]
+                        .as_str()
+                        .expect("No version number was specified");
+
+                    if get_version_number_int(String::from(version))
+                        > get_version_number_int(latest_version.clone())
+                    {
+                        latest_version = version.to_string();
+                    }
+                }
+                latest_version
+            }
+        };
     }
 
     pub fn vacate(&mut self) {
