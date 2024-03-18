@@ -17,6 +17,7 @@ use crate::alphadb::AlphaDB;
 use std::fs;
 
 mod alphadb;
+mod query;
 mod utils;
 
 fn main() {
@@ -42,5 +43,5 @@ fn main() {
         .expect("Unable to read file");
     let json: serde_json::Value = serde_json::from_str(&data).expect("JSON was not well-formatted");
 
-    db.update_queries(json, Some("ll"));
+    db.update_queries(json, None);
 }

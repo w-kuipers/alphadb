@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::query::table::createtable::{self, createtable};
 use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::version_number::{get_version_number_int, verify_version_number};
@@ -264,7 +265,7 @@ impl AlphaDB {
                 for version in versions {
                     let version = version["_id"]
                         .as_str()
-                        .expect("No version number was specified");
+                        .expect("No verssion number was specified");
 
                     if get_version_number_int(String::from(version))
                         > get_version_number_int(latest_version.clone())
@@ -275,6 +276,51 @@ impl AlphaDB {
                 latest_version
             }
         };
+
+        // Check if database is up to date
+        if get_version_number_int(latest_version.clone())
+            <= get_version_number_int(database_version.clone())
+        {
+            panic!("Database is already up to date");
+        }
+
+        // Update loop
+        for version in versions {
+            let version_int =
+                get_version_number_int(String::from(version["_id"].as_str().unwrap()));
+            // Skip any previous versions
+            if version_int <= get_version_number_int(database_version.clone()) {
+                continue;
+            }
+
+            // Continue if latest version is current
+            if version_int > get_version_number_int(latest_version.clone()) {
+                continue;
+            }
+
+            let version_keys = version
+                .as_object()
+                .unwrap()
+                .keys()
+                .into_iter()
+                .collect::<Vec<&String>>();
+
+            // Createtable
+            if version_keys.contains(&&"createtable".to_string()) {
+                let tables = version["createtable"]
+                    .as_object()
+                    .unwrap()
+                    .keys()
+                    .into_iter();
+                for table in tables {
+                    createtable(
+                        version["createtable"][table].clone(),
+                        table,
+                        version["_id"].as_str().unwrap(),
+                    );
+                }
+            }
+        }
     }
 
     pub fn vacate(&mut self) {
@@ -283,7 +329,6 @@ impl AlphaDB {
             .as_mut()
             .expect("Connection could not be established");
 
-        // Disable foreign key checks
         conn.query_drop("SET FOREIGN_KEY_CHECKS = 0").unwrap();
 
         // Get all tables
@@ -296,7 +341,6 @@ impl AlphaDB {
             conn.query_drop(format!("DROP TABLE {}", table)).unwrap();
         }
 
-        // Enable foreign key checks
         conn.query_drop("SET FOREIGN_KEY_CHECKS = 1").unwrap();
     }
 }
