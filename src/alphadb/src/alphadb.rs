@@ -312,12 +312,9 @@ impl AlphaDB {
                     .unwrap()
                     .keys()
                     .into_iter();
+
                 for table in tables {
-                    createtable(
-                        version["createtable"][table].clone(),
-                        table,
-                        version["_id"].as_str().unwrap(),
-                    );
+                    let q = createtable(version, table, version["_id"].as_str().unwrap());
                 }
             }
         }
