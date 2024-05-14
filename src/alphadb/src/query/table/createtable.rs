@@ -13,6 +13,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::utils::error_messages::{incomplete_version_object, incompatible_column_attributes};
+use crate::verification::compatibility::INCOMPATIBLE_W_AI;
+
+/// **Createtable**
+///
+/// Generate a MySQL createtable query
+///
+/// - version_source: Complete JSON version source
+/// - table_name: Name of the table to be created
+/// - version: Current version in version source loop
 pub fn createtable(version_source: &serde_json::Value, table_name: &str, version: &str) -> String {
     let mut query = format!("CREATE TABLE {} ()", table_name);
 
@@ -24,13 +34,27 @@ pub fn createtable(version_source: &serde_json::Value, table_name: &str, version
             if column_name != "foreign_key" { // Foreign keys, as well, have to be handled later
                 let column_keys = column_keys.keys().into_iter().collect::<Vec<&String>>();
 
-                if column_keys.contains(&&"type".to_string()) {
-                    println!("{:?}", column_value);
+                // Must know the type to create a column
+                if !column_keys.contains(&&"type".to_string()) {
+                    incomplete_version_object("type".to_string(), format!("Version {version}->{table_name}->{column_name}"));
                 }
+
+                let column_type = table_data[column_name]["type"].as_str().to_owned().unwrap().to_lowercase();
+
+                // Check column type compatibility with AUTO_INCREMENT 
+                let mut auto_increment = false;
+                if column_keys.iter().any(|&i| i == "a_i") {
+                    if INCOMPATIBLE_W_AI.iter().any(|&i| i == column_type) {
+                        incompatible_column_attributes("AUTO_INCREMENT".to_string(), format!("type=='{column_type}'"), format!("Version {version}->{table_name}->{column_name}"))
+                    }
+                    auto_increment = true;
+                }
+
+                println!("{} : {}", column_name, auto_increment);
+
+
             }
         }
-
-
     }
 
     return query;
