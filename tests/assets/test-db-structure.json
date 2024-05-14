@@ -9,7 +9,8 @@
 					"col1": {
 						"type": "INT",
 						"length": 7,
-						"a_i": true
+						"a_i": true,
+						"null": true
 					},
 					"col2": {
 						"type": "VARCHAR",

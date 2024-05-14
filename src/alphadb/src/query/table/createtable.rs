@@ -41,12 +41,22 @@ pub fn createtable(version_source: &serde_json::Value, table_name: &str, version
 
                 let column_type = table_data[column_name]["type"].as_str().to_owned().unwrap().to_lowercase();
 
+                let mut null = false;
+                if column_keys.iter().any(|&i| i == "null") {
+                    null = true;
+                }
+
                 // Check column type compatibility with AUTO_INCREMENT 
                 let mut auto_increment = false;
                 if column_keys.iter().any(|&i| i == "a_i") {
                     if INCOMPATIBLE_W_AI.iter().any(|&i| i == column_type) {
                         incompatible_column_attributes("AUTO_INCREMENT".to_string(), format!("type=='{column_type}'"), format!("Version {version}->{table_name}->{column_name}"))
                     }
+                        
+                    if null {
+                        incompatible_column_attributes("AUTO_INCREMENT".to_string(), "NULL".to_string(), format!("Version {version}->{table_name}->{column_name}"))
+                    }
+
                     auto_increment = true;
                 }
 
@@ -59,12 +69,8 @@ pub fn createtable(version_source: &serde_json::Value, table_name: &str, version
                     unique = true;
                 }
 
-                let mut null = false;
-                if column_keys.iter().any(|&i| i == "null") {
-                    null = true;
-                }
 
-                println!("{} : {}", column_name, null);
+                println!("{} : {}", column_name, auto_increment);
 
 
             }
