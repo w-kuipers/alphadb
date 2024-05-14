@@ -59,7 +59,12 @@ pub fn createtable(version_source: &serde_json::Value, table_name: &str, version
                     unique = true;
                 }
 
-                println!("{} : {}", column_name, unique);
+                let mut null = false;
+                if column_keys.iter().any(|&i| i == "null") {
+                    null = true;
+                }
+
+                println!("{} : {}", column_name, null);
 
 
             }

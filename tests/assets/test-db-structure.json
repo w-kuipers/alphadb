@@ -26,7 +26,7 @@
 					},
 					"col5": {
 						"type": "JSON",
-						"unique": true
+						"null": true
 					},
 					"foreign_key": {
 						"test": "test"
