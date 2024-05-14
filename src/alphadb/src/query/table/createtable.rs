@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::utils::error_messages::{incomplete_version_object, incompatible_column_attributes};
-use crate::verification::compatibility::INCOMPATIBLE_W_AI;
+use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
 
 /// **Createtable**
 ///
@@ -50,7 +50,16 @@ pub fn createtable(version_source: &serde_json::Value, table_name: &str, version
                     auto_increment = true;
                 }
 
-                println!("{} : {}", column_name, auto_increment);
+                // Check column type compatibility with UNIQUE
+                let mut unique = false;
+                if column_keys.iter().any(|&i| i == "unique") {
+                    if INCOMPATIBLE_W_UNIQUE.iter().any(|&i| i == column_type) {
+                        incompatible_column_attributes("UNIQUE".to_string(), format!("type=='{column_type}'"), format!("Version {version}->{table_name}->{column_name}"))
+                    }
+                    unique = true;
+                }
+
+                println!("{} : {}", column_name, unique);
 
 
             }

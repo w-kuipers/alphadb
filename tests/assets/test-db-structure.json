@@ -24,6 +24,10 @@
 						"type": "INT",
 						"length": 7
 					},
+					"col5": {
+						"type": "JSON",
+						"unique": true
+					},
 					"foreign_key": {
 						"test": "test"
 					}
