@@ -19,6 +19,7 @@ use std::fs;
 mod alphadb;
 mod query;
 mod utils;
+mod verification;
 
 fn main() {
     let mut db = AlphaDB::new();
