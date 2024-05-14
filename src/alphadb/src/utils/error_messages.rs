@@ -33,5 +33,5 @@ pub fn incomplete_version_object(key: String, version: String) {
 /// - attribute2: The incompatible MySQL column attribute
 /// - version: Location in version source (Version 1.0.0->table_name->column_name)
 pub fn incompatible_column_attributes(attribute1: String, attribute2: String, version: String) {
-    error(format!("{version}: Column attributes {attribute1} and '{attribute2}' are not compatible.")); 
+    error(format!("{version}: Column attributes '{attribute1}' and '{attribute2}' are not compatible.")); 
 }
