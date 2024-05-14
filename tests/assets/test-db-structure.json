@@ -23,6 +23,9 @@
 					"col4": {
 						"type": "INT",
 						"length": 7
+					},
+					"foreign_key": {
+						"test": "test"
 					}
 				}
 			}

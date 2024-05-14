@@ -20,19 +20,17 @@ pub fn createtable(version_source: &serde_json::Value, table_name: &str, version
 
     for (column_name, column_value) in table_data.as_object().unwrap() {
         // If iteration is not an object, it is not a column, so it should be processed later
-        // Foreign keys, as well, have to be handled later
-        if column_value.is_object() || column_name != "foreign_key" {
-            let column_keys = column_value
-                .as_object()
-                .unwrap()
-                .keys()
-                .into_iter()
-                .collect::<Vec<&String>>();
+        if let Some(column_keys) = column_value.as_object() {
+            if column_name != "foreign_key" { // Foreign keys, as well, have to be handled later
+                let column_keys = column_keys.keys().into_iter().collect::<Vec<&String>>();
 
-            if column_keys.contains(&&"type".to_string()) {
-                println!("{:?}", column_value);
+                if column_keys.contains(&&"type".to_string()) {
+                    println!("{:?}", column_value);
+                }
             }
-        };
+        }
+
+
     }
 
     return query;
