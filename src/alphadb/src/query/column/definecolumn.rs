@@ -21,18 +21,25 @@ use crate::verification::compatibility::{
 };
 use serde_json::Value;
 
+/// **Define column**
+///
+/// Generate a MySQL query part that defines a single column
+///
+/// - column_data: Current column object from version source
+/// - table_name: Name of the table to be created
+/// - column_name: Name of the column to be defined
+/// - version: Current version in version source loop
 pub fn definecolumn(
     column_data: &Value,
     table_name: &str,
     column_name: &String,
-    column_value: &Value,
     version: &str
 ) -> String {
 
     let mut query = String::new();
 
     // If iteration is not an object, it is not a column, so it should be processed later
-    if let Some(column_keys) = column_value.as_object() {
+    if let Some(column_keys) = column_data.as_object() {
         if column_name != "foreign_key" {
             // Foreign keys, as well, have to be handled later
             let column_keys = column_keys.keys().into_iter().collect::<Vec<&String>>();
@@ -120,7 +127,7 @@ pub fn definecolumn(
                 ));
             }
 
-            query = format!(" {column_name} {column_type}");
+            query = format!("{column_name} {column_type}");
 
             if length != -1 {
                 query = format!("{query}({length})");

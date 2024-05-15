@@ -27,9 +27,6 @@
 					"col5": {
 						"type": "JSON",
 						"null": true
-					},
-					"foreign_key": {
-						"test": "test"
 					}
 				}
 			}
@@ -39,6 +36,22 @@
 			"createtable": {
 				"table2": {
 					"primary_key": "col1",
+					"col1": {
+						"type": "INT",
+						"a_i": true
+					},
+					"col2": {
+						"type": "VARCHAR",
+						"length": 100,
+						"default": "default value"
+					}
+				}
+			}
+		},
+		{
+			"_id": "0.0.3",
+			"createtable": {
+				"table3": {
 					"col1": {
 						"type": "INT",
 						"a_i": true

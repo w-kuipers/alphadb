@@ -19,7 +19,7 @@ from alphadb.utils.query.column.definecolumn import definecolumn, prepare_define
 
 def createtable(version_source: dict, table_name: str, version: str):
     #### Define query base
-    query = f" CREATE TABLE {table_name} ("
+    query = f"CREATE TABLE {table_name} ("
 
     #### Get the data for the current table
     table_data = next(v["createtable"][table_name] for v in version_source["version"] if v["_id"] == version)
