@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::query::table::createtable::{self, createtable};
+use crate::query::table::createtable::createtable;
 use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::version_number::{get_version_number_int, verify_version_number};
@@ -124,7 +124,7 @@ impl AlphaDB {
                     db VARCHAR(100) NOT NULL,
                     version VARCHAR(50) NOT NULL,
                     template VARCHAR(50) NULL,
-                    PRIMARY KEY (db)
+                    PRIMARY KEY (db) 
                 )",
             CONFIG_TABLE_NAME
         ))

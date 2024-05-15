@@ -33,9 +33,8 @@ pub fn definecolumn(
     column_data: &Value,
     table_name: &str,
     column_name: &String,
-    version: &str
+    version: &str,
 ) -> String {
-
     let mut query = String::new();
 
     // If iteration is not an object, it is not a column, so it should be processed later
@@ -52,10 +51,7 @@ pub fn definecolumn(
                 );
             }
 
-            let column_type = column_data["type"]
-                .as_str()
-                .to_owned()
-                .unwrap();
+            let column_type = column_data["type"].as_str().to_owned().unwrap();
 
             let mut null = false;
             if column_keys.iter().any(|&i| i == "null") {
@@ -65,7 +61,10 @@ pub fn definecolumn(
             // Check column type compatibility with AUTO_INCREMENT
             let mut auto_increment = false;
             if column_keys.iter().any(|&i| i == "a_i") {
-                if INCOMPATIBLE_W_AI.iter().any(|&i| i == column_type.to_lowercase()) {
+                if INCOMPATIBLE_W_AI
+                    .iter()
+                    .any(|&i| i == column_type.to_lowercase())
+                {
                     incompatible_column_attributes(
                         "AUTO_INCREMENT".to_string(),
                         format!("type=='{column_type}'"),
@@ -87,7 +86,10 @@ pub fn definecolumn(
             // Check column type compatibility with UNIQUE
             let mut unique = false;
             if column_keys.iter().any(|&i| i == "unique") {
-                if INCOMPATIBLE_W_UNIQUE.iter().any(|&i| i == column_type.to_lowercase()) {
+                if INCOMPATIBLE_W_UNIQUE
+                    .iter()
+                    .any(|&i| i == column_type.to_lowercase())
+                {
                     incompatible_column_attributes(
                         "UNIQUE".to_string(),
                         format!("type=='{column_type}'"),
@@ -117,10 +119,7 @@ pub fn definecolumn(
                 default = Some(column_data["default"].to_owned());
             }
 
-            if !SUPPORTED_COLUMN_TYPES
-                .iter()
-                .any(|&i| i == column_type)
-            {
+            if !SUPPORTED_COLUMN_TYPES.iter().any(|&i| i == column_type) {
                 error(format!(
                     "Column type '{}' is not (yet) supported",
                     column_type
@@ -135,8 +134,7 @@ pub fn definecolumn(
 
             if null {
                 query = format!("{query} NULL");
-            }
-            else {
+            } else {
                 query = format!("{query} NOT NULL");
             }
 
@@ -155,4 +153,23 @@ pub fn definecolumn(
     }
 
     return query;
+}
+
+#[cfg(test)]
+mod definecolumn_tests {
+    use super::definecolumn;
+    use serde_json::json;
+
+    #[test]
+    #[should_panic(expected = "oatabase version is incomplete or broken. Version 0.0.1->table->col is missing key 'type'.")]
+    fn no_type() {
+        let column = &json!({
+            "col": {
+                "type": "VARCHAR",
+                "null": true,
+                "a_i": true
+            }
+        });
+        definecolumn(column, "table", &"col".to_string(), "0.0.1");
+    }
 }
