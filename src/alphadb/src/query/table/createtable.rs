@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::error_messages::{incomplete_version_object, incompatible_column_attributes};
-use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
+use crate::query::column::definecolumn::definecolumn;
 
 /// **Createtable**
 ///
@@ -29,53 +28,10 @@ pub fn createtable(version_source: &serde_json::Value, table_name: &str, version
     let mut table_data = &version_source["createtable"][table_name];
 
     for (column_name, column_value) in table_data.as_object().unwrap() {
-        // If iteration is not an object, it is not a column, so it should be processed later
-        if let Some(column_keys) = column_value.as_object() {
-            if column_name != "foreign_key" { // Foreign keys, as well, have to be handled later
-                let column_keys = column_keys.keys().into_iter().collect::<Vec<&String>>();
-
-                // Must know the type to create a column
-                if !column_keys.contains(&&"type".to_string()) {
-                    incomplete_version_object("type".to_string(), format!("Version {version}->{table_name}->{column_name}"));
-                }
-
-                let column_type = table_data[column_name]["type"].as_str().to_owned().unwrap().to_lowercase();
-
-                let mut null = false;
-                if column_keys.iter().any(|&i| i == "null") {
-                    null = true;
-                }
-
-                // Check column type compatibility with AUTO_INCREMENT 
-                let mut auto_increment = false;
-                if column_keys.iter().any(|&i| i == "a_i") {
-                    if INCOMPATIBLE_W_AI.iter().any(|&i| i == column_type) {
-                        incompatible_column_attributes("AUTO_INCREMENT".to_string(), format!("type=='{column_type}'"), format!("Version {version}->{table_name}->{column_name}"))
-                    }
-                        
-                    if null {
-                        incompatible_column_attributes("AUTO_INCREMENT".to_string(), "NULL".to_string(), format!("Version {version}->{table_name}->{column_name}"))
-                    }
-
-                    auto_increment = true;
-                }
-
-                // Check column type compatibility with UNIQUE
-                let mut unique = false;
-                if column_keys.iter().any(|&i| i == "unique") {
-                    if INCOMPATIBLE_W_UNIQUE.iter().any(|&i| i == column_type) {
-                        incompatible_column_attributes("UNIQUE".to_string(), format!("type=='{column_type}'"), format!("Version {version}->{table_name}->{column_name}"))
-                    }
-                    unique = true;
-                }
-
-
-                println!("{} : {}", column_name, auto_increment);
-
-
-            }
-        }
+        query += &definecolumn(&table_data[column_name], table_name, column_name, column_value, version);
     }
+
+
 
     return query;
 }

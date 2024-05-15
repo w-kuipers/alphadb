@@ -15,11 +15,15 @@
 
 pub const DB_CONFIG_NO_VERSION: &str = "There seems to be an issue with the database config. It is initialized, but does not return a valid version. Please manually check the configuration table in your database.";
 
-fn error(msg: String) {
+/// *Error*
+///
+/// Panics with error message
+/// - msg: Error message to print
+pub fn error(msg: String) {
     panic!("{msg}");
 }
 
-/// Incomplete version object
+/// *Incomplete version object*
 ///
 /// - key: Missing object key
 /// - version: Location in version source (Version 1.0.0->table_name->column_name)
@@ -27,7 +31,7 @@ pub fn incomplete_version_object(key: String, version: String) {
     error(format!("Database version is incomplete or broken. {version} is missing key '{key}'.")); 
 }
 
-/// Incompatible column attributes
+/// *Incompatible column attributes*
 ///
 /// - attribute1: The incompatible MySQL column attribute
 /// - attribute2: The incompatible MySQL column attribute
