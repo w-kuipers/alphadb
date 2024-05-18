@@ -39,6 +39,7 @@ pub fn definecolumn(
 
     // If iteration is not an object, it is not a column, so it should be processed later
     if let Some(column_keys) = column_data.as_object() {
+        println!("{column_name}");
         if column_name != "foreign_key" {
             // Foreign keys, as well, have to be handled later
             let column_keys = column_keys.keys().into_iter().collect::<Vec<&String>>();
