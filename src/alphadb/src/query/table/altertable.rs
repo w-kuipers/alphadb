@@ -13,5 +13,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod altertable;
-pub mod createtable;
+use serde_json::Value;
+
+/// **Altertable**
+///
+/// Generate a MySQL altertable query
+///
+/// - version_source: Complete JSON version source
+/// - table_name: Name of the table to be created
+/// - version: Current version in version source loop
+pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> String {
+    let mut query = format!("ALTER TABLE {table_name}");
+
+    let table_data = version_source["altertable"][table_name]
+        .as_object()
+        .unwrap();
+
+    return query;
+}
