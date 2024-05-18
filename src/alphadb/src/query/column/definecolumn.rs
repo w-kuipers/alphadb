@@ -67,7 +67,7 @@ pub fn definecolumn(
                 {
                     incompatible_column_attributes(
                         "AUTO_INCREMENT".to_string(),
-                        format!("type=='{column_type}'"),
+                        format!("type=={column_type}"),
                         format!("Version {version}->{table_name}->{column_name}"),
                     )
                 }
@@ -92,7 +92,7 @@ pub fn definecolumn(
                 {
                     incompatible_column_attributes(
                         "UNIQUE".to_string(),
-                        format!("type=='{column_type}'"),
+                        format!("type=={column_type}"),
                         format!("Version {version}->{table_name}->{column_name}"),
                     )
                 }
@@ -160,15 +160,74 @@ mod definecolumn_tests {
     use super::definecolumn;
     use serde_json::json;
 
+    // Don't generate query for foreign key
     #[test]
-    #[should_panic(expected = "oatabase version is incomplete or broken. Version 0.0.1->table->col is missing key 'type'.")]
+    fn foreign_key() {
+        let column = &json!({});
+        assert_eq!(
+            definecolumn(column, "table", &"foreign_key".to_string(), "0.0.1"),
+            ""
+        );
+    }
+
+    // A column type must always be defined
+    #[test]
+    #[should_panic(
+        expected = "Database version is incomplete or broken. Version 0.0.1->table->col is missing key 'type'."
+    )]
     fn no_type() {
         let column = &json!({
-            "col": {
-                "type": "VARCHAR",
-                "null": true,
-                "a_i": true
-            }
+            "a_i": true
+        });
+        definecolumn(column, "table", &"col".to_string(), "0.0.1");
+    }
+
+    // AUTO_INCREMENT on incompatible type
+    #[test]
+    #[should_panic(
+        expected = "Version 0.0.1->table->col: Column attributes 'AUTO_INCREMENT' and 'type==VARCHAR' are not compatible."
+    )]
+    fn ai_and_type() {
+        let column = &json!({
+            "type": "VARCHAR",
+            "a_i": true
+        });
+        definecolumn(column, "table", &"col".to_string(), "0.0.1");
+    }
+
+    // UNIQUE on incompatible type
+    #[test]
+    #[should_panic(
+        expected = "Version 0.0.1->table->col: Column attributes 'UNIQUE' and 'type==json' are not compatible."
+    )]
+    fn unique_and_type() {
+        let column = &json!({
+            "type": "json",
+            "unique": true
+        });
+        definecolumn(column, "table", &"col".to_string(), "0.0.1");
+    }
+
+    // AUTO_INCREMENT with NULL
+    #[test]
+    #[should_panic(
+        expected = "Version 0.0.1->table->col: Column attributes 'AUTO_INCREMENT' and 'NULL' are not compatible."
+    )]
+    fn ai_and_null() {
+        let column = &json!({
+            "type": "INT",
+            "null": true,
+            "a_i": true
+        });
+        definecolumn(column, "table", &"col".to_string(), "0.0.1");
+    }
+
+    // Unsupported column type
+    #[test]
+    #[should_panic(expected = "Column type 'not-working' is not (yet) supported")]
+    fn unsupported_type() {
+        let column = &json!({
+            "type": "not-working",
         });
         definecolumn(column, "table", &"col".to_string(), "0.0.1");
     }
