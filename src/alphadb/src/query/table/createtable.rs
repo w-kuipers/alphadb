@@ -56,8 +56,6 @@ pub fn createtable(version_source: &serde_json::Value, table_name: &str, version
         let foreign_key = table_data["foreign_key"].as_object().unwrap();
         let foreign_key_keys = foreign_key.keys().into_iter().collect::<Vec<&String>>();
 
-        println!("foreign is {:?}", foreign_key);
-
         if !foreign_key_keys.iter().any(|&i| i == "key") {
             incomplete_version_object(
                 "key".to_string(),
