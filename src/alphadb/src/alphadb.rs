@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
 use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
 use crate::utils::globals::CONFIG_TABLE_NAME;
@@ -39,6 +40,12 @@ pub struct Status {
     pub version: Option<String>,
     pub name: String,
     pub template: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct Query {
+    query: String,
+    data: Vec<String>
 }
 
 impl AlphaDB {
@@ -188,11 +195,22 @@ impl AlphaDB {
         }
     }
 
+
+
+    /// **Update queries**
+    ///
+    /// Generate MySQL queries to update the tables. Return Vec<Query>
+    ///
+    /// - version_source: Complete JSON version source
+    /// - update_to_version (optional): Version number to update to
     pub fn update_queries(
         &mut self,
         version_source: serde_json::Value,
         update_to_version: Option<&str>,
-    ) {
+    ) -> Vec<Query> {
+
+        let mut queries:Vec<Query> = Vec::new();
+
         let conn = &mut self
             .connection
             .as_mut()
@@ -315,10 +333,25 @@ impl AlphaDB {
 
                 for table in tables {
                     let q = createtable(version, table, version["_id"].as_str().unwrap());
-                    println!("{}", q);
+                }
+            }
+
+            // Altertable
+            if version_keys.contains(&&"altertable".to_string()) {
+                let tables = version["altertable"]
+                    .as_object()
+                    .unwrap()
+                    .keys()
+                    .into_iter();
+
+                for table in tables {
+                    let q = altertable(&version_source, table, version["_id"].as_str().unwrap());
+                    println!("{q}");
                 }
             }
         }
+
+        return queries;
     }
 
     pub fn vacate(&mut self) {

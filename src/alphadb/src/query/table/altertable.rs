@@ -14,6 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use serde_json::Value;
+use crate::utils::concatenate::primary_key::get_primary_key;
+use crate::utils::error_messages::error;
 
 /// **Altertable**
 ///
@@ -25,9 +27,43 @@ use serde_json::Value;
 pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> String {
     let mut query = format!("ALTER TABLE {table_name}");
 
-    let table_data = version_source["altertable"][table_name]
-        .as_object()
-        .unwrap();
+    let mut table_data: Option<&Value> = None;
+        
+    // Get current table data
+    for table in version_source["version"].as_array().unwrap() {
+        let table_keys = table.as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
+        if table_keys.iter().any(|&i| i == "_id") {
+            if version == table["_id"] {
+                table_data = Some(table);
+            }
+        }
+        else {
+            error("Version does not contain a version number".to_string());
+        }
+    }
+
+    if let Some(table_data) = table_data {
+        let table_keys = table_data["altertable"][table_name].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
+
+        if table_keys.iter().any(|&i| i == "primary_key") {
+            // The query for the primary key is created after all column modification
+            // There is a chance that the old primary_key has the AUTO_INCREMENT attribute
+            // which must be removed first.
+            let old_primary_key = get_primary_key(&version_source["version"], table_name, Some(version));
+
+            if let Some(old_primary_key) = old_primary_key {
+                
+            }
+        }
+    }
+    else {
+        // Panic with message if table data is not defined, should not be possible though
+        error("An unexpected error occured. No table data seems to be returned".to_string());
+    }
+
+    
+
+
 
     return query;
 }

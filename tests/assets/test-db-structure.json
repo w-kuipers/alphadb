@@ -65,6 +65,23 @@
 			}
 		},
 		{
+			"_id": "0.0.4",
+			"createtable": {
+				"table4": {
+					"primary_key": "thecol1",
+					"thecol1": {
+						"type": "INT",
+						"a_i": true
+					},
+					"thecol2": {
+						"type": "VARCHAR",
+						"length": 100,
+						"default": "some value"
+					}
+				}
+			}
+		},
+		{
 			"_id": "0.1.0",
 			"altertable": {
 				"table1": {
@@ -138,6 +155,19 @@
 		{
 			"_id": "0.2.4",
 			"altertable": {
+				"table4": {
+					"primary_key": "thecol2",
+					"modifycolumn": {
+						"thecol2": {
+							"length": 3000
+						}
+					}
+				}
+			}
+		},
+		{
+			"_id": "0.2.5",
+			"altertable": {
 				"table2": {
 					"modifycolumn": {
 						"secondrenameoncol1": {
@@ -159,6 +189,14 @@
 							"length": "200"
 						}
 					}
+				}
+			}
+		},
+		{
+			"_id": "0.2.6",
+			"altertable": {
+				"table4": {
+					"primary_key": "thecol1"
 				}
 			}
 		}
