@@ -24,6 +24,7 @@ use serde_json::Value;
 /// - table_name: Name of the table to be created
 /// - before_version: The version before which the primary key was defined
 pub fn get_primary_key<'a>(version_list: &'a Value, table_name: &str, before_version: Option<&str>) -> Option<&'a str> {
+
     let mut primary_key: Option<&str> = None;
 
     for version in version_list.as_array().unwrap() {
@@ -40,6 +41,7 @@ pub fn get_primary_key<'a>(version_list: &'a Value, table_name: &str, before_ver
             let createtables = version["createtable"].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
             if createtables.iter().any(|&t| t == table_name) {
                 let table_keys = version["createtable"][table_name].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
+
                 if table_keys.iter().any(|&p| p == "primary_key") {
                     primary_key = version["createtable"][table_name]["primary_key"].as_str();
                 }
@@ -50,6 +52,7 @@ pub fn get_primary_key<'a>(version_list: &'a Value, table_name: &str, before_ver
             let altertables = version["altertable"].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
             if altertables.iter().any(|&t| t == table_name) {
                 let table_keys = version["altertable"][table_name].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
+
                 if table_keys.iter().any(|&p| p == "primary_key") {
                     primary_key = version["altertable"][table_name]["primary_key"].as_str();
                 }

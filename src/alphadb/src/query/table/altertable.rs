@@ -27,7 +27,6 @@ use serde_json::Value;
 /// - version: Current version in version source loop
 pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> String {
     let mut query = format!("ALTER TABLE {table_name}");
-
     let mut table_data: Option<&Value> = None;
 
     // Get current table data
@@ -37,7 +36,8 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
             if version == table["_id"] {
                 table_data = Some(table);
             }
-        } else {
+        }
+        else {
             error("Version does not contain a version number".to_string());
         }
     }
