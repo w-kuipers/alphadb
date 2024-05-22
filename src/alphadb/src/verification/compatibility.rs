@@ -13,7 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod error_messages;
-pub mod globals;
-pub mod version_number;
-pub mod concatenate;
+pub const SUPPORTED_COLUMN_TYPES: [&str; 10] = [
+    "INT", "TINYINT", "BIGINT", "TEXT", "LONGTEXT", "FLOAT", "DECIMAL", "VARCHAR", "DATETIME",
+    "JSON",
+];
+
+pub const INCOMPATIBLE_W_AI: [&str; 6] =
+    ["varchar", "text", "longtext", "datetime", "decimal", "json"];
+
+pub const INCOMPATIBLE_W_UNIQUE: [&str; 1] = ["json"];

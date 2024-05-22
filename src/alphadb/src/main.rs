@@ -14,9 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::alphadb::AlphaDB;
+use std::fs;
 
 mod alphadb;
+mod query;
 mod utils;
+mod verification;
 
 fn main() {
     let mut db = AlphaDB::new();
@@ -36,5 +39,11 @@ fn main() {
     // let status = db.status();
     // println!("{:?}", status);
 
-    db.vacate();
+    // db.vacate();
+    let data = fs::read_to_string("/home/wibo/code/alphadb/alphadb/tests/assets/test-db-structure.json")
+        .expect("Unable to read file");
+    let json: serde_json::Value = serde_json::from_str(&data).expect("JSON was not well-formatted");
+
+    db.update_queries(json, None);
+
 }

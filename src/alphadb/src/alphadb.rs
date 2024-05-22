@@ -13,9 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::query::table::altertable::altertable;
+use crate::query::table::createtable::createtable;
+use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
 use crate::utils::globals::CONFIG_TABLE_NAME;
+use crate::utils::version_number::{get_version_number_int, verify_version_number};
 use mysql::prelude::*;
 use mysql::*;
+use std::panic;
 
 #[derive(Debug)]
 pub struct AlphaDB {
@@ -35,6 +40,12 @@ pub struct Status {
     pub version: Option<String>,
     pub name: String,
     pub template: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct Query {
+    query: String,
+    data: Vec<String>
 }
 
 impl AlphaDB {
@@ -120,7 +131,7 @@ impl AlphaDB {
                     db VARCHAR(100) NOT NULL,
                     version VARCHAR(50) NOT NULL,
                     template VARCHAR(50) NULL,
-                    PRIMARY KEY (db)
+                    PRIMARY KEY (db) 
                 )",
             CONFIG_TABLE_NAME
         ))
@@ -184,13 +195,171 @@ impl AlphaDB {
         }
     }
 
+
+
+    /// **Update queries**
+    ///
+    /// Generate MySQL queries to update the tables. Return Vec<Query>
+    ///
+    /// - version_source: Complete JSON version source
+    /// - update_to_version (optional): Version number to update to
+    pub fn update_queries(
+        &mut self,
+        version_source: serde_json::Value,
+        update_to_version: Option<&str>,
+    ) -> Vec<Query> {
+
+        let mut queries:Vec<Query> = Vec::new();
+
+        let conn = &mut self
+            .connection
+            .as_mut()
+            .expect("Connection could not be established");
+        let versions_result = version_source["version"].as_array();
+
+        let versions = match versions_result {
+            Some(versions) => versions,
+            None => {
+                panic!("Version information data not complete. Must contain 'latest', 'version' and 'name'. Latest is the latest version number, version is a JSON object containing the database structure and name is the database template name.")
+            }
+        };
+
+        // Get database version
+        let database_version: String;
+        let db_data: Row = conn
+            .exec_first(
+                format!(
+                    "SELECT version, template FROM {} WHERE db = ?",
+                    CONFIG_TABLE_NAME
+                ),
+                (self.db_name.as_ref().unwrap(),),
+            )
+            .expect("Database configuration error")
+            .unwrap();
+
+        let db_version = from_row::<(Option<String>, Option<String>)>(db_data);
+        database_version = db_version.0.expect(DB_CONFIG_NO_VERSION);
+
+        let version_number_check = panic::catch_unwind(|| {
+            verify_version_number(database_version.clone());
+        });
+
+        if version_number_check.is_err() {
+            panic!("{}", DB_CONFIG_NO_VERSION);
+        }
+
+        // Check if templates match
+        let template = match db_version.1 {
+            Some(template) => {
+                if template != version_source["name"].as_str().unwrap() {
+                    panic!("This database uses a different database version source. The template name does not match the one previously used to update this database.");
+                }
+                template
+            }
+            None => {
+                conn.exec_drop(
+                    format!("UPDATE {} SET template = ? WHERE db = ?", CONFIG_TABLE_NAME),
+                    (
+                        version_source["name"].as_str().unwrap(),
+                        self.db_name.as_ref().unwrap(),
+                    ),
+                )
+                .unwrap();
+                version_source["name"].as_str().unwrap().to_string()
+            }
+        };
+
+        // Get the latest version
+        let latest_version = match update_to_version {
+            Some(version) => {
+                if verify_version_number(String::from(version)) {
+                    version.to_string()
+                } else {
+                    panic!("Invalid version number");
+                }
+            }
+            None => {
+                let mut latest_version = String::from("0.0.0");
+                for version in versions {
+                    let version = version["_id"]
+                        .as_str()
+                        .expect("No verssion number was specified");
+
+                    if get_version_number_int(String::from(version))
+                        > get_version_number_int(latest_version.clone())
+                    {
+                        latest_version = version.to_string();
+                    }
+                }
+                latest_version
+            }
+        };
+
+        // Check if database is up to date
+        if get_version_number_int(latest_version.clone())
+            <= get_version_number_int(database_version.clone())
+        {
+            panic!("Database is already up to date");
+        }
+
+        // Update loop
+        for version in versions {
+            let version_int =
+                get_version_number_int(String::from(version["_id"].as_str().unwrap()));
+            // Skip any previous versions
+            if version_int <= get_version_number_int(database_version.clone()) {
+                continue;
+            }
+
+            // Continue if latest version is current
+            if version_int > get_version_number_int(latest_version.clone()) {
+                continue;
+            }
+
+            let version_keys = version
+                .as_object()
+                .unwrap()
+                .keys()
+                .into_iter()
+                .collect::<Vec<&String>>();
+
+            // Createtable
+            if version_keys.contains(&&"createtable".to_string()) {
+                let tables = version["createtable"]
+                    .as_object()
+                    .unwrap()
+                    .keys()
+                    .into_iter();
+
+                for table in tables {
+                    let q = createtable(version, table, version["_id"].as_str().unwrap());
+                }
+            }
+
+            // Altertable
+            if version_keys.contains(&&"altertable".to_string()) {
+                let tables = version["altertable"]
+                    .as_object()
+                    .unwrap()
+                    .keys()
+                    .into_iter();
+
+                for table in tables {
+                    let q = altertable(&version_source, table, version["_id"].as_str().unwrap());
+                    println!("{q}");
+                }
+            }
+        }
+
+        return queries;
+    }
+
     pub fn vacate(&mut self) {
         let conn = &mut self
             .connection
             .as_mut()
             .expect("Connection could not be established");
 
-        // Disable foreign key checks
         conn.query_drop("SET FOREIGN_KEY_CHECKS = 0").unwrap();
 
         // Get all tables
@@ -203,7 +372,6 @@ impl AlphaDB {
             conn.query_drop(format!("DROP TABLE {}", table)).unwrap();
         }
 
-        // Enable foreign key checks
         conn.query_drop("SET FOREIGN_KEY_CHECKS = 1").unwrap();
     }
 }
