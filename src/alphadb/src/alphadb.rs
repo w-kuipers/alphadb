@@ -346,7 +346,6 @@ impl AlphaDB {
 
                 for table in tables {
                     let q = altertable(&version_source, table, version["_id"].as_str().unwrap());
-                    println!("{q}");
                 }
             }
         }

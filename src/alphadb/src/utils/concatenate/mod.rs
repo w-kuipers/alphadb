@@ -14,3 +14,4 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod primary_key;
+pub mod column;

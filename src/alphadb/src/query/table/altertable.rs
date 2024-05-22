@@ -13,9 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use serde_json::Value;
+use crate::utils::concatenate::column::get_column_renames;
 use crate::utils::concatenate::primary_key::get_primary_key;
 use crate::utils::error_messages::error;
+use serde_json::Value;
 
 /// **Altertable**
 ///
@@ -26,9 +27,8 @@ use crate::utils::error_messages::error;
 /// - version: Current version in version source loop
 pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> String {
     let mut query = format!("ALTER TABLE {table_name}");
-
     let mut table_data: Option<&Value> = None;
-        
+
     // Get current table data
     for table in version_source["version"].as_array().unwrap() {
         let table_keys = table.as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
@@ -52,18 +52,13 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
             let old_primary_key = get_primary_key(&version_source["version"], table_name, Some(version));
 
             if let Some(old_primary_key) = old_primary_key {
-                
+                let column_renames = get_column_renames(&version_source["version"], old_primary_key, table_name, "ASC");
             }
         }
-    }
-    else {
+    } else {
         // Panic with message if table data is not defined, should not be possible though
         error("An unexpected error occured. No table data seems to be returned".to_string());
     }
-
-    
-
-
 
     return query;
 }

@@ -23,44 +23,25 @@ use serde_json::Value;
 /// - version_list: List with versions from version_source
 /// - table_name: Name of the table to be created
 /// - before_version: The version before which the primary key was defined
-pub fn get_primary_key<'a>(
-    version_list: &'a Value,
-    table_name: &str,
-    before_version: Option<&str>,
-) -> Option<&'a str> {
+pub fn get_primary_key<'a>(version_list: &'a Value, table_name: &str, before_version: Option<&str>) -> Option<&'a str> {
+
     let mut primary_key: Option<&str> = None;
 
     for version in version_list.as_array().unwrap() {
         // Skip if version is after or equel to before_version
         if let Some(before_version) = before_version {
-            if get_version_number_int(before_version.to_string())
-                <= get_version_number_int(version["_id"].as_str().unwrap().to_string())
-            {
+            if get_version_number_int(before_version.to_string()) <= get_version_number_int(version["_id"].as_str().unwrap().to_string()) {
                 continue;
             }
         }
 
-        let version_keys = version
-            .as_object()
-            .unwrap()
-            .keys()
-            .into_iter()
-            .collect::<Vec<&String>>();
+        let version_keys = version.as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
 
         if version_keys.iter().any(|&i| i == "createtable") {
-            let createtables = version["createtable"]
-                .as_object()
-                .unwrap()
-                .keys()
-                .into_iter()
-                .collect::<Vec<&String>>();
+            let createtables = version["createtable"].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
             if createtables.iter().any(|&t| t == table_name) {
-                let table_keys = version["createtable"][table_name]
-                    .as_object()
-                    .unwrap()
-                    .keys()
-                    .into_iter()
-                    .collect::<Vec<&String>>();
+                let table_keys = version["createtable"][table_name].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
+
                 if table_keys.iter().any(|&p| p == "primary_key") {
                     primary_key = version["createtable"][table_name]["primary_key"].as_str();
                 }
@@ -68,19 +49,10 @@ pub fn get_primary_key<'a>(
         }
 
         if version_keys.iter().any(|&i| i == "altertable") {
-            let altertables = version["altertable"]
-                .as_object()
-                .unwrap()
-                .keys()
-                .into_iter()
-                .collect::<Vec<&String>>();
+            let altertables = version["altertable"].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
             if altertables.iter().any(|&t| t == table_name) {
-                let table_keys = version["altertable"][table_name]
-                    .as_object()
-                    .unwrap()
-                    .keys()
-                    .into_iter()
-                    .collect::<Vec<&String>>();
+                let table_keys = version["altertable"][table_name].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
+
                 if table_keys.iter().any(|&p| p == "primary_key") {
                     primary_key = version["altertable"][table_name]["primary_key"].as_str();
                 }
@@ -88,10 +60,7 @@ pub fn get_primary_key<'a>(
                 // If the column is dropped, primary key should reset to None
                 if table_keys.iter().any(|&p| p == "dropcolumn") {
                     if primary_key.is_some() {
-                        for dropcol in version["altertable"][table_name]["dropcolumn"]
-                            .as_array()
-                            .unwrap()
-                        {
+                        for dropcol in version["altertable"][table_name]["dropcolumn"].as_array().unwrap() {
                             if dropcol.as_str() == primary_key {
                                 primary_key = None;
                             }
@@ -120,10 +89,7 @@ mod get_primary_key_tests {
                 }
             }
         }]);
-        assert_eq!(
-            get_primary_key(&versions, &"table".to_string(), None),
-            Some("col")
-        );
+        assert_eq!(get_primary_key(&versions, &"table".to_string(), None), Some("col"));
     }
 
     #[test]
