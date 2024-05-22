@@ -32,12 +32,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
 
     // Get current table data
     for table in version_source["version"].as_array().unwrap() {
-        let table_keys = table
-            .as_object()
-            .unwrap()
-            .keys()
-            .into_iter()
-            .collect::<Vec<&String>>();
+        let table_keys = table.as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
         if table_keys.iter().any(|&i| i == "_id") {
             if version == table["_id"] {
                 table_data = Some(table);
@@ -48,27 +43,18 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
     }
 
     if let Some(table_data) = table_data {
-        let table_keys = table_data["altertable"][table_name]
-            .as_object()
-            .unwrap()
-            .keys()
-            .into_iter()
-            .collect::<Vec<&String>>();
+        let table_keys = table_data["altertable"][table_name].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
 
         if table_keys.iter().any(|&i| i == "primary_key") {
             // The query for the primary key is created after all column modification
             // There is a chance that the old primary_key has the AUTO_INCREMENT attribute
             // which must be removed first.
-            let old_primary_key =
-                get_primary_key(&version_source["version"], table_name, Some(version));
+            let old_primary_key = get_primary_key(&version_source["version"], table_name, Some(version));
 
             if let Some(old_primary_key) = old_primary_key {
-                get_column_renames(
-                    &version_source["version"],
-                    old_primary_key,
-                    table_name,
-                    "ASC",
-                );
+                let column_renames = get_column_renames(&version_source["version"], old_primary_key, table_name, "ASC");
+
+                println!("{:?}", column_renames);
             }
         }
     } else {

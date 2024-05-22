@@ -17,6 +17,7 @@ use crate::utils::error_messages::error;
 use crate::utils::version_number::get_version_number_int;
 use serde_json::Value;
 
+#[derive(Debug)]
 pub struct RenameData {
     old_name: String,
     new_name: String,
@@ -40,25 +41,85 @@ pub struct RenameData {
 pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &str, order: &str) -> Vec<RenameData> {
     let mut rename_data: Vec<RenameData> = Vec::new();
 
-    let version_loop = |version: &Value| {
-        let version_keys = version.as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
-
+    let mut version_loop = |version: &Value| {
         if version.as_object().unwrap().keys().any(|i| i == "altertable") {
             if version["altertable"].as_object().unwrap().keys().any(|t| t == table_name) {
                 let v = get_version_number_int(version["_id"].as_str().unwrap().to_string());
 
-                println!("{v}");
+                // Skip version that are already processed
+                if order == "DESC" {
+                    if rename_data.iter().any(|r| r.rename_version <= v) {
+                        return false;
+                    }
+                }
+                if order == "ASC" {
+                    if rename_data.iter().any(|r| r.rename_version >= v) {
+                        return false;
+                    }
+                }
+
+                if version["altertable"][table_name].as_object().unwrap().keys().any(|r| r == "renamecolumn") {
+                    let renamecolumn_values = version["altertable"][table_name]["renamecolumn"].as_object().unwrap().values().collect::<Vec<&Value>>(); 
+
+                    // If the current column is not the one being renamed, continue
+                    if order == "DESC" && !renamecolumn_values.iter().any(|&k| k == column_name) {
+                        return false;
+                    }
+
+                    let renamecolumn_keys = version["altertable"][table_name]["renamecolumn"].as_object().unwrap().keys().collect::<Vec<&String>>(); 
+                    
+                    // If the current column is not the one being renamed, continue
+                    if order == "ASC" && !renamecolumn_keys.iter().any(|&k| k == column_name) {
+                        return false;
+                    }
+
+                    // Get old or new name based on order
+                    let name: &str;
+                    if order == "DESC" {
+                        name = renamecolumn_keys[renamecolumn_values.into_iter().position(|n| n == column_name).unwrap()];
+                    }
+                    else {
+                        name = renamecolumn_values[renamecolumn_keys.into_iter().position(|n| n == column_name).unwrap()].as_str().unwrap();
+                    }
+                    
+                    if order == "DESC" {
+                        rename_data.push(RenameData {
+                            old_name: name.to_string(),
+                            new_name: column_name.to_string(),
+                            rename_version: v 
+                        });
+                    }
+                    
+                    if order == "ASC" {
+                        rename_data.push(RenameData {
+                            old_name: column_name.to_string(),
+                            new_name: name.to_string(),
+                            rename_version: v 
+                        });
+                    }
+                    
+                    // Recursively call it again with new column name
+                    rename_data.append(&mut get_column_renames(version_list, name, table_name, order));
+                    return true;
+                }
             }
         }
+    
+        // Return true to break the loop as the current column name does not exist
+        return false;
     };
 
     if order == "ASC" {
         for version in version_list.as_array().unwrap().into_iter() {
-            version_loop(version);
+            if version_loop(version) {
+                break;
+            }
         }
     } else if order == "DESC" {
         for version in version_list.as_array().unwrap().into_iter().rev() {
-            version_loop(version);
+            if version_loop(version) {
+                break;
+            }
         }
     } else {
         error("Order in function 'get_column_renames' must be either 'ASC' or 'DESC'.".to_string());
