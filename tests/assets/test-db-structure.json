@@ -199,6 +199,14 @@
 					"primary_key": "thecol1"
 				}
 			}
+		},
+		{
+			"_id": "0.2.7",
+			"altertable": {
+				"table3": {
+					"primary_key": "col1"
+				}
+			}
 		}
 	]
 }
