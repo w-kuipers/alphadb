@@ -17,7 +17,7 @@ use crate::utils::error_messages::error;
 use crate::utils::version_number::get_version_number_int;
 use serde_json::Value;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct RenameData {
     old_name: String,
     new_name: String,
@@ -59,15 +59,15 @@ pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &
                 }
 
                 if version["altertable"][table_name].as_object().unwrap().keys().any(|r| r == "renamecolumn") {
-                    let renamecolumn_values = version["altertable"][table_name]["renamecolumn"].as_object().unwrap().values().collect::<Vec<&Value>>(); 
+                    let renamecolumn_values = version["altertable"][table_name]["renamecolumn"].as_object().unwrap().values().collect::<Vec<&Value>>();
 
                     // If the current column is not the one being renamed, continue
                     if order == "DESC" && !renamecolumn_values.iter().any(|&k| k == column_name) {
                         return false;
                     }
 
-                    let renamecolumn_keys = version["altertable"][table_name]["renamecolumn"].as_object().unwrap().keys().collect::<Vec<&String>>(); 
-                    
+                    let renamecolumn_keys = version["altertable"][table_name]["renamecolumn"].as_object().unwrap().keys().collect::<Vec<&String>>();
+
                     // If the current column is not the one being renamed, continue
                     if order == "ASC" && !renamecolumn_keys.iter().any(|&k| k == column_name) {
                         return false;
@@ -77,35 +77,33 @@ pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &
                     let name: &str;
                     if order == "DESC" {
                         name = renamecolumn_keys[renamecolumn_values.into_iter().position(|n| n == column_name).unwrap()];
-                    }
-                    else {
+                    } else {
                         name = renamecolumn_values[renamecolumn_keys.into_iter().position(|n| n == column_name).unwrap()].as_str().unwrap();
                     }
-                    
+
                     if order == "DESC" {
                         rename_data.push(RenameData {
                             old_name: name.to_string(),
                             new_name: column_name.to_string(),
-                            rename_version: v 
+                            rename_version: v,
                         });
                     }
-                    
+
                     if order == "ASC" {
                         rename_data.push(RenameData {
                             old_name: column_name.to_string(),
                             new_name: name.to_string(),
-                            rename_version: v 
+                            rename_version: v,
                         });
                     }
-                    
+
                     // Recursively call it again with new column name
                     rename_data.append(&mut get_column_renames(version_list, name, table_name, order));
-                    return true;
+                    return true; // Return true to break the loop as the current column name does not exist
                 }
             }
         }
-    
-        // Return true to break the loop as the current column name does not exist
+
         return false;
     };
 
@@ -126,4 +124,81 @@ pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &
     }
 
     return rename_data;
+}
+
+#[cfg(test)]
+mod get_column_renames_tests {
+    use super::get_column_renames;
+    use super::RenameData;
+    use serde_json::json;
+
+    #[test]
+    fn desc() {
+        let versions = json!([
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"renamecolumn": {"col": "renamed"}}}},
+            {"_id": "0.0.3", "altertable": {"table": {"modifycolumn": {"col": {"recreate": true, "unique": true, "length": 7000}}}}},  // Should be ignored because uses old column name
+            {"_id": "0.0.4", "altertable": {"table": {"modifycolumn": {"renamed": {"recreate": true, "null": true}}}}},
+            {"_id": "0.0.5", "altertable": {"table": {"renamecolumn": {"renamed": "rerenamed"}}}},
+            {"_id": "0.0.6", "altertable": {"table": {"modifycolumn": {"rerenamed": {"recreate": true, "unique": true}}}}},
+            {"_id": "0.0.7", "altertable": {"table": {"renamecolumn": {"rerenamed": "multiplerenamed"}}}},
+            {"_id": "0.0.8", "altertable": {"table": {"modifycolumn": {"multiplerenamed": {"recreate": true, "length": 2300}}}}},
+        ]);
+
+        assert_eq!(
+            get_column_renames(&versions, "multiplerenamed", "table", "DESC"),
+            [
+                RenameData {
+                    new_name: "multiplerenamed".to_string(),
+                    old_name: "rerenamed".to_string(),
+                    rename_version: 7
+                },
+                RenameData {
+                    new_name: "rerenamed".to_string(),
+                    old_name: "renamed".to_string(),
+                    rename_version: 5
+                },
+                RenameData {
+                    new_name: "renamed".to_string(),
+                    old_name: "col".to_string(),
+                    rename_version: 2
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn asc() {
+        let versions = json!([
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"renamecolumn": {"col": "renamed"}}}},
+            {"_id": "0.0.3", "altertable": {"table": {"modifycolumn": {"col": {"recreate": true, "unique": true, "length": 7000}}}}},  // Should be ignored because uses old column name
+            {"_id": "0.0.4", "altertable": {"table": {"modifycolumn": {"renamed": {"recreate": true, "null": true}}}}},
+            {"_id": "0.0.5", "altertable": {"table": {"renamecolumn": {"renamed": "rerenamed"}}}},
+            {"_id": "0.0.6", "altertable": {"table": {"modifycolumn": {"rerenamed": {"recreate": true, "unique": true}}}}},
+            {"_id": "0.0.7", "altertable": {"table": {"renamecolumn": {"rerenamed": "multiplerenamed"}}}},
+            {"_id": "0.0.8", "altertable": {"table": {"modifycolumn": {"multiplerenamed": {"recreate": true, "length": 2300}}}}},
+        ]);
+
+        assert_eq!(
+            get_column_renames(&versions, "col", "table", "ASC"),
+            [
+                RenameData {
+                    new_name: "renamed".to_string(),
+                    old_name: "col".to_string(),
+                    rename_version: 2
+                },
+                RenameData {
+                    new_name: "rerenamed".to_string(),
+                    old_name: "renamed".to_string(),
+                    rename_version: 5
+                },
+                RenameData {
+                    new_name: "multiplerenamed".to_string(),
+                    old_name: "rerenamed".to_string(),
+                    rename_version: 7
+                },
+            ]
+        );
+    }
 }

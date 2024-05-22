@@ -53,8 +53,6 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
 
             if let Some(old_primary_key) = old_primary_key {
                 let column_renames = get_column_renames(&version_source["version"], old_primary_key, table_name, "ASC");
-
-                println!("{:?}", column_renames);
             }
         }
     } else {
