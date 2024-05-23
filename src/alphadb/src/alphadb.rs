@@ -45,29 +45,16 @@ pub struct Status {
 #[derive(Debug)]
 pub struct Query {
     query: String,
-    data: Vec<String>
+    data: Vec<String>,
 }
 
 impl AlphaDB {
     pub fn new() -> AlphaDB {
-        AlphaDB {
-            connection: None,
-            db_name: None,
-        }
+        AlphaDB { connection: None, db_name: None }
     }
 
-    pub fn connect(
-        &mut self,
-        host: String,
-        user: String,
-        password: String,
-        database: String,
-        port: i32,
-    ) {
-        let url = format!(
-            "mysql://{}:{}@{}:{}/{}",
-            user, password, host, port, database
-        );
+    pub fn connect(&mut self, host: String, user: String, password: String, database: String, port: i32) {
+        let url = format!("mysql://{}:{}@{}:{}/{}", user, password, host, port, database);
 
         // Establish connection to database
         let pool = Pool::new(&url[..]).unwrap();
@@ -82,23 +69,18 @@ impl AlphaDB {
         let mut version: Option<String> = None;
         let db_name = self.db_name.as_ref().unwrap();
 
-        let conn = &mut self
-            .connection
-            .as_mut()
-            .expect("Connection could not be established");
+        let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
         // Check if the configuration table exists
         let table_check: Option<String> = conn
-            .exec_first("SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?", (db_name, CONFIG_TABLE_NAME))
+            .exec_first(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
+                (db_name, CONFIG_TABLE_NAME),
+            )
             .unwrap();
 
         if !table_check.is_none() {
-            let fetched: Option<String> = conn
-                .exec_first(
-                    format!("SELECT version FROM {} where db = ?", CONFIG_TABLE_NAME),
-                    (db_name,),
-                )
-                .unwrap();
+            let fetched: Option<String> = conn.exec_first(format!("SELECT version FROM {} where db = ?", CONFIG_TABLE_NAME), (db_name,)).unwrap();
 
             if fetched.is_some() {
                 version = fetched;
@@ -120,10 +102,7 @@ impl AlphaDB {
             panic!("already-initialized");
         }
 
-        let conn = &mut self
-            .connection
-            .as_mut()
-            .expect("Connection could not be established");
+        let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
         // Create the configuration table
         conn.query_drop(format!(
@@ -139,10 +118,7 @@ impl AlphaDB {
 
         // Insert db version
         conn.exec_drop(
-            format!(
-                "INSERT INTO {} (db, version) VALUES (?, ?)",
-                CONFIG_TABLE_NAME
-            ),
+            format!("INSERT INTO {} (db, version) VALUES (?, ?)", CONFIG_TABLE_NAME),
             (self.db_name.as_ref().unwrap(), "0.0.0"),
         )
         .unwrap();
@@ -154,25 +130,19 @@ impl AlphaDB {
         let mut template: Option<String> = None;
         let db_name = self.db_name.as_ref().unwrap();
 
-        let conn = &mut self
-            .connection
-            .as_mut()
-            .expect("Connection could not be established");
+        let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
         // Check if the configuration table exists
         let table_check: Option<String> = conn
-            .exec_first("SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?", (db_name, CONFIG_TABLE_NAME))
+            .exec_first(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
+                (db_name, CONFIG_TABLE_NAME),
+            )
             .unwrap();
 
         if table_check.is_some() {
             let fetched: Option<Row> = conn
-                .exec_first(
-                    format!(
-                        "SELECT version, template FROM {} where db = ?",
-                        CONFIG_TABLE_NAME
-                    ),
-                    (db_name,),
-                )
+                .exec_first(format!("SELECT version, template FROM {} where db = ?", CONFIG_TABLE_NAME), (db_name,))
                 .unwrap();
 
             if fetched.is_some() {
@@ -195,29 +165,19 @@ impl AlphaDB {
         }
     }
 
-
-
     /// **Update queries**
     ///
     /// Generate MySQL queries to update the tables. Return Vec<Query>
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update_queries(
-        &mut self,
-        version_source: serde_json::Value,
-        update_to_version: Option<&str>,
-    ) -> Vec<Query> {
+    pub fn update_queries(&mut self, version_source: &mut serde_json::Value, update_to_version: Option<&str>) -> Vec<Query> {
+        let mut queries: Vec<Query> = Vec::new();
 
-        let mut queries:Vec<Query> = Vec::new();
+        let conn = &mut self.connection.as_mut().expect("Connection could not be established");
+        let versions_result = version_source.clone();
 
-        let conn = &mut self
-            .connection
-            .as_mut()
-            .expect("Connection could not be established");
-        let versions_result = version_source["version"].as_array();
-
-        let versions = match versions_result {
+        let versions = match versions_result["version"].as_array() {
             Some(versions) => versions,
             None => {
                 panic!("Version information data not complete. Must contain 'latest', 'version' and 'name'. Latest is the latest version number, version is a JSON object containing the database structure and name is the database template name.")
@@ -228,10 +188,7 @@ impl AlphaDB {
         let database_version: String;
         let db_data: Row = conn
             .exec_first(
-                format!(
-                    "SELECT version, template FROM {} WHERE db = ?",
-                    CONFIG_TABLE_NAME
-                ),
+                format!("SELECT version, template FROM {} WHERE db = ?", CONFIG_TABLE_NAME),
                 (self.db_name.as_ref().unwrap(),),
             )
             .expect("Database configuration error")
@@ -259,10 +216,7 @@ impl AlphaDB {
             None => {
                 conn.exec_drop(
                     format!("UPDATE {} SET template = ? WHERE db = ?", CONFIG_TABLE_NAME),
-                    (
-                        version_source["name"].as_str().unwrap(),
-                        self.db_name.as_ref().unwrap(),
-                    ),
+                    (version_source["name"].as_str().unwrap(), self.db_name.as_ref().unwrap()),
                 )
                 .unwrap();
                 version_source["name"].as_str().unwrap().to_string()
@@ -280,14 +234,10 @@ impl AlphaDB {
             }
             None => {
                 let mut latest_version = String::from("0.0.0");
-                for version in versions {
-                    let version = version["_id"]
-                        .as_str()
-                        .expect("No verssion number was specified");
+                for version in versions.iter() {
+                    let version = version["_id"].as_str().expect("No verssion number was specified");
 
-                    if get_version_number_int(String::from(version))
-                        > get_version_number_int(latest_version.clone())
-                    {
+                    if get_version_number_int(String::from(version)) > get_version_number_int(latest_version.clone()) {
                         latest_version = version.to_string();
                     }
                 }
@@ -296,16 +246,13 @@ impl AlphaDB {
         };
 
         // Check if database is up to date
-        if get_version_number_int(latest_version.clone())
-            <= get_version_number_int(database_version.clone())
-        {
+        if get_version_number_int(latest_version.clone()) <= get_version_number_int(database_version.clone()) {
             panic!("Database is already up to date");
         }
 
         // Update loop
-        for version in versions {
-            let version_int =
-                get_version_number_int(String::from(version["_id"].as_str().unwrap()));
+        for version in versions.iter() {
+            let version_int = get_version_number_int(String::from(version["_id"].as_str().unwrap()));
             // Skip any previous versions
             if version_int <= get_version_number_int(database_version.clone()) {
                 continue;
@@ -316,20 +263,11 @@ impl AlphaDB {
                 continue;
             }
 
-            let version_keys = version
-                .as_object()
-                .unwrap()
-                .keys()
-                .into_iter()
-                .collect::<Vec<&String>>();
+            let version_keys = version.as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
 
             // Createtable
             if version_keys.contains(&&"createtable".to_string()) {
-                let tables = version["createtable"]
-                    .as_object()
-                    .unwrap()
-                    .keys()
-                    .into_iter();
+                let tables = version["createtable"].as_object().unwrap().keys().into_iter();
 
                 for table in tables {
                     let q = createtable(version, table, version["_id"].as_str().unwrap());
@@ -338,14 +276,10 @@ impl AlphaDB {
 
             // Altertable
             if version_keys.contains(&&"altertable".to_string()) {
-                let tables = version["altertable"]
-                    .as_object()
-                    .unwrap()
-                    .keys()
-                    .into_iter();
+                let tables = version["altertable"].as_object().unwrap().keys().into_iter();
 
                 for table in tables {
-                    let q = altertable(&version_source, table, version["_id"].as_str().unwrap());
+                    let q = altertable(version_source, table, version["_id"].as_str().unwrap());
                 }
             }
         }
@@ -354,17 +288,12 @@ impl AlphaDB {
     }
 
     pub fn vacate(&mut self) {
-        let conn = &mut self
-            .connection
-            .as_mut()
-            .expect("Connection could not be established");
+        let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
         conn.query_drop("SET FOREIGN_KEY_CHECKS = 0").unwrap();
 
         // Get all tables
-        let tables: Vec<String> = conn
-            .query_map("SHOW TABLES", |table: String| table)
-            .unwrap();
+        let tables: Vec<String> = conn.query_map("SHOW TABLES", |table: String| table).unwrap();
 
         // Drop all tables
         for table in tables {
@@ -390,13 +319,7 @@ mod alphadb_tests {
         assert!(db.connection.is_none());
 
         // Test connect
-        db.connect(
-            HOST.to_string(),
-            USER.to_string(),
-            PASSWORD.to_string(),
-            DATABASE.to_string(),
-            PORT,
-        );
+        db.connect(HOST.to_string(), USER.to_string(), PASSWORD.to_string(), DATABASE.to_string(), PORT);
         assert!(db.connection.is_some());
 
         // Test check

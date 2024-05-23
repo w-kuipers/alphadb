@@ -19,9 +19,9 @@ use serde_json::Value;
 
 #[derive(Debug, PartialEq)]
 pub struct RenameData {
-    old_name: String,
-    new_name: String,
-    rename_version: u32,
+    pub old_name: String,
+    pub new_name: String,
+    pub rename_version: u32,
 }
 
 /// **Get column renames**
