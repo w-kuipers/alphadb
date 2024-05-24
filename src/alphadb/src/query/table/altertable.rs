@@ -15,9 +15,9 @@
 
 use crate::utils::concatenate::column::get_column_renames;
 use crate::utils::concatenate::primary_key::get_primary_key;
-use crate::utils::version_number::get_version_number_int;
 use crate::utils::error_messages::error;
-use serde_json::{Value, json};
+use crate::utils::version_number::get_version_number_int;
+use serde_json::{json, Value};
 
 /// **Altertable**
 ///
@@ -29,52 +29,93 @@ use serde_json::{Value, json};
 pub fn altertable(version_source: &mut Value, table_name: &str, version: &str) -> String {
     let mut query = format!("ALTER TABLE {table_name}");
     let mut table_data: Option<&Value> = None;
-    let mut version_index = 0;
+    let mut version_index: Option<usize> = None;
 
     // Get current table data
     let cloned_version_source = version_source.clone();
+    let mut c = 0;
     for table in cloned_version_source["version"].as_array().unwrap() {
         if table.as_object().unwrap().keys().any(|i| i == "_id") {
             if version == table["_id"] {
+                version_index = Some(c);
                 table_data = Some(table);
             }
-        }
-        else {
+        } else {
             error("Version does not contain a version number".to_string());
         }
-        version_index += 1;
+        c += 1;
     }
 
     if let Some(table_data) = table_data {
+        if let Some(version_index) = version_index {
+            // Function to get table data by cloning it out of the version source
+            // From version source because it can change within updating
+            let get_table_data = |vs: &Value| -> Value {
+                let cloned = &vs.clone()["version"][version_index];
 
-        if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "primary_key") {
-            // The query for the primary key is created after all column modification
-            // There is a chance that the old primary_key has the AUTO_INCREMENT attribute
-            // which must be removed first.
-            let old_primary_key = get_primary_key(&cloned_version_source["version"], table_name, Some(version));
+                return cloned.clone();
+            };
 
-            if let Some(old_primary_key) = old_primary_key {
-                let column_renames = get_column_renames(&version_source["version"], old_primary_key, table_name, "ASC");
+            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "primary_key") {
+                // The query for the primary key is created after all column modification
+                // There is a chance that the old primary_key has the AUTO_INCREMENT attribute
+                // which must be removed first.
+                let old_primary_key = get_primary_key(&cloned_version_source["version"], table_name, Some(version));
 
-                // If the column is renamed, get hystorical column name for current version
-                let mut version_column_name = old_primary_key;
-                for rename in column_renames.iter().rev() {
-                    if get_version_number_int(version.to_string()) >= rename.rename_version {
-                        version_column_name = &rename.new_name;
-                        break;
+                if let Some(old_primary_key) = old_primary_key {
+                    let column_renames = get_column_renames(&version_source["version"], old_primary_key, table_name, "ASC");
+
+                    // If the column is renamed, get hystorical column name for current version
+                    let mut version_column_name = old_primary_key;
+                    for rename in column_renames.iter().rev() {
+                        if get_version_number_int(version.to_string()) >= rename.rename_version {
+                            version_column_name = &rename.new_name;
+                            break;
+                        } else {
+                            version_column_name = old_primary_key;
+                        }
                     }
-                    else {
-                        version_column_name = old_primary_key;
+
+                    if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "modifycolumn") {
+                        if table_data["altertable"][table_name]["modifycolumn"]
+                            .as_object()
+                            .unwrap()
+                            .keys()
+                            .any(|m| m == version_column_name)
+                        {
+                            version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name]["a_i"] = Value::Bool(true);
+                        } else {
+                            version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
+                                "recreate": true,
+                                "a_i": false
+                            });
+                        }
+                    } else {
+                        version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
+                            "recreate": true,
+                            "a_i": false
+                        });
                     }
                 }
-                
-                if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "modifycolumn") {
-                    if table_data["altertable"][table_name]["modifycolumn"].as_object().unwrap().keys().any(|m| m == version_column_name) {
-                        println!("{:?}", table_data);
+            }
 
-                        version_source["version"][version_index-1]["altertable"][table_name]["modifycolumn"][version_column_name]["a_i"] = Value::Bool(true);
+            // Here should be dropcolumn
+            // Here should be addcolumn
 
-                        println!("{:?}", table_data);
+            // Get up-to-date table data
+            let table_data = get_table_data(version_source);
+            println!("{:?}", table_data["altertable"][table_name]);
+
+            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "modifycolumn") {
+                for column in table_data["altertable"][table_name]["modifycolumn"].as_object().unwrap().keys() {
+                    if table_data["altertable"][table_name]["modifycolumn"][column]
+                        .as_object()
+                        .unwrap()
+                        .keys()
+                        .any(|k| k == "recreate")
+                        && table_data["altertable"][table_name]["modifycolumn"][column]["recreate"] == false
+                    {
+                        println!("No recreate");
                     }
                 }
             }
