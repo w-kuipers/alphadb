@@ -15,7 +15,7 @@
 
 use crate::utils::error_messages::error;
 use crate::utils::version_number::get_version_number_int;
-use serde_json::Value;
+use serde_json::{Value, json};
 
 #[derive(Debug, PartialEq)]
 pub struct RenameData {
@@ -23,6 +23,24 @@ pub struct RenameData {
     pub new_name: String,
     pub rename_version: u32,
 }
+
+
+/// **Concatenate column**
+///
+/// Concatenate all column updates into a single version
+///
+/// - version_list: List with versions from version_source
+/// - column_name: Name of the column to be handled
+/// - table_name: Name of the table the column is in
+pub fn concatenate_column(version_list: &Value, column_name: &str, table_name: &str) -> Value {
+    let mut column = json!({});
+
+    let rename_data = get_column_renames(version_list, column_name, table_name, "DESC");
+
+
+    return column;
+}
+
 
 /// **Get column renames**
 ///
