@@ -159,7 +159,8 @@
 					"primary_key": "thecol2",
 					"modifycolumn": {
 						"thecol2": {
-							"length": 3000
+							"length": 3000,
+							"recreate": false
 						}
 					}
 				}
@@ -172,7 +173,7 @@
 					"modifycolumn": {
 						"secondrenameoncol1": {
 							"recreate": false,
-							"null": true
+							"null": false
 						},
 						"col2": {
 							"recreate": false,
@@ -186,7 +187,7 @@
 					"modifycolumn": {
 						"col2": {
 							"recreate": false,
-							"length": "200"
+							"length": 200
 						}
 					}
 				}
