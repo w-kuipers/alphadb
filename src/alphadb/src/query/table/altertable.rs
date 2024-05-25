@@ -13,9 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::query::column::definecolumn::definecolumn;
+use crate::query::column::modifycolumn::modifycolumn;
 use crate::utils::consolidate::column::{consolidate_column, get_column_renames};
 use crate::utils::consolidate::primary_key::get_primary_key;
-use crate::query::column::modifycolumn::modifycolumn;
 use crate::utils::error_messages::error;
 use crate::utils::version_number::get_version_number_int;
 use serde_json::{json, Value};
@@ -100,15 +101,26 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
                     let partial = format!("DROP COLUMN {column}");
                     if query == "" {
                         query = partial;
-                    }
-                    else {
+                    } else {
                         query = format!("{query}, {partial}");
                     }
                 }
             }
 
-
-            // Here should be addcolumn
+            // Add column
+            let table_data = mutable_table_data.clone(); // Get up-to-date table data
+            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "addcolumn") {
+                for column in table_data["altertable"][table_name]["addcolumn"].as_object().unwrap().keys() {
+                    let partial = definecolumn(&mutable_table_data["altertable"][table_name]["addcolumn"][column], table_name, &column.to_string(), version);
+                    if let Some(partial) = partial {
+                        if query == "" {
+                            query = format!("ADD {partial}");
+                        } else {
+                            query = format!("{query}, ADD {partial}");
+                        }
+                    }
+                }
+            }
 
             // Modify column
             let table_data = mutable_table_data.clone(); // Get up-to-date table data
@@ -129,12 +141,10 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
                     if let Some(partial) = partial {
                         if query == "" {
                             query = partial;
-                        }
-                        else {
+                        } else {
                             query = format!("{query}, {partial}");
                         }
                     }
-
                 }
             }
         }
@@ -142,7 +152,6 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
         // Panic with message if table data is not defined, should not be possible though
         error("An unexpected error occured. No table data seems to be returned".to_string());
     }
-
 
     query = format!("ALTER TABLE {table_name} {query}");
 
