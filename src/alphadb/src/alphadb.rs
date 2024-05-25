@@ -48,6 +48,23 @@ pub struct Query {
     data: Option<Vec<String>>,
 }
 
+
+/// **Validation issue level**
+///
+/// Version source validation generates issues of three priorities. 
+/// 
+/// LOW: Will work, but will not have any effect on the database.
+/// HIGH: Will still work, but might produce a different result than desired.
+/// CRITICAL: Will not execute.
+pub enum ValidationIssueLevel {
+    /// LOW: Will work, but will not have any effect on the database
+    Low,
+    /// HIGH: Will still work, but might produce a different result than desired.
+    High,
+    /// CRITICAL: Will not execute.
+    Critical
+}
+
 impl AlphaDB {
     pub fn new() -> AlphaDB {
         AlphaDB { connection: None, db_name: None }
@@ -295,6 +312,16 @@ impl AlphaDB {
         });
 
         return queries;
+    }
+
+    /// **Update**
+    ///
+    /// Generate MySQL queries to update the tables. Run the updates on the database
+    ///
+    /// - version_source: Complete JSON version source
+    /// - update_to_version (optional): Version number to update to
+    pub fn update(&mut self, version_source: &Value, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: ValidationIssueLevel) {
+
     }
 
     pub fn vacate(&mut self) {
