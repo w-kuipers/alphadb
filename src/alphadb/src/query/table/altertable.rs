@@ -93,12 +93,25 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
                 }
             }
 
-            // Here should be dropcolumn
+            // Drop column
+            let table_data = mutable_table_data.clone(); // Get up-to-date table data
+            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "dropcolumn") {
+                for column in table_data["altertable"][table_name]["dropcolumn"].as_array().unwrap() {
+                    let partial = format!("DROP COLUMN {column}");
+                    if query == "" {
+                        query = partial;
+                    }
+                    else {
+                        query = format!("{query}, {partial}");
+                    }
+                }
+            }
+
+
             // Here should be addcolumn
 
-            // Get up-to-date table data
-            let table_data = mutable_table_data.clone();
-
+            // Modify column
+            let table_data = mutable_table_data.clone(); // Get up-to-date table data
             if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "modifycolumn") {
                 for column in table_data["altertable"][table_name]["modifycolumn"].as_object().unwrap().keys() {
                     if table_data["altertable"][table_name]["modifycolumn"][column]
