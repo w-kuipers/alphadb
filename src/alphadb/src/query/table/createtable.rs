@@ -32,7 +32,7 @@ pub fn createtable(version_source: &serde_json::Value, table_name: &str, version
     for (column_name, column_value) in table_data {
         let column = &definecolumn(column_value, table_name, column_name, version);
 
-        if column != "" {
+        if let Some(column) = column {
             if column_queries != "" {
                 column_queries = format!("{column_queries}, {}", column);
             } else {
@@ -84,7 +84,7 @@ pub fn createtable(version_source: &serde_json::Value, table_name: &str, version
 }
 
 #[cfg(test)]
-mod definecolumn_tests {
+mod createtable_tests {
     use super::createtable;
     use serde_json::json;
 

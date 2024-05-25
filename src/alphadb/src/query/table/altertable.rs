@@ -13,8 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::consolidate::column::{get_column_renames, consolidate_column};
+use crate::utils::consolidate::column::{consolidate_column, get_column_renames};
 use crate::utils::consolidate::primary_key::get_primary_key;
+use crate::query::column::modifycolumn::modifycolumn;
 use crate::utils::error_messages::error;
 use crate::utils::version_number::get_version_number_int;
 use serde_json::{json, Value};
@@ -27,12 +28,9 @@ use serde_json::{json, Value};
 /// - table_name: Name of the table to be created
 /// - version: Current version in version source loop
 pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> String {
-    let mut query = format!("ALTER TABLE {table_name}");
+    let mut query = String::new();
     let mut table_data: Option<&Value> = None;
     let mut version_index: Option<usize> = None;
-
-    // Get current table data
-    let mut cloned_version_source = version_source.clone();
 
     let mut c = 0;
     for table in version_source["version"].as_array().unwrap() {
@@ -49,13 +47,8 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
 
     if let Some(table_data) = table_data {
         if let Some(version_index) = version_index {
-            // Function to get table data by cloning it out of the version source
-            // From version source because it can change within updating
-            let get_table_data = |vs: Value| -> Value {
-                let cloned = &vs.clone()["version"][version_index];
-
-                return cloned.clone();
-            };
+            let mut cloned_version_source = version_source.clone();
+            let mutable_table_data = &mut cloned_version_source["version"][version_index];
 
             if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "primary_key") {
                 // The query for the primary key is created after all column modification
@@ -84,16 +77,16 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
                             .keys()
                             .any(|m| m == version_column_name)
                         {
-                            cloned_version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name]["a_i"] = Value::Bool(true);
+                            mutable_table_data["altertable"][table_name]["modifycolumn"][version_column_name]["a_i"] = Value::Bool(true);
                         } else {
-                            cloned_version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
-                                "recreate": true,
+                            mutable_table_data["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
+                                "recreate": false,
                                 "a_i": false
                             });
                         }
                     } else {
-                        cloned_version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
-                            "recreate": true,
+                        mutable_table_data["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
+                            "recreate": false,
                             "a_i": false
                         });
                     }
@@ -104,7 +97,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
             // Here should be addcolumn
 
             // Get up-to-date table data
-            let table_data = get_table_data(cloned_version_source);
+            let table_data = mutable_table_data.clone();
 
             if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "modifycolumn") {
                 for column in table_data["altertable"][table_name]["modifycolumn"].as_object().unwrap().keys() {
@@ -115,10 +108,20 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
                         .any(|k| k == "recreate")
                         && table_data["altertable"][table_name]["modifycolumn"][column]["recreate"] == false
                     {
-                        // version_source[] = consolidate_column(&version_source["version"], column, table_name);
-
-                        // println!("{}", test);
+                        mutable_table_data["altertable"][table_name]["modifycolumn"][column] = consolidate_column(&version_source["version"], column, table_name);
                     }
+
+                    let partial = modifycolumn(&mutable_table_data["altertable"][table_name], table_name, column, version);
+
+                    if let Some(partial) = partial {
+                        if query == "" {
+                            query = partial;
+                        }
+                        else {
+                            query = format!("{query}, {partial}");
+                        }
+                    }
+
                 }
             }
         }
@@ -126,6 +129,11 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
         // Panic with message if table data is not defined, should not be possible though
         error("An unexpected error occured. No table data seems to be returned".to_string());
     }
+
+
+    query = format!("ALTER TABLE {table_name} {query}");
+
+    println!("{query}");
 
     return query;
 }
