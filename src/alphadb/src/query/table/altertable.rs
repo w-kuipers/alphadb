@@ -26,15 +26,16 @@ use serde_json::{json, Value};
 /// - version_source: Complete JSON version source
 /// - table_name: Name of the table to be created
 /// - version: Current version in version source loop
-pub fn altertable(version_source: &mut Value, table_name: &str, version: &str) -> String {
+pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> String {
     let mut query = format!("ALTER TABLE {table_name}");
     let mut table_data: Option<&Value> = None;
     let mut version_index: Option<usize> = None;
 
     // Get current table data
-    let cloned_version_source = version_source.clone();
+    let mut cloned_version_source = version_source.clone();
+
     let mut c = 0;
-    for table in cloned_version_source["version"].as_array().unwrap() {
+    for table in version_source["version"].as_array().unwrap() {
         if table.as_object().unwrap().keys().any(|i| i == "_id") {
             if version == table["_id"] {
                 version_index = Some(c);
@@ -50,7 +51,7 @@ pub fn altertable(version_source: &mut Value, table_name: &str, version: &str) -
         if let Some(version_index) = version_index {
             // Function to get table data by cloning it out of the version source
             // From version source because it can change within updating
-            let get_table_data = |vs: &Value| -> Value {
+            let get_table_data = |vs: Value| -> Value {
                 let cloned = &vs.clone()["version"][version_index];
 
                 return cloned.clone();
@@ -60,7 +61,7 @@ pub fn altertable(version_source: &mut Value, table_name: &str, version: &str) -
                 // The query for the primary key is created after all column modification
                 // There is a chance that the old primary_key has the AUTO_INCREMENT attribute
                 // which must be removed first.
-                let old_primary_key = get_primary_key(&cloned_version_source["version"], table_name, Some(version));
+                let old_primary_key = get_primary_key(&version_source["version"], table_name, Some(version));
 
                 if let Some(old_primary_key) = old_primary_key {
                     let column_renames = get_column_renames(&version_source["version"], old_primary_key, table_name, "ASC");
@@ -83,15 +84,15 @@ pub fn altertable(version_source: &mut Value, table_name: &str, version: &str) -
                             .keys()
                             .any(|m| m == version_column_name)
                         {
-                            version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name]["a_i"] = Value::Bool(true);
+                            cloned_version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name]["a_i"] = Value::Bool(true);
                         } else {
-                            version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
+                            cloned_version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
                                 "recreate": true,
                                 "a_i": false
                             });
                         }
                     } else {
-                        version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
+                        cloned_version_source["version"][version_index]["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
                             "recreate": true,
                             "a_i": false
                         });
@@ -103,7 +104,7 @@ pub fn altertable(version_source: &mut Value, table_name: &str, version: &str) -
             // Here should be addcolumn
 
             // Get up-to-date table data
-            let table_data = get_table_data(version_source);
+            let table_data = get_table_data(cloned_version_source);
 
             if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "modifycolumn") {
                 for column in table_data["altertable"][table_name]["modifycolumn"].as_object().unwrap().keys() {
@@ -114,9 +115,9 @@ pub fn altertable(version_source: &mut Value, table_name: &str, version: &str) -
                         .any(|k| k == "recreate")
                         && table_data["altertable"][table_name]["modifycolumn"][column]["recreate"] == false
                     {
-                        let test = consolidate_column(&version_source["version"], column, table_name);
+                        // version_source[] = consolidate_column(&version_source["version"], column, table_name);
 
-                        println!("{}", test);
+                        // println!("{}", test);
                     }
                 }
             }

@@ -171,13 +171,12 @@ impl AlphaDB {
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update_queries(&mut self, version_source: &mut serde_json::Value, update_to_version: Option<&str>) -> Vec<Query> {
+    pub fn update_queries(&mut self, version_source: serde_json::Value, update_to_version: Option<&str>) -> Vec<Query> {
         let mut queries: Vec<Query> = Vec::new();
 
         let conn = &mut self.connection.as_mut().expect("Connection could not be established");
-        let versions_result = version_source.clone();
 
-        let versions = match versions_result["version"].as_array() {
+        let versions = match version_source["version"].as_array() {
             Some(versions) => versions,
             None => {
                 panic!("Version information data not complete. Must contain 'latest', 'version' and 'name'. Latest is the latest version number, version is a JSON object containing the database structure and name is the database template name.")
@@ -234,7 +233,7 @@ impl AlphaDB {
             }
             None => {
                 let mut latest_version = String::from("0.0.0");
-                for version in versions.iter() {
+                for version in versions {
                     let version = version["_id"].as_str().expect("No verssion number was specified");
 
                     if get_version_number_int(String::from(version)) > get_version_number_int(latest_version.clone()) {
@@ -251,7 +250,7 @@ impl AlphaDB {
         }
 
         // Update loop
-        for version in versions.iter() {
+        for version in versions {
             let version_int = get_version_number_int(String::from(version["_id"].as_str().unwrap()));
             // Skip any previous versions
             if version_int <= get_version_number_int(database_version.clone()) {
@@ -279,7 +278,7 @@ impl AlphaDB {
                 let tables = version["altertable"].as_object().unwrap().keys().into_iter();
 
                 for table in tables {
-                    let q = altertable(version_source, table, version["_id"].as_str().unwrap());
+                    let q = altertable(&version_source, table, version["_id"].as_str().unwrap());
                 }
             }
         }
