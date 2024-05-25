@@ -160,6 +160,23 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
                 } 
             }
 
+            // Primary key
+            let table_data = mutable_table_data.clone(); // Get up-to-date table data
+            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "primary_key") {
+            
+                // Drop primary key
+                if Value::is_null(&table_data["altertable"][table_name]["primary_key"]) {
+                    if query == "" {
+                        query = format!("DROP PRIMARY KEY");
+                    } else {
+                        query = format!("{query}, DROP PRIMARY KEY");
+                    }
+                }
+
+                // TODO add changing primary key
+            }
+
+
         }
     } else {
         // Panic with message if table data is not defined, should not be possible though
@@ -168,7 +185,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
 
     query = format!("ALTER TABLE {table_name} {query}");
 
-    println!("{query}");
+    println!("{query} {version}");
 
     return query;
 }
