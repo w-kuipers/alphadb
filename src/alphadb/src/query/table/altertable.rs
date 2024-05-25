@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::consolidate::column::get_column_renames;
+use crate::utils::consolidate::column::{get_column_renames, consolidate_column};
 use crate::utils::consolidate::primary_key::get_primary_key;
 use crate::utils::error_messages::error;
 use crate::utils::version_number::get_version_number_int;
@@ -104,7 +104,6 @@ pub fn altertable(version_source: &mut Value, table_name: &str, version: &str) -
 
             // Get up-to-date table data
             let table_data = get_table_data(version_source);
-            println!("{:?}", table_data["altertable"][table_name]);
 
             if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "modifycolumn") {
                 for column in table_data["altertable"][table_name]["modifycolumn"].as_object().unwrap().keys() {
@@ -115,7 +114,9 @@ pub fn altertable(version_source: &mut Value, table_name: &str, version: &str) -
                         .any(|k| k == "recreate")
                         && table_data["altertable"][table_name]["modifycolumn"][column]["recreate"] == false
                     {
-                        println!("No recreate");
+                        let test = consolidate_column(&version_source["version"], column, table_name);
+
+                        println!("{}", test);
                     }
                 }
             }
