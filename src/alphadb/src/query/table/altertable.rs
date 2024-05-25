@@ -147,6 +147,19 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
                     }
                 }
             }
+
+            // Rename column
+            let table_data = mutable_table_data.clone(); // Get up-to-date table data
+            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "renamecolumn") {
+                for column in table_data["altertable"][table_name]["renamecolumn"].as_object().unwrap().keys() {
+                    if query == "" {
+                        query = format!("RENAME COLUMN {} TO {}", column, table_data["altertable"][table_name]["renamecolumn"][column].as_str().unwrap());
+                    } else {
+                        query = format!("{}, RENAME COLUMN {} TO {}", query, column, table_data["altertable"][table_name]["renamecolumn"][column].as_str().unwrap());
+                    }
+                } 
+            }
+
         }
     } else {
         // Panic with message if table data is not defined, should not be possible though
