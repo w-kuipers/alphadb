@@ -16,4 +16,4 @@
 pub mod error_messages;
 pub mod globals;
 pub mod version_number;
-pub mod concatenate;
+pub mod consolidate;

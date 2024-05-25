@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::concatenate::column::get_column_renames;
-use crate::utils::concatenate::primary_key::get_primary_key;
+use crate::utils::consolidate::column::get_column_renames;
+use crate::utils::consolidate::primary_key::get_primary_key;
 use crate::utils::error_messages::error;
 use crate::utils::version_number::get_version_number_int;
 use serde_json::{json, Value};

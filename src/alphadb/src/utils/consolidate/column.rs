@@ -25,17 +25,32 @@ pub struct RenameData {
 }
 
 
-/// **Concatenate column**
+/// **Consolidate column**
 ///
-/// Concatenate all column updates into a single version
+/// Consolidate all column updates into a single version
 ///
 /// - version_list: List with versions from version_source
 /// - column_name: Name of the column to be handled
 /// - table_name: Name of the table the column is in
-pub fn concatenate_column(version_list: &Value, column_name: &str, table_name: &str) -> Value {
+pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &str) -> Value {
     let mut column = json!({});
-
+    let mut version_column_name = column_name;
     let rename_data = get_column_renames(version_list, column_name, table_name, "DESC");
+    let version_list_cloned = version_list.clone();
+
+    for version in version_list_cloned.as_array().unwrap() {
+        let v = get_version_number_int(version["_id"].to_string());
+
+        // If the column is renamed, get hystorical column name for current version
+        for rename in rename_data.iter().rev() {
+            if get_version_number_int(version.to_string()) >= rename.rename_version {
+                version_column_name = &rename.old_name;
+                break;
+            } else {
+                version_column_name = column_name;
+            }
+        }
+    }
 
 
     return column;
