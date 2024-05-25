@@ -98,7 +98,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
             let table_data = mutable_table_data.clone(); // Get up-to-date table data
             if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "dropcolumn") {
                 for column in table_data["altertable"][table_name]["dropcolumn"].as_array().unwrap() {
-                    let partial = format!("DROP COLUMN {column}");
+                    let partial = format!("DROP COLUMN {}", column.as_str().unwrap());
                     if query == "" {
                         query = partial;
                     } else {
@@ -153,17 +153,25 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
             if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "renamecolumn") {
                 for column in table_data["altertable"][table_name]["renamecolumn"].as_object().unwrap().keys() {
                     if query == "" {
-                        query = format!("RENAME COLUMN {} TO {}", column, table_data["altertable"][table_name]["renamecolumn"][column].as_str().unwrap());
+                        query = format!(
+                            "RENAME COLUMN {} TO {}",
+                            column,
+                            table_data["altertable"][table_name]["renamecolumn"][column].as_str().unwrap()
+                        );
                     } else {
-                        query = format!("{}, RENAME COLUMN {} TO {}", query, column, table_data["altertable"][table_name]["renamecolumn"][column].as_str().unwrap());
+                        query = format!(
+                            "{}, RENAME COLUMN {} TO {}",
+                            query,
+                            column,
+                            table_data["altertable"][table_name]["renamecolumn"][column].as_str().unwrap()
+                        );
                     }
-                } 
+                }
             }
 
             // Primary key
             let table_data = mutable_table_data.clone(); // Get up-to-date table data
             if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "primary_key") {
-            
                 // Drop primary key
                 if Value::is_null(&table_data["altertable"][table_name]["primary_key"]) {
                     if query == "" {
@@ -175,17 +183,54 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
 
                 // TODO add changing primary key
             }
-
-
         }
     } else {
         // Panic with message if table data is not defined, should not be possible though
         error("An unexpected error occured. No table data seems to be returned".to_string());
     }
 
-    query = format!("ALTER TABLE {table_name} {query}");
-
-    println!("{query} {version}");
+    query = format!("ALTER TABLE {table_name} {query};");
 
     return query;
+}
+
+#[cfg(test)]
+mod altertable_tests {
+    use super::altertable;
+    use serde_json::json;
+
+    // Foreign key missing key
+    #[test]
+    fn dropcolumn() {
+        let column = &json!({
+            "version": [{
+                "_id": "0.0.1",
+                "altertable": {
+                    "table": {
+                        "dropcolumn": ["col1", "col2", "col3"]
+                    }
+                }
+            }]
+        });
+        assert_eq!(
+            altertable(column, "table", "0.0.1"),
+            "ALTER TABLE table DROP COLUMN col1, DROP COLUMN col2, DROP COLUMN col3;"
+        );
+    }
+
+    // Drop primary key
+    #[test]
+    fn drop_primary_key() {
+        let column = &json!({
+            "version": [
+                {"_id": "0.0.1", "createtable": {"table": {"primary_key": "col", "col": {"type": "INT", "a_i": true}}}},
+                {"_id": "0.0.2", "altertable": {"table": {"primary_key": null}}},
+            ]
+        });
+        assert_eq!(
+            altertable(column, "table", "0.0.2"),
+            "ALTER TABLE table MODIFY COLUMN col INT NOT NULL AUTO_INCREMENT, DROP PRIMARY KEY;"
+        );
+    }
+
 }
