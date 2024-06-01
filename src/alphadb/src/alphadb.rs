@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::query::table::altertable::altertable;
+use crate::utils::types::ValidationIssueLevel;
 use crate::query::table::createtable::createtable;
 use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
 use crate::utils::globals::CONFIG_TABLE_NAME;
@@ -303,8 +304,14 @@ impl AlphaDB {
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update(&mut self, version_source: &Value, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: ValidationIssueLevel) {
+    pub fn update(&mut self, version_source: serde_json::Value, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: ValidationIssueLevel) {
+        if verify {
+            // TODO 
+        }
 
+        let queries = self.update_queries(version_source, update_to_version.as_deref());
+
+        println!("{:?}", queries);
     }
 
     pub fn vacate(&mut self) {

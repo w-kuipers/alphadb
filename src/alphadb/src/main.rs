@@ -45,8 +45,6 @@ fn main() {
         .expect("Unable to read file");
     let json: serde_json::Value = serde_json::from_str(&data).expect("JSON was not well-formatted");
 
-    let queries = db.update(json, None, false, true, ValidationIssueLevel::Low);
-
-    println!("{:?}", queries);
+    db.update(json, None, false, true, ValidationIssueLevel::Low);
 
 }
