@@ -14,13 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::query::table::altertable::altertable;
-use crate::utils::types::ValidationIssueLevel;
 use crate::query::table::createtable::createtable;
 use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
 use crate::utils::globals::CONFIG_TABLE_NAME;
+use crate::utils::types::ValidationIssueLevel;
 use crate::utils::version_number::{get_version_number_int, verify_version_number};
 use mysql::prelude::*;
 use mysql::*;
+use std::fmt::write;
 use std::panic;
 
 #[derive(Debug)]
@@ -269,10 +270,7 @@ impl AlphaDB {
 
                 for table in tables {
                     let q = createtable(version, table, version["_id"].as_str().unwrap());
-                    queries.push(Query {
-                        query: q,
-                        data: None
-                    });
+                    queries.push(Query { query: q, data: None });
                 }
             }
 
@@ -282,17 +280,14 @@ impl AlphaDB {
 
                 for table in tables {
                     let q = altertable(&version_source, table, version["_id"].as_str().unwrap());
-                    queries.push(Query {
-                        query: q,
-                        data: None
-                    });
+                    queries.push(Query { query: q, data: None });
                 }
             }
         }
 
         queries.push(Query {
-            query: format!("UPDATE `{CONFIG_TABLE_NAME}` SET version=%s WHERE `db` = %s"),
-            data: Some(Vec::from([latest_version, self.db_name.as_ref().unwrap().to_string()]))
+            query: format!("UPDATE `{CONFIG_TABLE_NAME}` SET version=? WHERE `db` = ?;"),
+            data: Some(Vec::from([latest_version, self.db_name.as_ref().unwrap().to_string()])),
         });
 
         return queries;
@@ -306,12 +301,25 @@ impl AlphaDB {
     /// - update_to_version (optional): Version number to update to
     pub fn update(&mut self, version_source: serde_json::Value, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: ValidationIssueLevel) {
         if verify {
-            // TODO 
+            // TODO
         }
 
         let queries = self.update_queries(version_source, update_to_version.as_deref());
+        let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
-        println!("{:?}", queries);
+        for query in queries {
+            if let Some(data) = query.data {
+                match conn.exec_drop(query.query, data) {
+                    Ok(result) => result,
+                    Err(error) => panic!("{:?}", error),
+                };
+            } else {
+                match conn.exec_drop(query.query, ()) {
+                    Ok(result) => result,
+                    Err(error) => panic!("{:?}", error),
+                };
+            }
+        }
     }
 
     pub fn vacate(&mut self) {
