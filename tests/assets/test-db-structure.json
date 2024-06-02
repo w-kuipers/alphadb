@@ -82,7 +82,7 @@
 			"_id": "0.1.0",
 			"altertable": {
 				"table1": {
-					"dropcolumn": ["col3"],
+					"dropcolumn": ["col3", "col1"],
 					"addcolumn": {
 						"col5": {
 							"type": "TEXT",

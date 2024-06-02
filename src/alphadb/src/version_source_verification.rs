@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::utils::consolidate::primary_key::{self, get_primary_key};
 use crate::utils::types::VerificationIssueLevel;
 use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
 use serde_json::Value;
@@ -80,7 +81,7 @@ impl VersionSourceVerification {
                     match method.as_str() {
                         "_id" => continue,
                         "createtable" => self.createtable(version["createtable"].clone(), version_output.clone()),
-                        "altertable" => self.altertable(version["altertable"].clone(), version_output.clone()),
+                        "altertable" => self.altertable(version["altertable"].clone(), i, version_output.clone()),
                         _ => {
                             self.issues.push(VerificationIssue {
                                 level: VerificationIssueLevel::High,
@@ -135,8 +136,49 @@ impl VersionSourceVerification {
 
     /// **Altertable**
     ///
-    /// Verify a single createtable block
-    pub fn altertable(&mut self, createtable: Value, version_output: String) {}
+    /// Verify a single altertable block
+    pub fn altertable(&mut self, altertable: Value, version_index: usize, version_output: String) {
+        if altertable.as_object().unwrap().is_empty() {
+            self.issues.push(VerificationIssue {
+                level: VerificationIssueLevel::Low,
+                message: format!("{version_output} -> altertable: Does not contain any data"),
+            });
+            return;
+        }
+
+        for table in altertable.as_object().unwrap().keys() {
+            // Modifycolumn
+            if altertable[table].as_object().unwrap().keys().any(|a| a == "modifycolumn") {
+                for (column_name, column) in altertable[table]["modifycolumn"].as_object().unwrap() {
+                    self.column_compatibility(table, column_name, column.clone(), "altertable", version_output.clone());
+                }
+            }
+
+            // Dropcolumn
+            if altertable[table].as_object().unwrap().keys().any(|a| a == "dropcolumn") {
+                let primary_key = get_primary_key(
+                    &self.version_source["version"],
+                    table,
+                    Some(self.version_source["version"][version_index]["_id"].as_str().unwrap()),
+                );
+
+                for dropcol in altertable[table]["dropcolumn"].as_array().unwrap() {
+                    if let Some(dropcol) = dropcol.as_str() {
+                        if let Some(primary_key) = primary_key {
+                            if dropcol == primary_key {
+                                self.issues.push(VerificationIssue {
+                                    level: VerificationIssueLevel::Low,
+                                    message: format!("{version_output} -> altertable -> table:{table} -> dropcolumn: Column {dropcol} is the tables current primary key"),
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // Do primary key checks
+            }
+        }
+    }
 
     /// **Column compatibility**
     ///
