@@ -13,14 +13,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// **Validation issue level**
+/// **Verification issue level**
 ///
-/// Version source validation generates issues of three priorities. 
+/// Version source verifictaion generates issues of three priorities. 
 /// 
 /// LOW: Will work, but will not have any effect on the database.
 /// HIGH: Will still work, but might produce a different result than desired.
 /// CRITICAL: Will not execute.
-pub enum ValidationIssueLevel {
+#[derive(Debug, Copy, Clone)]
+pub enum VerificationIssueLevel {
     /// LOW: Will work, but will not have any effect on the database
     Low,
     /// HIGH: Will still work, but might produce a different result than desired.

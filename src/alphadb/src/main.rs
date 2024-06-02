@@ -14,27 +14,22 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::alphadb::AlphaDB;
+use crate::utils::types::VerificationIssueLevel;
+use crate::version_source_verification::VersionSourceVerification;
 use std::fs;
-use crate::utils::types::ValidationIssueLevel;
 
 mod alphadb;
 mod query;
 mod utils;
 mod verification;
+mod version_source_verification;
 
 fn main() {
     let mut db = AlphaDB::new();
-    let _ = db.connect(
-        "localhost".to_string(),
-        "root".to_string(),
-        "test".to_string(),
-        "test".to_string(),
-        3306,
-    );
+    let _ = db.connect("localhost".to_string(), "root".to_string(), "test".to_string(), "test".to_string(), 3306);
 
     // let check = db.check();
     // println!("{:?}", check);
-
 
     // let status = db.status();
     // println!("{:?}", status);
@@ -42,10 +37,13 @@ fn main() {
     db.vacate();
     db.init();
 
-    let data = fs::read_to_string("/home/wibo/code/alphadb/alphadb/tests/assets/test-db-structure.json")
-        .expect("Unable to read file");
+    let data = fs::read_to_string("/home/wibo/code/alphadb/alphadb/tests/assets/test-db-structure.json").expect("Unable to read file");
     let json: serde_json::Value = serde_json::from_str(&data).expect("JSON was not well-formatted");
 
-    db.update(json, None, false, true, ValidationIssueLevel::Low);
+    // db.update(json, None, false, true, VerificationIssueLevel::Low);
+    let mut verification = VersionSourceVerification::new(json);
+    let verified = verification.verify();
 
+    println!("{:?}", verified);
+    
 }
