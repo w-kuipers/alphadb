@@ -23,10 +23,6 @@
 					"col4": {
 						"type": "INT",
 						"length": 7
-					},
-					"col5": {
-						"type": "JSON",
-						"null": true
 					}
 				}
 			}
@@ -54,7 +50,8 @@
 				"table3": {
 					"col1": {
 						"type": "INT",
-						"a_i": true
+						"a_i": true,
+						"unique": true
 					},
 					"col2": {
 						"type": "VARCHAR",
@@ -85,7 +82,7 @@
 			"_id": "0.1.0",
 			"altertable": {
 				"table1": {
-					"dropcolumn": ["col1", "col3"],
+					"dropcolumn": ["col3"],
 					"addcolumn": {
 						"col5": {
 							"type": "TEXT",
@@ -179,8 +176,7 @@
 							"recreate": false,
 							"length": 2
 						}
-					},
-					"primary_key": null
+					}
 				},
 				"table1": {
 					"primary_key": "col4",
@@ -198,14 +194,6 @@
 			"altertable": {
 				"table4": {
 					"primary_key": "thecol1"
-				}
-			}
-		},
-		{
-			"_id": "0.2.7",
-			"altertable": {
-				"table3": {
-					"primary_key": "col1"
 				}
 			}
 		}

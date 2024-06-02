@@ -15,6 +15,7 @@
 
 use crate::alphadb::AlphaDB;
 use std::fs;
+use crate::utils::types::ValidationIssueLevel;
 
 mod alphadb;
 mod query;
@@ -34,18 +35,17 @@ fn main() {
     // let check = db.check();
     // println!("{:?}", check);
 
-    // db.init();
 
     // let status = db.status();
     // println!("{:?}", status);
 
-    // db.vacate();
+    db.vacate();
+    db.init();
+
     let data = fs::read_to_string("/home/wibo/code/alphadb/alphadb/tests/assets/test-db-structure.json")
         .expect("Unable to read file");
     let json: serde_json::Value = serde_json::from_str(&data).expect("JSON was not well-formatted");
 
-    let queries = db.update_queries(json, None);
-
-    println!("{:?}", queries);
+    db.update(json, None, false, true, ValidationIssueLevel::Low);
 
 }

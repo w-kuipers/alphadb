@@ -13,8 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod error_messages;
-pub mod globals;
-pub mod version_number;
-pub mod consolidate;
-pub mod types;
+/// **Validation issue level**
+///
+/// Version source validation generates issues of three priorities. 
+/// 
+/// LOW: Will work, but will not have any effect on the database.
+/// HIGH: Will still work, but might produce a different result than desired.
+/// CRITICAL: Will not execute.
+pub enum ValidationIssueLevel {
+    /// LOW: Will work, but will not have any effect on the database
+    Low,
+    /// HIGH: Will still work, but might produce a different result than desired.
+    High,
+    /// CRITICAL: Will not execute.
+    Critical
+}
