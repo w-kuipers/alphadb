@@ -341,6 +341,8 @@ impl AlphaDB {
 #[cfg(test)]
 mod alphadb_tests {
     use super::*;
+    use std::fs;
+
     static HOST: &str = "localhost";
     static USER: &str = "root";
     static PASSWORD: &str = "test";
@@ -373,6 +375,14 @@ mod alphadb_tests {
         assert_eq!(status.version, Some("0.0.0".to_string()));
         assert_eq!(status.name, DATABASE);
         assert_eq!(status.template, None);
+
+        // Test update (maybe update later)
+        let data = fs::read_to_string("../../tests/assets/test-db-structure.json").expect("Unable to read file");
+        let json: serde_json::Value = serde_json::from_str(&data).expect("JSON was not well-formatted");
+        db.update(json, None, false, true, VerificationIssueLevel::Low);
+        let status = db.status();
+        assert_ne!(status.version, Some("0.0.0".to_string()));
+        
 
         // Test vacate
         db.vacate();
