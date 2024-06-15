@@ -13,6 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+mod query;
+mod utils;
+mod verification;
+pub mod version_source_verification;
+
 use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
 use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
@@ -382,7 +387,6 @@ mod alphadb_tests {
         db.update(json, None, false, true, VerificationIssueLevel::Low);
         let status = db.status();
         assert_ne!(status.version, Some("0.0.0".to_string()));
-        
 
         // Test vacate
         db.vacate();
