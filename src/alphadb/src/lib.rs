@@ -25,13 +25,13 @@ use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::types::VerificationIssueLevel;
 use crate::utils::version_number::{get_version_number_int, verify_version_number};
 use mysql::prelude::*;
-use mysql::*;
+pub use mysql::*;
 use std::panic;
 
 #[derive(Debug)]
 pub struct AlphaDB {
-    connection: Option<PooledConn>,
-    db_name: Option<String>,
+    pub connection: Option<PooledConn>,
+    pub db_name: Option<String>,
 }
 
 #[derive(Debug)]
