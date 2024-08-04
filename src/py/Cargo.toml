@@ -9,5 +9,6 @@ name = "alphadb"
 crate-type = ["cdylib"]
 
 [dependencies]
-alphadb = { version = "0.1.0", path = "../alphadb" }
-pyo3 = "0.21.1"
+mysql = "*"
+alphadb = { path = "../alphadb" }
+pyo3 = "0.22.2"
