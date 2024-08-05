@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 #[pyclass]
 struct AlphaDB {
-    alphadb_instance: AlphaDBCore,
+    pub alphadb_instance: AlphaDBCore,
 }
 
 #[pyclass]
@@ -49,6 +49,21 @@ impl AlphaDB {
 
     fn init(&mut self) {
         self.alphadb_instance.init();
+    }
+
+    fn status<'a>(&mut self) -> Py<PyAny> {
+        return Python::with_gil(|py: Python| {
+            let status = self.alphadb_instance.status();
+            
+            let status_value = HashMap::from([
+                ("init", status.init.to_object(py)),
+                ("version", status.version.to_object(py)),
+                ("name", self.alphadb_instance.db_name.to_object(py)),
+                ("template", status.template.to_object(py)),
+            ]);
+
+            status_value.to_object(py)
+        });
     }
 }
 
