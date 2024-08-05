@@ -46,6 +46,10 @@ impl AlphaDB {
             check_value.to_object(py)
         });
     }
+
+    fn init(&mut self) {
+        self.alphadb_instance.init();
+    }
 }
 
 #[pymodule(name = "alphadb")]
