@@ -1,4 +1,5 @@
 use alphadb::AlphaDB as AlphaDBCore;
+use pyo3::types::PyTuple;
 use pyo3::{prelude::*, Python};
 use std::collections::HashMap;
 
@@ -54,7 +55,7 @@ impl AlphaDB {
     fn status<'a>(&mut self) -> Py<PyAny> {
         return Python::with_gil(|py: Python| {
             let status = self.alphadb_instance.status();
-            
+
             let status_value = HashMap::from([
                 ("init", status.init.to_object(py)),
                 ("version", status.version.to_object(py)),
@@ -64,6 +65,35 @@ impl AlphaDB {
 
             status_value.to_object(py)
         });
+    }
+
+    #[pyo3(signature = (version_source, update_to_version=None))]
+    fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>) {
+
+        #[derive(Clone, Debug)]
+        enum QueryValue {
+            Query(String),
+            Data(Option<Vec<String>>),
+        }
+
+        let queries = self
+            .alphadb_instance
+            .update_queries(version_source, update_to_version);
+
+        let mut queries_converted = Vec::from(Vec::from([queries[0].query]));
+
+        println!("{:?}", queries[0]);
+
+        // for query in queries {
+        //     queries_converted.push(Vec::from([
+        //         QueryValue::Query(query.query),
+        //         QueryValue::Data(query.data),
+        //     ]));
+        // }
+
+        // Python::with_gil(|py: Python| {
+        //     PyTuple::new_bound(py, queries_converted);
+        // });
     }
 }
 

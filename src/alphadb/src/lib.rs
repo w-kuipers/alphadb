@@ -50,8 +50,8 @@ pub struct Status {
 
 #[derive(Debug, Clone)]
 pub struct Query {
-    query: String,
-    data: Option<Vec<String>>,
+    pub query: String,
+    pub data: Option<Vec<String>>,
 }
 
 impl AlphaDB {
