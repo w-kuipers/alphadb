@@ -48,7 +48,7 @@ pub struct Status {
     pub template: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Query {
     query: String,
     data: Option<Vec<String>>,
@@ -171,14 +171,16 @@ impl AlphaDB {
         }
     }
 
+
     /// **Update queries**
     ///
     /// Generate MySQL queries to update the tables. Return Vec<Query>
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update_queries(&mut self, version_source: serde_json::Value, update_to_version: Option<&str>) -> Vec<Query> {
+    pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>) -> Vec<Query> {
         let mut queries: Vec<Query> = Vec::new();
+        let version_source: serde_json::Value = serde_json::from_str(&version_source).expect("JSON was not well-formatted"); 
 
         let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
@@ -303,7 +305,7 @@ impl AlphaDB {
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update(&mut self, version_source: serde_json::Value, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: VerificationIssueLevel) {
+    pub fn update(&mut self, version_source: String, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: VerificationIssueLevel) {
         if verify {
             // TODO
         }
@@ -383,8 +385,7 @@ mod alphadb_tests {
 
         // Test update (maybe update later)
         let data = fs::read_to_string("../../tests/assets/test-db-structure.json").expect("Unable to read file");
-        let json: serde_json::Value = serde_json::from_str(&data).expect("JSON was not well-formatted");
-        db.update(json, None, false, true, VerificationIssueLevel::Low);
+        db.update(data, None, false, true, VerificationIssueLevel::Low);
         let status = db.status();
         assert_ne!(status.version, Some("0.0.0".to_string()));
 
