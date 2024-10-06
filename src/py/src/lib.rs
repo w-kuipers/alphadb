@@ -115,8 +115,6 @@ impl AlphaDB {
     ) {
         let mut no_data_wrapper = false;
         let mut verify_wrapper = true;
-        let mut allowed_error_priority_wrapper: VerificationIssueLevel =
-            VerificationIssueLevel::Low;
 
         if no_data.is_some() {
             no_data_wrapper = no_data.unwrap();
@@ -141,6 +139,10 @@ impl AlphaDB {
             no_data_wrapper,
             allowed_error_priority_wrapper,
         );
+    }
+
+    fn vacate(&mut self) {
+        self.alphadb_instance.vacate();
     }
 }
 
