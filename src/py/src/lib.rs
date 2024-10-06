@@ -1,13 +1,8 @@
+use alphadb::utils::types::VerificationIssueLevel;
 use alphadb::AlphaDB as AlphaDBCore;
 use pyo3::types::PyList;
 use pyo3::{prelude::*, Python};
 use std::collections::HashMap;
-
-#[derive(Clone, Debug)]
-enum QueryValue {
-    Query(String),
-    Data(Option<Vec<String>>),
-}
 
 #[pyclass]
 struct AlphaDB {
@@ -18,6 +13,17 @@ struct AlphaDB {
 pub struct Check {
     pub check: bool,
     pub version: Option<String>,
+}
+
+#[pyclass]
+#[derive(Clone)]
+enum PyVerificationIssueLevel {
+    /// LOW: Will work, but will not have any effect on the database
+    Low,
+    /// HIGH: Will still work, but might produce a different result than desired.
+    High,
+    /// CRITICAL: Will not execute.
+    Critical,
 }
 
 #[pymethods]
@@ -96,6 +102,45 @@ impl AlphaDB {
 
             Ok(py_list.into())
         })
+    }
+
+    #[pyo3(signature = (version_source, update_to_version=None, no_data=false, verify=true, allowed_error_priority=PyVerificationIssueLevel::Low))]
+    fn update(
+        &mut self,
+        version_source: String,
+        update_to_version: Option<String>,
+        no_data: Option<bool>,
+        verify: Option<bool>,
+        allowed_error_priority: PyVerificationIssueLevel,
+    ) {
+        let mut no_data_wrapper = false;
+        let mut verify_wrapper = true;
+        let mut allowed_error_priority_wrapper: VerificationIssueLevel =
+            VerificationIssueLevel::Low;
+
+        if no_data.is_some() {
+            no_data_wrapper = no_data.unwrap();
+        }
+
+        if verify.is_some() {
+            verify_wrapper = verify.unwrap();
+        }
+
+        if let PyVerificationIssueLevel::Low { .. } = allowed_error_priority {
+            allowed_error_priority_wrapper = VerificationIssueLevel::Low;
+        } else if let PyVerificationIssueLevel::High { .. } = allowed_error_priority {
+            allowed_error_priority_wrapper = VerificationIssueLevel::High;
+        } else {
+            allowed_error_priority_wrapper = VerificationIssueLevel::Critical;
+        }
+
+        self.alphadb_instance.update(
+            version_source,
+            update_to_version,
+            verify_wrapper,
+            no_data_wrapper,
+            allowed_error_priority_wrapper,
+        );
     }
 }
 

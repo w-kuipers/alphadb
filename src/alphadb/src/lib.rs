@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 mod query;
-mod utils;
+pub mod utils;
 mod verification;
 pub mod version_source_verification;
 
@@ -171,7 +171,6 @@ impl AlphaDB {
         }
     }
 
-
     /// **Update queries**
     ///
     /// Generate MySQL queries to update the tables. Return Vec<Query>
@@ -180,7 +179,7 @@ impl AlphaDB {
     /// - update_to_version (optional): Version number to update to
     pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>) -> Vec<Query> {
         let mut queries: Vec<Query> = Vec::new();
-        let version_source: serde_json::Value = serde_json::from_str(&version_source).expect("JSON was not well-formatted"); 
+        let version_source: serde_json::Value = serde_json::from_str(&version_source).expect("JSON was not well-formatted");
 
         let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
