@@ -15,8 +15,8 @@
 
 /// **Verification issue level**
 ///
-/// Version source verifictaion generates issues of three priorities. 
-/// 
+/// Version source verifictaion generates issues of three priorities.
+///
 /// LOW: Will work, but will not have any effect on the database.
 /// HIGH: Will still work, but might produce a different result than desired.
 /// CRITICAL: Will not execute.
@@ -27,5 +27,5 @@ pub enum VerificationIssueLevel {
     /// HIGH: Will still work, but might produce a different result than desired.
     High,
     /// CRITICAL: Will not execute.
-    Critical
+    Critical,
 }

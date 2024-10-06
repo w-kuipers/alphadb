@@ -13,6 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+mod query;
+pub mod utils;
+mod verification;
+pub mod version_source_verification;
+
 use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
 use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
@@ -20,13 +25,13 @@ use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::types::VerificationIssueLevel;
 use crate::utils::version_number::{get_version_number_int, verify_version_number};
 use mysql::prelude::*;
-use mysql::*;
+pub use mysql::*;
 use std::panic;
 
 #[derive(Debug)]
 pub struct AlphaDB {
-    connection: Option<PooledConn>,
-    db_name: Option<String>,
+    pub connection: Option<PooledConn>,
+    pub db_name: Option<String>,
 }
 
 #[derive(Debug)]
@@ -43,10 +48,10 @@ pub struct Status {
     pub template: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Query {
-    query: String,
-    data: Option<Vec<String>>,
+    pub query: String,
+    pub data: Option<Vec<String>>,
 }
 
 impl AlphaDB {
@@ -172,8 +177,9 @@ impl AlphaDB {
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update_queries(&mut self, version_source: serde_json::Value, update_to_version: Option<&str>) -> Vec<Query> {
+    pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>) -> Vec<Query> {
         let mut queries: Vec<Query> = Vec::new();
+        let version_source: serde_json::Value = serde_json::from_str(&version_source).expect("JSON was not well-formatted");
 
         let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
@@ -298,7 +304,7 @@ impl AlphaDB {
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update(&mut self, version_source: serde_json::Value, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: VerificationIssueLevel) {
+    pub fn update(&mut self, version_source: String, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: VerificationIssueLevel) {
         if verify {
             // TODO
         }
@@ -378,11 +384,9 @@ mod alphadb_tests {
 
         // Test update (maybe update later)
         let data = fs::read_to_string("../../tests/assets/test-db-structure.json").expect("Unable to read file");
-        let json: serde_json::Value = serde_json::from_str(&data).expect("JSON was not well-formatted");
-        db.update(json, None, false, true, VerificationIssueLevel::Low);
+        db.update(data, None, false, true, VerificationIssueLevel::Low);
         let status = db.status();
         assert_ne!(status.version, Some("0.0.0".to_string()));
-        
 
         // Test vacate
         db.vacate();
