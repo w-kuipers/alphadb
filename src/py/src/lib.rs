@@ -115,6 +115,7 @@ impl AlphaDB {
     ) {
         let mut no_data_wrapper = false;
         let mut verify_wrapper = true;
+        let allowed_error_priority_wrapper: VerificationIssueLevel;
 
         if no_data.is_some() {
             no_data_wrapper = no_data.unwrap();
