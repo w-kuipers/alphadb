@@ -1,22 +1,27 @@
-use clap::Parser;
-
-/// Simple program to greet a person
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Args {
-    /// Name of the person to greet
-    #[arg(short, long)]
-    name: String,
-
-    /// Number of times to greet
-    #[arg(short, long, default_value_t = 1)]
-    count: u8,
-}
+use clap::{Arg, ArgAction, Command};
+mod commands;
+use crate::commands::connect::*;
 
 fn main() {
-    let args = Args::parse();
+    let matches = Command::new("alphadb")
+        .about("MySQL database version management")
+        .version("1.0.0")
+        .subcommand_required(true)
+        .arg_required_else_help(true)
+        // Query subcommand
+        //
+        // Only a few of its arguments are implemented below.
+        .subcommand(Command::new("init").about("Initialize the database"))
+        .subcommand(Command::new("connect").about("Connect to a database"))
+        .get_matches();
 
-    for _ in 0..args.count {
-        println!("Hello {}!", args.name);
+    match matches.subcommand() {
+        Some(("init", query_matches)) => {
+            println!("{:?}", query_matches);
+        }
+        Some(("connect", query_matches)) => {
+            connect();
+        }
+        _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable
     }
 }
