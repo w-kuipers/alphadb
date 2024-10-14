@@ -1,9 +1,9 @@
-use inquire::{
-    error::{CustomUserError, InquireResult},
-    required, CustomType, MultiSelect, Password, Select, Text,
-};
+use crate::utils::title;
+use inquire::{required, CustomType, Password, Text};
 
 pub fn connect() {
+    title("Connect");
+
     let host = Text::new("Host")
         .with_default("localhost")
         .with_help_message("URL/IP")
@@ -33,6 +33,4 @@ pub fn connect() {
         .with_default(3306)
         .prompt()
         .unwrap();
-
-    println!("{}", port + 2);
 }

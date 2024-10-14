@@ -1,8 +1,14 @@
 use clap::{Arg, ArgAction, Command};
 mod commands;
+mod utils;
+mod config;
 use crate::commands::connect::*;
+use crate::config::init_config;
 
 fn main() {
+
+    init_config();
+
     let matches = Command::new("alphadb")
         .about("MySQL database version management")
         .version("1.0.0")
