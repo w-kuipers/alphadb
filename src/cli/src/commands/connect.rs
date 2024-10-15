@@ -1,5 +1,17 @@
-use crate::utils::title;
+use colored::Colorize;
+use crate::utils::{error, title};
+use crate::config::save_connection;
+use alphadb::AlphaDB;
 use inquire::{required, CustomType, Password, Text};
+
+pub struct Connection {
+    pub host: String,
+    pub user: String,
+    pub password: String,
+    pub database: String,
+    pub port: u16,
+}
+
 
 pub fn connect() {
     title("Connect");
@@ -33,4 +45,39 @@ pub fn connect() {
         .with_default(3306)
         .prompt()
         .unwrap();
+
+    let connection = Connection {
+        host,
+        user,
+        password,
+        database,
+        port,
+    };
+
+    // Try if the credentials will connect
+    let mut db = AlphaDB::new();
+    let testconn = db.connect(
+        &connection.host,
+        &connection.user,
+        &connection.password,
+        &connection.database,
+        &connection.port,
+    );
+
+    if testconn.is_err() {
+        error(testconn.unwrap_err().to_string());
+    }
+    
+    println!("\n{}\n", "Successfully able to connect to the database".green());
+
+    let label: String = CustomType::new("Label")
+        .with_help_message("Optionally add a label to this connection")
+        .with_default(format!("{}@{}", &connection.database, &connection.host))
+        .prompt()
+        .unwrap();
+
+    save_connection(connection, &label);
+
+    println!("\n{} {} {}\n", "Database connection".green(), label.cyan(), "saved and ready for use.".green());
+
 }

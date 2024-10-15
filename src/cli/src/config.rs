@@ -1,17 +1,17 @@
+use crate::commands::connect::Connection;
+use crate::utils::error;
 use colored::Colorize;
 use home::home_dir;
 use rand::distributions::Uniform;
 use rand::{rngs::OsRng, Rng};
-use serde_derive::Deserialize;
-use std::env;
-use std::fs;
-use std::io::prelude::*;
-use std::process;
+use serde_derive::{Deserialize, Serialize};
+use std::{collections::BTreeMap, fs, io::prelude::*, process};
 use toml;
 
 const ALPHADB_DIR: &str = "alphadb";
 const CONFIG_DIR: &str = ".config";
 const CONFIG_FILE: &str = "config.toml";
+const SESSIONS_FILE: &str = "sessions.toml";
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -43,7 +43,7 @@ pub fn init_config() -> std::io::Result<()> {
 
             let secret: String = OsRng
                 .sample_iter(&dist)
-                .take(256)
+                .take(128)
                 .map(|i| charset[i] as char)
                 .collect();
 
@@ -95,7 +95,42 @@ pub fn config_read() -> Option<Config> {
 
         return Some(config_content);
     } else {
-        eprintln!("{}", "Unable to get user home directory".red());
-        process::exit(1);
+        error("Unable to get user home directory".to_string());
+    }
+}
+
+#[derive(Debug, Default, Serialize)]
+struct DbSessions {
+    sessions: BTreeMap<String, Session>,
+}
+
+#[derive(Debug, Serialize)]
+struct Session {
+    host: String,
+    user: String,
+    password: String,
+    database: String,
+    port: u16,
+}
+
+pub fn save_connection(connection: Connection, label: &String) {
+    if let Some(home) = home_dir() {
+        let mut file = DbSessions::default();
+        file.sessions.insert(
+            label.to_string(),
+            Session {
+                host: connection.host,
+                user: connection.user,
+                password: connection.password,
+                database: connection.database,
+                port: connection.port,
+            },
+        );
+
+        let toml_string = toml::to_string(&file).expect("Could not encode TOML value");
+        let sessions_file = home.join(CONFIG_DIR).join(ALPHADB_DIR).join(SESSIONS_FILE);
+        fs::write(sessions_file, toml_string).expect("Could not write to file!");
+    } else {
+        error("Unable to get user home directory".to_string());
     }
 }
