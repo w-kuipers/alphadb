@@ -59,7 +59,7 @@ impl AlphaDB {
         AlphaDB { connection: None, db_name: None }
     }
 
-    pub fn connect(&mut self, host: String, user: String, password: String, database: String, port: i32) {
+    pub fn connect(&mut self, host: String, user: String, password: String, database: String, port: u16) {
         let url = format!("mysql://{}:{}@{}:{}/{}", user, password, host, port, database);
 
         // Establish connection to database
