@@ -385,6 +385,8 @@ checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
 name = "cli"
 version = "0.1.0"
 dependencies = [
+ "aead",
+ "aes",
  "aes-gcm",
  "alphadb",
  "base64 0.22.1",
@@ -395,6 +397,7 @@ dependencies = [
  "rand_core",
  "serde",
  "serde_derive",
+ "thiserror",
  "toml",
 ]
 

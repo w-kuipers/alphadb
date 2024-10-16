@@ -1,5 +1,5 @@
 use crate::commands::connect::Connection;
-use crate::utils::error;
+use crate::utils::{encrypt_password, error};
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use home::home_dir;
@@ -17,13 +17,9 @@ const SESSIONS_FILE: &str = "sessions.toml";
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct Config {
-    main: BTreeMap<String, Main>,
+    pub main: BTreeMap<String, String>,
 }
 
-#[derive(Serialize, Deserialize)]
-struct Main {
-    secret: String,
-}
 
 pub fn init_config() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(home) = home_dir() {
@@ -38,16 +34,18 @@ pub fn init_config() -> Result<(), Box<dyn std::error::Error>> {
             OsRng.fill_bytes(&mut secret);
 
             let mut config = Config::default();
-            config.main.insert(
-                "secret".into(),
-                Main {
-                    secret: general_purpose::STANDARD.encode(secret),
-                },
-            );
+            config
+                .main
+                .insert("secret".to_string(), general_purpose::STANDARD.encode(secret));
 
             fs::File::create(&config_file)?;
-            let toml_string = toml::to_string(&config).expect("Could not encode TOML value");
-            fs::write(config_file, toml_string).expect("Could not write to file!");
+            let toml_string = toml::to_string(&config);
+            if toml_string.is_err() {
+                error("Error occured when initializing config".to_string())
+            }
+            if fs::write(config_file, toml_string.unwrap()).is_err() {
+                error("Error occured when initializing config".to_string())
+            };
         }
     } else {
         error("Unable to get user home directory".to_string());
@@ -96,12 +94,12 @@ pub fn config_read() -> Option<Config> {
     }
 }
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 struct DbSessions {
     sessions: BTreeMap<String, Session>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Session {
     host: String,
     user: String,
@@ -118,7 +116,7 @@ pub fn save_connection(connection: Connection, label: &String) {
             Session {
                 host: connection.host,
                 user: connection.user,
-                password: connection.password,
+                password: encrypt_password(&connection.password),
                 database: connection.database,
                 port: connection.port,
             },
@@ -127,6 +125,52 @@ pub fn save_connection(connection: Connection, label: &String) {
         let toml_string = toml::to_string(&file).expect("Could not encode TOML value");
         let sessions_file = home.join(CONFIG_DIR).join(ALPHADB_DIR).join(SESSIONS_FILE);
         fs::write(sessions_file, toml_string).expect("Could not write to file!");
+    } else {
+        error("Unable to get user home directory".to_string());
+    }
+}
+
+pub fn get_connections() -> Option<Vec<String>> {
+    if let Some(home) = home_dir() {
+        let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
+        let sessions_file = config_dir.join(SESSIONS_FILE);
+
+        let sessions_content_raw = match fs::read_to_string(&sessions_file) {
+            Ok(c) => c,
+            Err(_) => {
+                eprintln!(
+                    "{}: '{}'",
+                    "Unable to read config file".red(),
+                    sessions_file.display().to_string().blue()
+                );
+                process::exit(1);
+            }
+        };
+
+        if sessions_content_raw.is_empty() {
+            return None;
+        }
+
+        let sessions_content: DbSessions = match toml::from_str(&sessions_content_raw) {
+            Ok(c) => c,
+            Err(_) => {
+                eprintln!(
+                    "{}: '{}' {}",
+                    "Unable to deserialize config file".red(),
+                    sessions_file.display().to_string().blue(),
+                    "is it corrupted?".red()
+                );
+                process::exit(1);
+            }
+        };
+
+        let mut connections = Vec::new();
+
+        for connection in sessions_content.sessions {
+            connections.push(connection.0);
+        }
+
+        return Some(connections);
     } else {
         error("Unable to get user home directory".to_string());
     }
