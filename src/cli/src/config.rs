@@ -1,11 +1,13 @@
 use crate::commands::connect::Connection;
 use crate::utils::error;
+use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use home::home_dir;
-use rand::distributions::Uniform;
-use rand::{rngs::OsRng, Rng};
-use serde_derive::{Deserialize, Serialize};
-use std::{collections::BTreeMap, fs, io::prelude::*, process};
+use rand_core::OsRng;
+use rand_core::RngCore;
+use serde::Deserialize;
+use serde_derive::Serialize;
+use std::{collections::BTreeMap, fs, process};
 use toml;
 
 const ALPHADB_DIR: &str = "alphadb";
@@ -13,17 +15,17 @@ const CONFIG_DIR: &str = ".config";
 const CONFIG_FILE: &str = "config.toml";
 const SESSIONS_FILE: &str = "sessions.toml";
 
-#[derive(Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct Config {
-    main: Main,
+    main: BTreeMap<String, Main>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct Main {
     secret: String,
 }
 
-pub fn init_config() -> std::io::Result<()> {
+pub fn init_config() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(home) = home_dir() {
         let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
         let config_file = config_dir.join(CONFIG_FILE);
@@ -32,28 +34,23 @@ pub fn init_config() -> std::io::Result<()> {
         // If no config file exists, it must be created along
         // with a secret for encryption
         if !config_file.exists() {
-            let mut file = fs::File::create(&config_file)?;
+            let mut secret = [0u8; 32];
+            OsRng.fill_bytes(&mut secret);
 
-            let charset: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
-                           abcdefghijklmnopqrstuvwxyz\
-                           0123456789\
-                           !@#$%^&*-?";
+            let mut config = Config::default();
+            config.main.insert(
+                "secret".into(),
+                Main {
+                    secret: general_purpose::STANDARD.encode(secret),
+                },
+            );
 
-            let dist = Uniform::from(0..charset.len());
-
-            let secret: String = OsRng
-                .sample_iter(&dist)
-                .take(128)
-                .map(|i| charset[i] as char)
-                .collect();
-
-            let mut main = toml::map::Map::new();
-            main.insert("secret".into(), toml::Value::String(secret));
-            file.write_all(main.to_string().as_bytes())?;
+            fs::File::create(&config_file)?;
+            let toml_string = toml::to_string(&config).expect("Could not encode TOML value");
+            fs::write(config_file, toml_string).expect("Could not write to file!");
         }
     } else {
-        eprintln!("{}", "Unable to get user home directory".red());
-        process::exit(1);
+        error("Unable to get user home directory".to_string());
     }
 
     Ok(())
