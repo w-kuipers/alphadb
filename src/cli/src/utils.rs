@@ -1,33 +1,10 @@
+use crate::config::setup::config_read;
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{Aes256Gcm, Nonce};
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use rand_core::RngCore;
 use std::process;
-// use thiserror::Error;
-// use std::string::FromUtf8Error;
-use crate::config::setup::config_read;
-
-// #[derive(Error, Debug)]
-// pub enum CryptoError {
-//     #[error("Encryption error: {0}")]
-//     EncryptionError(String),
-//
-//     #[error("Invalid UTF-8 sequence: {0}")]
-//     Utf8Error(#[from] FromUtf8Error),
-//
-//     #[error("Invalid length: {0}")]
-//     InvalidLengthError(#[from] aes_gcm::aes::cipher::InvalidLength),
-//
-//     #[error("Random generation failure")]
-//     RandomGenerationError,
-// }
-//
-// impl From<aes_gcm::Error> for CryptoError {
-//     fn from(err: aes_gcm::Error) -> Self {
-//         CryptoError::EncryptionError(format!("{:?}", err))
-//     }
-// }
 
 pub fn title(title: &str) {
     println!(
@@ -40,14 +17,25 @@ pub fn title(title: &str) {
     println!("\n{} {} {}\n", "-----".green(), title, "-----".green());
 }
 
+#[cfg(debug_assertions)]
 pub fn error(error_string: String) -> ! {
     // Some error messages are still wrapped in their definition
     let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
     let end = error_string.rfind("}").unwrap_or(error_string.len());
 
-    let clean_error = &error_string[start + 1..end].trim();
-    eprintln!("\n{}\n", clean_error.red());
+    let clean_error = &error_string[start..end].trim();
+    panic!("{clean_error}");
+}
 
+#[cfg(not(debug_assertions))]
+pub fn error(error_string: String) -> ! {
+    // Some error messages are still wrapped in their definition
+    let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
+    let end = error_string.rfind("}").unwrap_or(error_string.len());
+
+    let clean_error = &error_string[start..end].trim();
+
+    eprintln!("\n{}\n", clean_error.red());
     process::exit(1);
 }
 
