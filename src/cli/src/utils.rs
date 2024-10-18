@@ -4,7 +4,6 @@ use aes_gcm::{Aes256Gcm, Nonce};
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use rand_core::RngCore;
-use std::process;
 
 pub fn title(title: &str) {
     println!(
@@ -29,7 +28,7 @@ pub fn error(error_string: String) -> ! {
 
 #[cfg(not(debug_assertions))]
 pub fn error(error_string: String) -> ! {
-    // Some error messages are still wrapped in their definition
+    use std::process;
     let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
     let end = error_string.rfind("}").unwrap_or(error_string.len());
 
