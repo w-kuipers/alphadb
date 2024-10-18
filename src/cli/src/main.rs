@@ -1,12 +1,11 @@
 use clap::{Arg, ArgAction, Command};
 mod commands;
-mod utils;
 mod config;
+mod utils;
 use crate::commands::connect::*;
-use crate::config::init_config;
+use crate::config::setup::init_config;
 
 fn main() {
-
     init_config();
 
     let matches = Command::new("alphadb")

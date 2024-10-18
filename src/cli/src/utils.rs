@@ -6,7 +6,7 @@ use rand_core::RngCore;
 use std::process;
 // use thiserror::Error;
 // use std::string::FromUtf8Error;
-use crate::config::config_read;
+use crate::config::setup::config_read;
 
 // #[derive(Error, Debug)]
 // pub enum CryptoError {

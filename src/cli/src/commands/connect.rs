@@ -1,4 +1,4 @@
-use crate::config::{get_connections, save_connection};
+use crate::config::connection::{get_connections, save_connection};
 use crate::utils::{error, title};
 use alphadb::AlphaDB;
 use colored::Colorize;
