@@ -168,16 +168,32 @@ pub fn get_connections() -> Option<Vec<String>> {
     return Some(connections);
 }
 
-pub fn set_active_connection() {
+pub fn get_active_connection() -> Option<String> {
     let home = get_home();
     let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
     let sessions_file = config_dir.join(SESSIONS_FILE);
 
-
     let sessions_content_raw = match fs::read_to_string(&sessions_file) {
         Ok(c) => c,
         Err(_) => {
-             
+            return None; 
         }
+    };
+    
+    let sessions_content: DbSessions = match toml::from_str(&sessions_content_raw) {
+        Ok(c) => c,
+        Err(_) => {
+            error(format!(
+                "Unable to deserialize config file: '{}' is it corrupted?",
+                sessions_file.display().to_string().blue(),
+            ));
+        }
+    };
+    
+    if let Some(active_session) = sessions_content.setup.active_session {
+        return sessions_content.sessions.get_key_value(&active_session);
+    }
+    else {
+        return None;
     };
 }
