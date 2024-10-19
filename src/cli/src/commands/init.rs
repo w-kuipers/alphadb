@@ -14,34 +14,23 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::utils::title;
-use alphadb::AlphaDB;
+use alphadb::{AlphaDB, Init};
 use colored::Colorize;
 
-/// Print database status
+/// Initialize the database
 ///
 /// - db: AlphaDB instance  
-pub fn status(db: &mut AlphaDB) {
-    title("Status");
+pub fn init(db: &mut AlphaDB) {
+    title("Initialize");
 
-    let status = db.status();
+    let init = db.init();
 
-    println!("Database: {}", status.name);
-
-    if status.template.is_none() {
-        println!("Template: None");
-    } else {
-        println!("Template: {}", status.template.unwrap());
-    }
-
-    if status.init == true {
-        println!("Status: {}", "Initialized".cyan());
-    } else {
-        println!("Status: {}", "Uninitialized".yellow());
-    }
-
-    if status.version.is_none() {
-        println!("Version: None");
-    } else {
-        println!("Version: {}", status.version.unwrap());
+    match init {
+        Init::AlreadyInitialized => {
+            println!("{}", "The database is already initialized\n".yellow());
+        },
+        Init::Success => {
+            println!("{}", "Database successfully initialized\n".green());
+        }
     }
 }
