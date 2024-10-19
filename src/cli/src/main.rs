@@ -5,6 +5,7 @@ mod config;
 mod utils;
 use crate::commands::connect::*;
 use crate::commands::status::*;
+use crate::commands::init::*;
 use crate::config::setup::{config_read, init_config};
 use crate::config::connection::get_active_connection;
 use crate::utils::{error, decrypt_password};
@@ -55,10 +56,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .get_matches();
 
     match matches.subcommand() {
-        Some(("init", query_matches)) => {
-            println!("{:?}", query_matches);
+        Some(("init", _query_matches)) => {
+            if db.connection.is_none() {
+                println!("{}", "No active database connection.".yellow());
+            }
+            else {
+                init(&mut db);
+            }
         }
-        Some(("status", query_matches)) => {
+        Some(("status", _query_matches)) => {
             if db.connection.is_none() {
                 println!("{}", "No active database connection.".yellow());
             }
@@ -66,7 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 status(&mut db);
             }
         }
-        Some(("connect", query_matches)) => {
+        Some(("connect", _query_matches)) => {
             connect(&config);
         }
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable

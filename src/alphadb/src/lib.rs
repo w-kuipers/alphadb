@@ -6,7 +6,7 @@
 // (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// but WITHOUT ANY WARRANTY; without even the implied warranty ofprintln
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
@@ -54,6 +54,11 @@ pub struct Query {
     pub data: Option<Vec<String>>,
 }
 
+pub enum Init {
+    AlreadyInitialized,
+    Success
+}
+
 impl AlphaDB {
     pub fn new() -> AlphaDB {
         AlphaDB { connection: None, db_name: None }
@@ -68,7 +73,6 @@ impl AlphaDB {
 
         // Set the database name
         self.db_name = Some(database.to_string());
-        println!("{}", self.db_name.as_ref().unwrap());
 
         Ok(())
     }
@@ -104,11 +108,11 @@ impl AlphaDB {
         Check { check, version }
     }
 
-    pub fn init(&mut self) {
+    pub fn init(&mut self) -> Init {
         // Check if the table is already initialized
         let check = self.check();
         if check.check {
-            panic!("already-initialized");
+            return Init::AlreadyInitialized;
         }
 
         let conn = &mut self.connection.as_mut().expect("Connection could not be established");
@@ -131,6 +135,8 @@ impl AlphaDB {
             (self.db_name.as_ref().unwrap(), "0.0.0"),
         )
         .unwrap();
+
+        return Init::Success;
     }
 
     pub fn status(&mut self) -> Status {
