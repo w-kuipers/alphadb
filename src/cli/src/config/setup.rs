@@ -6,7 +6,7 @@ use rand_core::OsRng;
 use rand_core::RngCore;
 use serde::Deserialize;
 use serde_derive::Serialize;
-use std::{collections::BTreeMap, fs};
+use std::fs;
 use toml;
 
 pub const ALPHADB_DIR: &str = "alphadb";
@@ -16,7 +16,18 @@ pub const SESSIONS_FILE: &str = "sessions.toml";
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct Config {
-    pub main: BTreeMap<String, String>,
+    pub main: Main,
+    pub input: Input,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Main {
+    pub secret: Option<String>,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Input {
+    pub vim_bindings: bool,
 }
 
 pub fn get_home() -> std::path::PathBuf {
@@ -42,10 +53,10 @@ pub fn init_config() -> Result<(), Box<dyn std::error::Error>> {
         OsRng.fill_bytes(&mut secret);
 
         let mut config = Config::default();
-        config.main.insert(
-            "secret".to_string(),
-            general_purpose::STANDARD.encode(secret),
-        );
+        let _ = config
+            .main
+            .secret
+            .insert(general_purpose::STANDARD.encode(secret));
 
         fs::File::create(&config_file)?;
         let toml_string = toml::to_string(&config);

@@ -2,6 +2,7 @@ use crate::config::connection::{get_connections, new_connection, set_active_conn
 use crate::utils::{error, title};
 use colored::Colorize;
 use inquire::Select;
+use crate::config::setup::Config;
 
 pub struct Connection {
     pub host: String,
@@ -11,14 +12,14 @@ pub struct Connection {
     pub port: u16,
 }
 
-pub fn connect() {
+pub fn connect(config: Config) {
     title("Connect");
 
     if let Some(mut connections) = get_connections() {
         connections.push("++ New connection".to_string());
 
         let choice = Select::new("Choose a connection to set as active", connections)
-            .with_vim_mode(true)
+            .with_vim_mode(config.input.vim_bindings)
             .prompt();
         if choice.is_err() {
             error("An unexpected error occured".to_string());
@@ -35,9 +36,8 @@ pub fn connect() {
                 label.cyan(),
                 "saved and ready for use.".green()
             );
-        }
-        else {
-            set_active_connection(&connection_choice); 
+        } else {
+            set_active_connection(&connection_choice);
 
             println!(
                 "\n{} {} {}\n",

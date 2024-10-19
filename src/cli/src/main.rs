@@ -3,10 +3,18 @@ mod commands;
 mod config;
 mod utils;
 use crate::commands::connect::*;
-use crate::config::setup::init_config;
+use crate::config::setup::{init_config, config_read};
+use crate::utils::error;
 
-fn main() {
-    init_config();
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    init_config()?;
+    let config = config_read();
+
+    if config.is_none() {
+        error("An unexpected error occured. User config not defined.".to_string());
+    }
+
+    let config = config.unwrap();
 
     let matches = Command::new("alphadb")
         .about("MySQL database version management")
@@ -25,8 +33,10 @@ fn main() {
             println!("{:?}", query_matches);
         }
         Some(("connect", query_matches)) => {
-            connect();
+            connect(config);
         }
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable
     }
+
+    Ok(())
 }

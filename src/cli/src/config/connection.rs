@@ -172,7 +172,13 @@ pub fn get_connections() -> Option<Vec<String>> {
     let mut connections = Vec::new();
 
     for connection in sessions_content.sessions {
-        connections.push(connection.0);
+        let mut label = connection.0.clone();
+        if let Some(active_session) = sessions_content.setup.active_session.clone() {
+            if connection.0 == active_session {
+                label = format!("{} {}", connection.0, "(active)".green())
+            }
+        }
+        connections.push(label);
     }
 
     return Some(connections);
