@@ -68,6 +68,7 @@ impl AlphaDB {
 
         // Set the database name
         self.db_name = Some(database.to_string());
+        println!("{}", self.db_name.as_ref().unwrap());
 
         Ok(())
     }

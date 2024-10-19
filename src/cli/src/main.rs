@@ -3,6 +3,7 @@ mod commands;
 mod config;
 mod utils;
 use crate::commands::connect::*;
+use crate::commands::status::*;
 use crate::config::setup::{init_config, config_read};
 use crate::utils::error;
 
@@ -21,19 +22,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .version("1.0.0")
         .subcommand_required(true)
         .arg_required_else_help(true)
-        // Query subcommand
-        //
-        // Only a few of its arguments are implemented below.
+
         .subcommand(Command::new("init").about("Initialize the database"))
+        .subcommand(Command::new("status").about("Get database status"))
         .subcommand(Command::new("connect").about("Connect to a database"))
+
         .get_matches();
 
     match matches.subcommand() {
         Some(("init", query_matches)) => {
             println!("{:?}", query_matches);
         }
+        Some(("status", query_matches)) => {
+            status(&config);
+        }
         Some(("connect", query_matches)) => {
-            connect(config);
+            connect(&config);
         }
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable
     }

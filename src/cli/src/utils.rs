@@ -1,13 +1,11 @@
-use crate::config::setup::config_read;
+use crate::config::connection::get_active_connection;
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
-use aes_gcm::{Aes256Gcm, Nonce};
+use aes_gcm::{Aes256Gcm, Nonce, Key};
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use rand_core::RngCore;
-use crate::config::connection::get_active_connection;
 
 pub fn title(title: &str) {
-    
     if let Some(conn) = get_active_connection() {
         println!(
             "{} {} {} {}:{}",
@@ -18,7 +16,7 @@ pub fn title(title: &str) {
             conn.port
         );
     }
-    
+
     println!("\n{} {} {}\n", "-----".green(), title, "-----".green());
 }
 
@@ -44,49 +42,75 @@ pub fn error(error_string: String) -> ! {
     process::exit(1);
 }
 
-pub fn encrypt_password(password: &str) -> String {
-    if let Some(config) = config_read() {
-        let mut secret = [0u8; 32];
-        OsRng.fill_bytes(&mut secret);
-        let cipher = Aes256Gcm::new_from_slice(&secret);
+pub fn encrypt_password(password: &str, secret: String) -> String {
+    let secret_decoded = general_purpose::STANDARD.decode(secret);
+    if secret_decoded.is_err() {
+        error("Error decoding use secret".to_string());
+    }
+    let mut secret_decoded = secret_decoded.unwrap();
 
-        // Generate a 12-byte nonce
-        if cipher.is_ok() {
-            let mut nonce_bytes = [0u8; 12];
-            OsRng.fill_bytes(&mut nonce_bytes);
-            let nonce = Nonce::from_slice(&nonce_bytes);
+    OsRng.fill_bytes(&mut secret_decoded);
+    let cipher = Aes256Gcm::new_from_slice(&secret_decoded);
 
-            let ciphertext = cipher.unwrap().encrypt(nonce, password.as_bytes());
+    // Generate a 12-byte nonce
+    if cipher.is_ok() {
+        let mut nonce_bytes = [0u8; 12];
+        OsRng.fill_bytes(&mut nonce_bytes);
+        let nonce = Nonce::from_slice(&nonce_bytes);
 
-            // Ok((ciphertext, nonce_bytes.to_vec()))
-            if ciphertext.is_err() {
-                error("An unexpected error occured".to_string());
-            }
-            let ciphertext_encoded = general_purpose::STANDARD.encode(ciphertext.unwrap());
-            let nonce_encoded = general_purpose::STANDARD.encode(nonce);
+        let ciphertext = cipher.unwrap().encrypt(nonce, password.as_bytes());
 
-            return format!("{}.{}", ciphertext_encoded, nonce_encoded);
-        } else {
+        // Ok((ciphertext, nonce_bytes.to_vec()))
+        if ciphertext.is_err() {
             error("An unexpected error occured".to_string());
         }
+        let ciphertext_encoded = general_purpose::STANDARD.encode(ciphertext.unwrap());
+        let nonce_encoded = general_purpose::STANDARD.encode(nonce);
+
+        return format!("{}.{}", ciphertext_encoded, nonce_encoded);
     } else {
-        error("Error occured while reading config".to_string());
+        error("An unexpected error occured".to_string());
     }
 }
 
-// fn decrypt_password(
-//     ciphertext: &[u8],
-//     nonce: &[u8],
-//     key_bytes: &[u8; 32],
-// ) -> Result<String, Box<dyn std::error::Error>> {
-//     // Initialize AES-GCM with the same key
-//     let key = Key::from_slice(key_bytes);
-//     let cipher = Aes256Gcm::new(key);
-//
-//     // Decrypt the password
-//     let decrypted_bytes = cipher.decrypt(Nonce::from_slice(nonce), ciphertext)?;
-//
-//     let decrypted_password = String::from_utf8(decrypted_bytes)?;
-//
-//     Ok(decrypted_password)
-// }
+pub fn decrypt_password(
+    password: String,
+    secret: String,
+) -> String {
+    let secret_decoded = general_purpose::STANDARD.decode(secret);
+    if secret_decoded.is_err() {
+        error("Error decoding use secret".to_string());
+    }
+    let secret_decoded = secret_decoded.unwrap();
+
+    // let key = Key::from_slice(&secret_decoded);
+    // let cipher = Aes256Gcm::new(key);
+    let cipher = Aes256Gcm::new_from_slice(&secret_decoded);
+    if cipher.is_err() {
+        error("Error decoding use secret".to_string());
+    }
+    let cipher = cipher.unwrap();
+
+    // Split password and nonce
+    let password_split = password.split(".").collect::<Vec<&str>>();
+    let nonce = general_purpose::STANDARD.decode(password_split[0]);
+    let ciphertext = general_purpose::STANDARD.decode(password_split[1]);
+
+    if nonce.is_err() || ciphertext.is_err() {
+        error("Unable to decode password".to_string());
+    }
+
+    // Decrypt the password
+    let decrypted_bytes = cipher.decrypt(Nonce::from_slice(&nonce.unwrap()), ciphertext.unwrap().as_ref());
+    if decrypted_bytes.is_err() {
+        error("Unable to decrypt password".to_string());
+    }
+
+    let decrypted_password = String::from_utf8(decrypted_bytes.unwrap());
+    if decrypted_password.is_err() {
+        error("Unable to decrypt password".to_string());
+    }
+
+
+    return decrypted_password.unwrap();
+}

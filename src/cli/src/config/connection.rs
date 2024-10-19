@@ -1,5 +1,5 @@
 use crate::commands::connect::Connection;
-use crate::config::setup::{get_home, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE};
+use crate::config::setup::{get_home, Config, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE};
 use crate::utils::{encrypt_password, error};
 use alphadb::AlphaDB;
 use colored::Colorize;
@@ -23,13 +23,13 @@ pub struct Setup {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Session {
     pub host: String,
-    user: String,
-    password: String,
+    pub user: String,
+    pub password: String,
     pub database: String,
     pub port: u16,
 }
 
-pub fn new_connection(activate: bool) -> String {
+pub fn new_connection(activate: bool, config: &Config) -> String {
     let home = get_home();
 
     print!("\n");
@@ -110,7 +110,7 @@ pub fn new_connection(activate: bool) -> String {
         Session {
             host: connection.host,
             user: connection.user,
-            password: encrypt_password(&connection.password),
+            password: encrypt_password(&connection.password, config.main.secret.clone().unwrap()),
             database: connection.database,
             port: connection.port,
         },

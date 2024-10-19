@@ -12,7 +12,7 @@ pub struct Connection {
     pub port: u16,
 }
 
-pub fn connect(config: Config) {
+pub fn connect(config: &Config) {
     title("Connect");
 
     if let Some(mut connections) = get_connections() {
@@ -28,7 +28,7 @@ pub fn connect(config: Config) {
         let connection_choice = choice.unwrap();
 
         if connection_choice == "++ New connection".to_string() {
-            let label = new_connection(true);
+            let label = new_connection(true, config);
 
             println!(
                 "\n{} {} {}\n",
@@ -47,7 +47,7 @@ pub fn connect(config: Config) {
             );
         }
     } else {
-        let label = new_connection(true);
+        let label = new_connection(true, config);
 
         println!(
             "\n{} {} {}\n",
