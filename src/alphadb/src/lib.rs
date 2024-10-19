@@ -59,15 +59,18 @@ impl AlphaDB {
         AlphaDB { connection: None, db_name: None }
     }
 
-    pub fn connect(&mut self, host: String, user: String, password: String, database: String, port: i32) {
+    pub fn connect(&mut self, host: &String, user: &String, password: &String, database: &String, port: &u16) -> Result<(), mysql::Error> {
         let url = format!("mysql://{}:{}@{}:{}/{}", user, password, host, port, database);
 
         // Establish connection to database
-        let pool = Pool::new(&url[..]).unwrap();
-        self.connection = Some(pool.get_conn().unwrap());
+        let pool = Pool::new(&url[..])?;
+        self.connection = Some(pool.get_conn()?);
 
         // Set the database name
-        self.db_name = Some(database);
+        self.db_name = Some(database.to_string());
+        println!("{}", self.db_name.as_ref().unwrap());
+
+        Ok(())
     }
 
     pub fn check(&mut self) -> Check {
@@ -353,7 +356,7 @@ mod alphadb_tests {
     static USER: &str = "root";
     static PASSWORD: &str = "test";
     static DATABASE: &str = "test";
-    static PORT: i32 = 3306;
+    static PORT: u16 = 3306;
 
     #[test]
     fn test_alphadb() {
@@ -361,7 +364,7 @@ mod alphadb_tests {
         assert!(db.connection.is_none());
 
         // Test connect
-        db.connect(HOST.to_string(), USER.to_string(), PASSWORD.to_string(), DATABASE.to_string(), PORT);
+        let _ = db.connect(&HOST.to_string(), &USER.to_string(), &PASSWORD.to_string(), &DATABASE.to_string(), &PORT);
         assert!(db.connection.is_some());
 
         // Test check
