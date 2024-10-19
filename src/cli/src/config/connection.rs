@@ -10,24 +10,24 @@ use std::{collections::BTreeMap, fs};
 use toml;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-struct DbSessions {
+pub struct DbSessions {
     sessions: BTreeMap<String, Session>,
     setup: Setup,
 }
 
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-struct Setup {
+pub struct Setup {
     active_session: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Session {
-    host: String,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Session {
+    pub host: String,
     user: String,
     password: String,
-    database: String,
-    port: u16,
+    pub database: String,
+    pub port: u16,
 }
 
 pub fn new_connection(activate: bool) -> String {
@@ -168,7 +168,7 @@ pub fn get_connections() -> Option<Vec<String>> {
     return Some(connections);
 }
 
-pub fn get_active_connection() -> Option<String> {
+pub fn get_active_connection() -> Option<Session> {
     let home = get_home();
     let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
     let sessions_file = config_dir.join(SESSIONS_FILE);
@@ -191,7 +191,8 @@ pub fn get_active_connection() -> Option<String> {
     };
     
     if let Some(active_session) = sessions_content.setup.active_session {
-        return sessions_content.sessions.get_key_value(&active_session);
+        let return_value = sessions_content.sessions.get(&active_session);
+        return return_value.cloned();
     }
     else {
         return None;

@@ -4,15 +4,21 @@ use aes_gcm::{Aes256Gcm, Nonce};
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use rand_core::RngCore;
+use crate::config::connection::get_active_connection;
 
 pub fn title(title: &str) {
-    println!(
-        "{} {} {} {}",
-        "Connected to database".cyan(),
-        "PLACEHOLDER",
-        "on".cyan(),
-        "PLACEHOLDER"
-    );
+    
+    if let Some(conn) = get_active_connection() {
+        println!(
+            "{} {} {} {}:{}",
+            "Connected to database".cyan(),
+            conn.database,
+            "on".cyan(),
+            conn.host,
+            conn.port
+        );
+    }
+    
     println!("\n{} {} {}\n", "-----".green(), title, "-----".green());
 }
 
