@@ -54,6 +54,11 @@ pub struct Query {
     pub data: Option<Vec<String>>,
 }
 
+pub enum Init {
+    AlreadyInitialized,
+    Success
+}
+
 impl AlphaDB {
     pub fn new() -> AlphaDB {
         AlphaDB { connection: None, db_name: None }
@@ -104,11 +109,11 @@ impl AlphaDB {
         Check { check, version }
     }
 
-    pub fn init(&mut self) {
+    pub fn init(&mut self) -> Init {
         // Check if the table is already initialized
         let check = self.check();
         if check.check {
-            panic!("already-initialized");
+            return Init::AlreadyInitialized;
         }
 
         let conn = &mut self.connection.as_mut().expect("Connection could not be established");
@@ -131,6 +136,8 @@ impl AlphaDB {
             (self.db_name.as_ref().unwrap(), "0.0.0"),
         )
         .unwrap();
+
+        return Init::Success;
     }
 
     pub fn status(&mut self) -> Status {
