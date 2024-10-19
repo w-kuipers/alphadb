@@ -1,3 +1,18 @@
+// Copyright (C) 2024 Wibo Kuipers
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use crate::config::connection::get_active_connection;
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{Aes256Gcm, Nonce, Key};
@@ -5,6 +20,11 @@ use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use rand_core::RngCore;
 
+
+/// Print function title and current
+/// database connection to the commandline
+///
+/// - title: Title that will be displayed
 pub fn title(title: &str) {
     if let Some(conn) = get_active_connection() {
         println!(
@@ -21,6 +41,10 @@ pub fn title(title: &str) {
 }
 
 #[cfg(debug_assertions)]
+/// Print an error message to the 
+/// command line and end the process
+///
+/// - error_string: The error message
 pub fn error(error_string: String) -> ! {
     // Some error messages are still wrapped in their definition
     let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
@@ -31,6 +55,10 @@ pub fn error(error_string: String) -> ! {
 }
 
 #[cfg(not(debug_assertions))]
+/// Debug version for the above
+/// error function. Panics.
+///
+/// - error_string: The error message
 pub fn error(error_string: String) -> ! {
     use std::process;
     let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
