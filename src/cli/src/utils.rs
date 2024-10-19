@@ -15,11 +15,10 @@
 
 use crate::config::connection::get_active_connection;
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
-use aes_gcm::{Aes256Gcm, Nonce, Key};
+use aes_gcm::{Aes256Gcm, Key, Nonce};
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use rand_core::RngCore;
-
 
 /// Print function title and current
 /// database connection to the commandline
@@ -41,7 +40,7 @@ pub fn title(title: &str) {
 }
 
 #[cfg(debug_assertions)]
-/// Print an error message to the 
+/// Print an error message to the
 /// command line and end the process
 ///
 /// - error_string: The error message
@@ -75,9 +74,8 @@ pub fn encrypt_password(password: &str, secret: String) -> String {
     if secret_decoded.is_err() {
         error("Error decoding use secret".to_string());
     }
-    let mut secret_decoded = secret_decoded.unwrap();
+    let secret_decoded = secret_decoded.unwrap();
 
-    OsRng.fill_bytes(&mut secret_decoded);
     let cipher = Aes256Gcm::new_from_slice(&secret_decoded);
 
     // Generate a 12-byte nonce
@@ -88,12 +86,11 @@ pub fn encrypt_password(password: &str, secret: String) -> String {
 
         let ciphertext = cipher.unwrap().encrypt(nonce, password.as_bytes());
 
-        // Ok((ciphertext, nonce_bytes.to_vec()))
         if ciphertext.is_err() {
             error("An unexpected error occured".to_string());
         }
         let ciphertext_encoded = general_purpose::STANDARD.encode(ciphertext.unwrap());
-        let nonce_encoded = general_purpose::STANDARD.encode(nonce);
+        let nonce_encoded = general_purpose::STANDARD.encode(nonce_bytes);
 
         return format!("{}.{}", ciphertext_encoded, nonce_encoded);
     } else {
@@ -101,18 +98,13 @@ pub fn encrypt_password(password: &str, secret: String) -> String {
     }
 }
 
-pub fn decrypt_password(
-    password: String,
-    secret: String,
-) -> String {
+pub fn decrypt_password(password: String, secret: String) -> String {
     let secret_decoded = general_purpose::STANDARD.decode(secret);
     if secret_decoded.is_err() {
         error("Error decoding use secret".to_string());
     }
     let secret_decoded = secret_decoded.unwrap();
 
-    // let key = Key::from_slice(&secret_decoded);
-    // let cipher = Aes256Gcm::new(key);
     let cipher = Aes256Gcm::new_from_slice(&secret_decoded);
     if cipher.is_err() {
         error("Error decoding use secret".to_string());
@@ -121,24 +113,27 @@ pub fn decrypt_password(
 
     // Split password and nonce
     let password_split = password.split(".").collect::<Vec<&str>>();
-    let nonce = general_purpose::STANDARD.decode(password_split[0]);
-    let ciphertext = general_purpose::STANDARD.decode(password_split[1]);
+    let ciphertext = general_purpose::STANDARD.decode(password_split[0]);
+    let nonce = general_purpose::STANDARD.decode(password_split[1]);
 
     if nonce.is_err() || ciphertext.is_err() {
         error("Unable to decode password".to_string());
     }
 
     // Decrypt the password
-    let decrypted_bytes = cipher.decrypt(Nonce::from_slice(&nonce.unwrap()), ciphertext.unwrap().as_ref());
+    let decrypted_bytes = cipher.decrypt(
+        Nonce::from_slice(&nonce.unwrap()),
+        ciphertext.unwrap().as_slice(),
+    );
     if decrypted_bytes.is_err() {
         error("Unable to decrypt password".to_string());
     }
 
+    // Convert it back to a string
     let decrypted_password = String::from_utf8(decrypted_bytes.unwrap());
     if decrypted_password.is_err() {
         error("Unable to decrypt password".to_string());
     }
-
 
     return decrypted_password.unwrap();
 }
