@@ -44,4 +44,7 @@ pub fn status(db: &mut AlphaDB) {
     } else {
         println!("Version: {}", status.version.unwrap());
     }
+
+    // Empty line for better readability
+    println!("  "); 
 }
