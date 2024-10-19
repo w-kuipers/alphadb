@@ -6,7 +6,7 @@
 // (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// but WITHOUT ANY WARRANTY; without even the implied warranty ofprintln
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
@@ -73,7 +73,6 @@ impl AlphaDB {
 
         // Set the database name
         self.db_name = Some(database.to_string());
-        println!("{}", self.db_name.as_ref().unwrap());
 
         Ok(())
     }
