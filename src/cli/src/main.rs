@@ -4,11 +4,12 @@ mod commands;
 mod config;
 mod utils;
 use crate::commands::connect::*;
-use crate::commands::status::*;
 use crate::commands::init::*;
-use crate::config::setup::{config_read, init_config};
+use crate::commands::status::*;
+use crate::commands::update::*;
 use crate::config::connection::get_active_connection;
-use crate::utils::{error, decrypt_password};
+use crate::config::setup::{config_read, init_config};
+use crate::utils::{decrypt_password, error};
 use alphadb::AlphaDB;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -23,13 +24,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = config.unwrap();
 
-    // Initialize an an AlphaDB instance, but only 
+    // Initialize an an AlphaDB instance, but only
     // connect if a connection has been marked as active.
     // Some functions do not require a database connection
     let mut db = AlphaDB::new();
     if let Some(conn) = get_active_connection() {
         let password = decrypt_password(conn.password, config.main.secret.clone().unwrap());
-        
+
         // It's safe to unwrap here as the db variable
         // has specifically been asigned a Some value
         let connect = db.connect(
@@ -50,30 +51,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .version("1.0.0")
         .subcommand_required(true)
         .arg_required_else_help(true)
+        .subcommand(Command::new("connect").about("Connect to a database"))
         .subcommand(Command::new("init").about("Initialize the database"))
         .subcommand(Command::new("status").about("Get database status"))
-        .subcommand(Command::new("connect").about("Connect to a database"))
+        .subcommand(Command::new("update").about("Update the database"))
         .get_matches();
 
     match matches.subcommand() {
+        Some(("connect", _query_matches)) => {
+            connect(&config);
+        }
         Some(("init", _query_matches)) => {
             if db.connection.is_none() {
                 println!("{}", "No active database connection.".yellow());
-            }
-            else {
+            } else {
                 init(&mut db);
             }
         }
         Some(("status", _query_matches)) => {
             if db.connection.is_none() {
                 println!("{}", "No active database connection.".yellow());
-            }
-            else {
+            } else {
                 status(&mut db);
             }
         }
-        Some(("connect", _query_matches)) => {
-            connect(&config);
+        Some(("update", _query_matches)) => {
+            if db.connection.is_none() {
+                println!("{}", "No active database connection.".yellow());
+            } else {
+                update(&mut db);
+            }
         }
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable
     }
