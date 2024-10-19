@@ -1,4 +1,4 @@
-use crate::config::connection::{get_connections, new_connection};
+use crate::config::connection::{get_connections, new_connection, set_active_connection};
 use crate::utils::{error, title};
 use colored::Colorize;
 use inquire::Select;
@@ -34,6 +34,16 @@ pub fn connect() {
                 "Database connection".green(),
                 label.cyan(),
                 "saved and ready for use.".green()
+            );
+        }
+        else {
+            set_active_connection(&connection_choice); 
+
+            println!(
+                "\n{} {} {}\n",
+                "Database connection".green(),
+                connection_choice.cyan(),
+                "is now active".green()
             );
         }
     } else {

@@ -15,7 +15,6 @@ pub struct DbSessions {
     setup: Setup,
 }
 
-
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Setup {
     active_session: Option<String>,
@@ -97,7 +96,15 @@ pub fn new_connection(activate: bool) -> String {
         .prompt()
         .unwrap();
 
-    let mut file = DbSessions::default();
+    // Get current file contents
+    let sessions_content = get_sessions();
+    let mut file: DbSessions;
+    if sessions_content.is_none() {
+        file = DbSessions::default();
+    } else {
+        file = sessions_content.unwrap();
+    }
+
     file.sessions.insert(
         label.to_string(),
         Session {
@@ -108,7 +115,10 @@ pub fn new_connection(activate: bool) -> String {
             port: connection.port,
         },
     );
-    file.setup.active_session.insert(label.to_string());
+
+    if activate {
+        let _ = file.setup.active_session.insert(label.to_string());
+    }
 
     let toml_string = match toml::to_string(&file) {
         Ok(c) => c,
@@ -169,6 +179,60 @@ pub fn get_connections() -> Option<Vec<String>> {
 }
 
 pub fn get_active_connection() -> Option<Session> {
+    let sessions_content = get_sessions();
+    if sessions_content.is_none() {
+        return None;
+    }
+
+    let sessions_content = sessions_content.unwrap();
+
+    if let Some(active_session) = sessions_content.setup.active_session {
+        let return_value = sessions_content.sessions.get(&active_session);
+        return return_value.cloned();
+    } else {
+        return None;
+    };
+}
+
+pub fn set_active_connection(label: &String) {
+    let sessions_content = get_sessions();
+    if sessions_content.is_none() {
+        error("There are no saved connections.".to_string());
+    }
+
+    let mut file = sessions_content.unwrap();
+    if file.sessions.get(label).is_none() {
+        error(format!(
+            "Connection with label {} does not exist.",
+            label.blue()
+        ));
+    }
+
+    let _ = file.setup.active_session.insert(label.to_string());
+    let toml_string = match toml::to_string(&file) {
+        Ok(c) => c,
+        Err(_) => {
+            error(format!(
+                "An unexpected error occured. Unable to encode generated config."
+            ));
+        }
+    };
+
+    let home = get_home();
+    let sessions_file = home.join(CONFIG_DIR).join(ALPHADB_DIR).join(SESSIONS_FILE);
+
+    match fs::write(&sessions_file, toml_string) {
+        Ok(c) => c,
+        Err(_) => {
+            error(format!(
+                "Unable to write to config file: '{}'",
+                sessions_file.display().to_string().blue(),
+            ));
+        }
+    };
+}
+
+fn get_sessions() -> Option<DbSessions> {
     let home = get_home();
     let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
     let sessions_file = config_dir.join(SESSIONS_FILE);
@@ -176,10 +240,10 @@ pub fn get_active_connection() -> Option<Session> {
     let sessions_content_raw = match fs::read_to_string(&sessions_file) {
         Ok(c) => c,
         Err(_) => {
-            return None; 
+            return None;
         }
     };
-    
+
     let sessions_content: DbSessions = match toml::from_str(&sessions_content_raw) {
         Ok(c) => c,
         Err(_) => {
@@ -189,12 +253,6 @@ pub fn get_active_connection() -> Option<Session> {
             ));
         }
     };
-    
-    if let Some(active_session) = sessions_content.setup.active_session {
-        let return_value = sessions_content.sessions.get(&active_session);
-        return return_value.cloned();
-    }
-    else {
-        return None;
-    };
+
+    return Some(sessions_content);
 }
