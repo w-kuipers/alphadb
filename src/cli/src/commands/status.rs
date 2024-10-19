@@ -13,36 +13,35 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::config::connection::get_active_connection;
-use crate::config::setup::Config;
-use crate::utils::{decrypt_password, error, title};
+use crate::utils::title;
 use alphadb::AlphaDB;
 use colored::Colorize;
 
 /// Print database status
 ///
 /// - config: AlphaDB configuration
-pub fn status(config: &Config) {
+pub fn status(db: &mut AlphaDB) {
     title("Status");
 
-    if let Some(conn) = get_active_connection() {
-        let mut db = AlphaDB::new();
-        let password = decrypt_password(conn.password, config.main.secret.clone().unwrap());
-        let connect = db.connect(
-            &conn.host,
-            &conn.user,
-            &password,
-            &conn.database,
-            &conn.port,
-        );
+    let status = db.status();
 
-        if connect.is_err() {
-            error(connect.err().unwrap().to_string());
-        }
+    println!("Database: {}", status.name);
 
-        // let status = db.status();
-        // println!("{:?}", status);
+    if status.template.is_none() {
+        println!("Template: None");
     } else {
-        println!("{}", "No database connection active".yellow());
+        println!("Template: {}", status.template.unwrap());
+    }
+
+    if status.init == true {
+        println!("Status: {}", "Initialized".cyan());
+    } else {
+        println!("Status: {}", "Uninitialized".yellow());
+    }
+
+    if status.version.is_none() {
+        println!("Version: None");
+    } else {
+        println!("Version: {}", status.version.unwrap());
     }
 }
