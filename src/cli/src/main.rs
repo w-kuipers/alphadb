@@ -1,3 +1,5 @@
+use std::default;
+
 use clap::{Arg, ArgAction, Command};
 use colored::Colorize;
 mod commands;
@@ -10,7 +12,7 @@ use crate::commands::update::*;
 use crate::config::connection::get_active_connection;
 use crate::config::setup::{config_read, init_config};
 use crate::utils::{decrypt_password, error};
-use alphadb::AlphaDB;
+use alphadb::{AlphaDB, utils::types::VerificationIssueLevel};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_config()?;
@@ -54,7 +56,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .subcommand(Command::new("connect").about("Connect to a database"))
         .subcommand(Command::new("init").about("Initialize the database"))
         .subcommand(Command::new("status").about("Get database status"))
-        .subcommand(Command::new("update").about("Update the database"))
+        .subcommand(
+            Command::new("Update").about("Update the database").args([
+                Arg::new("nodata")
+                    .short('n')
+                    .long("nodata")
+                    .help("Update the data, but do not insert the default data")
+                    .action(ArgAction::SetTrue),
+                Arg::new("Verify")
+                    .short('v')
+                    .long("verify")
+                    .default_value("true")
+                    .help("Verify the version source before updating the database")
+                    .action(ArgAction::SetTrue),
+                Arg::new("Allowed error priority")
+                    .short('p')
+                    .long("allowed-error-priority")
+                    .default_value()
+                    .help("Specify from which issue level the program will fail")
+                    .action(VerificationIssueLevel)
+            ]),
+        )
         .get_matches();
 
     match matches.subcommand() {
@@ -75,7 +97,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 status(&mut db);
             }
         }
-        Some(("update", _query_matches)) => {
+        Some(("update", query_matches)) => {
+            println!("{:?}", query_matches);
             if db.connection.is_none() {
                 println!("{}", "No active database connection.".yellow());
             } else {
