@@ -57,24 +57,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .subcommand(Command::new("init").about("Initialize the database"))
         .subcommand(Command::new("status").about("Get database status"))
         .subcommand(
-            Command::new("Update").about("Update the database").args([
+            Command::new("update").about("Update the database").args([
                 Arg::new("nodata")
                     .short('n')
-                    .long("nodata")
+                    .long("no-data")
                     .help("Update the data, but do not insert the default data")
                     .action(ArgAction::SetTrue),
-                Arg::new("Verify")
+                Arg::new("no-verify")
                     .short('v')
-                    .long("verify")
-                    .default_value("true")
+                    .long("no-verify")
                     .help("Verify the version source before updating the database")
                     .action(ArgAction::SetTrue),
-                Arg::new("Allowed error priority")
+                Arg::new("allowed-error-priority")
                     .short('p')
                     .long("allowed-error-priority")
-                    .default_value()
-                    .help("Specify from which issue level the program will fail")
-                    .action(VerificationIssueLevel)
+                    .default_value("low")
+                    .help("Specify from which issue level the program will fail (critical, hight, low, all)")
+                    .action(ArgAction::Set)
             ]),
         )
         .get_matches();
@@ -98,11 +97,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Some(("update", query_matches)) => {
-            println!("{:?}", query_matches);
             if db.connection.is_none() {
                 println!("{}", "No active database connection.".yellow());
             } else {
-                update(&mut db);
+
+                // No data should be false by default
+                let mut nodata = false;
+                if let Some(nodata_some) = query_matches.get_one("nodata") {
+                    nodata = *nodata_some;
+                }
+                
+                // Verify should be true by default
+                let mut verify = true;
+                if let Some(verify_some) = query_matches.get_one("verify") {
+                    verify = *verify_some;
+                }
+                
+                update(&mut db, nodata, verify);
             }
         }
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable

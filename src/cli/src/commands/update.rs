@@ -21,8 +21,11 @@ use colored::Colorize;
 /// User should select a version source
 ///
 /// - db: AlphaDB instance  
-pub fn update(db: &mut AlphaDB) {
+pub fn update(db: &mut AlphaDB, nodata: bool, verify: bool) {
     title("Update");
+
+    println!("nodata: {}", nodata);
+    println!("verify: {}", verify);
 
     let status = db.status();
 

@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING**: `update` CLI method flag `nodata` changed to `no-data`
+- **BREAKING**: `update` CLI method flag `verify` changed to `no-verify`
 - **BREAKING**: `update` method parameter `version_information` changed to `version_source`.
 - Latest version does not have to be specified in the version information anymore. Will be looked up in the version list.
 
