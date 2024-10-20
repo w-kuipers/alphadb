@@ -1,5 +1,3 @@
-use std::default;
-
 use clap::{Arg, ArgAction, Command};
 use colored::Colorize;
 mod commands;
@@ -9,10 +7,10 @@ use crate::commands::connect::*;
 use crate::commands::init::*;
 use crate::commands::status::*;
 use crate::commands::update::*;
-use crate::config::connection::get_active_connection;
+use crate::config::connection::{get_active_connection, remove_connection};
 use crate::config::setup::{config_read, init_config};
 use crate::utils::{decrypt_password, error};
-use alphadb::{AlphaDB, utils::types::VerificationIssueLevel};
+use alphadb::AlphaDB;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_config()?;
@@ -31,16 +29,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Some functions do not require a database connection
     let mut db = AlphaDB::new();
     if let Some(conn) = get_active_connection() {
-        let password = decrypt_password(conn.password, config.main.secret.clone().unwrap());
+        let password = decrypt_password(conn.connection.password, config.main.secret.clone().unwrap());
 
-        // It's safe to unwrap here as the db variable
-        // has specifically been asigned a Some value
+        if password.is_err() {
+            remove_connection(conn.label);
+
+            error(format!(
+                "Unable to connect to database {}@{}:{} using saved credentials. The connection has been removed.",
+                conn.connection.database.cyan(),
+                conn.connection.host.cyan(),
+                conn.connection.port.to_string().cyan(),
+            ));
+        }
+
         let connect = db.connect(
-            &conn.host,
-            &conn.user,
-            &password,
-            &conn.database,
-            &conn.port,
+            &conn.connection.host,
+            &conn.connection.user,
+            &password.unwrap(),
+            &conn.connection.database,
+            &conn.connection.port,
         );
 
         if connect.is_err() {
@@ -100,19 +107,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if db.connection.is_none() {
                 println!("{}", "No active database connection.".yellow());
             } else {
-
                 // No data should be false by default
                 let mut nodata = false;
                 if let Some(nodata_some) = query_matches.get_one("nodata") {
                     nodata = *nodata_some;
                 }
-                
+
                 // Verify should be true by default
                 let mut verify = true;
                 if let Some(verify_some) = query_matches.get_one("verify") {
                     verify = *verify_some;
                 }
-                
+
                 update(&mut db, nodata, verify);
             }
         }

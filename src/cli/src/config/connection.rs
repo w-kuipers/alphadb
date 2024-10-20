@@ -6,6 +6,8 @@ use colored::Colorize;
 use inquire::{required, CustomType, Password, Text};
 use serde::Deserialize;
 use serde_derive::Serialize;
+use std::fmt::write;
+use std::path::PathBuf;
 use std::{collections::BTreeMap, fs};
 use toml;
 
@@ -98,7 +100,7 @@ pub fn new_connection(activate: bool, config: &Config) -> String {
         .unwrap();
 
     // Get current file contents
-    let sessions_content = get_sessions();
+    let sessions_content = get_sessions_content();
     let mut file: DbSessions;
     if sessions_content.is_none() {
         file = DbSessions::default();
@@ -185,8 +187,14 @@ pub fn get_connections() -> Option<Vec<String>> {
     return Some(connections);
 }
 
-pub fn get_active_connection() -> Option<Session> {
-    let sessions_content = get_sessions();
+#[derive(Debug)]
+pub struct ActiveConnection {
+    pub label: String,
+    pub connection: Session,
+}
+
+pub fn get_active_connection() -> Option<ActiveConnection> {
+    let sessions_content = get_sessions_content();
     if sessions_content.is_none() {
         return None;
     }
@@ -194,29 +202,46 @@ pub fn get_active_connection() -> Option<Session> {
     let sessions_content = sessions_content.unwrap();
 
     if let Some(active_session) = sessions_content.setup.active_session {
-        let return_value = sessions_content.sessions.get(&active_session);
-        return return_value.cloned();
+        if let Some(connection) = sessions_content.sessions.get(&active_session) {
+            return Some(ActiveConnection {
+                label: active_session,
+                connection: connection.clone()
+            });
+        }
+        else {
+            return None;
+        }
     } else {
         return None;
     };
 }
 
+/// Set setup.active_connection to a connection label
+/// in sessions.toml in user config
+///
+/// - label: Label for the connection to be removed
 pub fn set_active_connection(label: &String) {
-    let sessions_content = get_sessions();
+    let sessions_content = get_sessions_content();
     if sessions_content.is_none() {
         error("There are no saved connections.".to_string());
     }
 
-    let mut file = sessions_content.unwrap();
-    if file.sessions.get(label).is_none() {
+    let mut sessions_content = sessions_content.unwrap();
+    if sessions_content.sessions.get(label).is_none() {
         error(format!(
             "Connection with label {} does not exist.",
             label.blue()
         ));
     }
 
-    let _ = file.setup.active_session.insert(label.to_string());
-    let toml_string = match toml::to_string(&file) {
+    let _ = sessions_content.setup.active_session.insert(label.to_string());
+    write_sessions(sessions_content);
+}
+
+/// Write to the sessions.toml file in
+/// user config.
+fn write_sessions(sessions: DbSessions) {
+    let toml_string = match toml::to_string(&sessions) {
         Ok(c) => c,
         Err(_) => {
             error(format!(
@@ -239,7 +264,9 @@ pub fn set_active_connection(label: &String) {
     };
 }
 
-fn get_sessions() -> Option<DbSessions> {
+/// Read the sessions.toml file in user
+/// config and parse it to DbSessions struct.
+fn get_sessions_content() -> Option<DbSessions> {
     let home = get_home();
     let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
     let sessions_file = config_dir.join(SESSIONS_FILE);
@@ -262,4 +289,22 @@ fn get_sessions() -> Option<DbSessions> {
     };
 
     return Some(sessions_content);
+}
+
+/// Remove connection credentials from
+/// the sessions.toml file in user config
+///
+/// - label: Label for the connection to be removed
+pub fn remove_connection(label: String) {
+    let sessions = get_sessions_content();
+
+    // If sessions.toml does not exist, no error is thrown
+    // This is debatable
+    if sessions.is_none() {
+        return;
+    }
+
+    let mut sessions = sessions.unwrap();
+    sessions.sessions.remove(&label);
+    write_sessions(sessions);
 }
