@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .subcommand(Command::new("status").about("Get database status"))
         .subcommand(
             Command::new("update").about("Update the database").args([
-                Arg::new("nodata")
+                Arg::new("no-data")
                     .short('n')
                     .long("no-data")
                     .help("Update the data, but do not insert the default data")
@@ -75,9 +75,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .long("no-verify")
                     .help("Verify the version source before updating the database")
                     .action(ArgAction::SetTrue),
-                Arg::new("allowed-error-priority")
+                Arg::new("tolerated-verification-level")
                     .short('p')
-                    .long("allowed-error-priority")
+                    .long("tolerated-verification-level")
                     .default_value("low")
                     .help("Specify from which issue level the program will fail (critical, hight, low, all)")
                     .action(ArgAction::Set)
@@ -109,17 +109,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 // No data should be false by default
                 let mut nodata = false;
-                if let Some(nodata_some) = query_matches.get_one("nodata") {
+                if let Some(nodata_some) = query_matches.get_one("no-data") {
                     nodata = *nodata_some;
                 }
 
-                // Verify should be true by default
-                let mut verify = true;
-                if let Some(verify_some) = query_matches.get_one("verify") {
-                    verify = *verify_some;
+                // No verify should be false by default
+                let mut noverify = false;
+                if let Some(noverify_some) = query_matches.get_one("no-verify") {
+                    noverify = *noverify_some;
+                }
+                
+                // Allowed error priority should be low by default
+                let mut allowed_error_priority = "low".to_string();
+                if let Some(allowed_error_priority_some) = query_matches.get_one::<String>("tolerated-verification-level") {
+                    allowed_error_priority = allowed_error_priority_some.to_string();
                 }
 
-                update(&mut db, nodata, verify);
+                update(&mut db, nodata, noverify, allowed_error_priority);
             }
         }
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable

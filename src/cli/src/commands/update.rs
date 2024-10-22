@@ -13,24 +13,64 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::title;
-use alphadb::AlphaDB;
+use crate::utils::{error, title};
+use alphadb::{utils::types::ToleratedVerificationIssueLevel, AlphaDB, UpdateQueriesError};
 use colored::Colorize;
+use std::fs;
 
 /// Update the database.
 /// User should select a version source
 ///
 /// - db: AlphaDB instance  
-pub fn update(db: &mut AlphaDB, nodata: bool, verify: bool) {
+pub fn update(
+    db: &mut AlphaDB,
+    nodata: bool,
+    noverify: bool,
+    tolerated_verification_level: String,
+) {
     title("Update");
 
-    println!("nodata: {}", nodata);
-    println!("verify: {}", verify);
+    // The update function will take ToleratedVerificationIssueLevel enum as type
+    let verification_issue_level = match tolerated_verification_level.as_str() {
+        "low" => ToleratedVerificationIssueLevel::Low,
+        "high" => ToleratedVerificationIssueLevel::High,
+        "critical" => ToleratedVerificationIssueLevel::Critical,
+        "all" => ToleratedVerificationIssueLevel::All,
+        _ => {
+            error(format!(
+                "Allow error priority must be any of {}, {}, {}, {}",
+                "low".cyan(),
+                "high".cyan(),
+                "critical".cyan(),
+                "all".cyan()
+            ));
+        }
+    };
 
+    // The database has to be initialized before it can be updated
+    let data = fs::read_to_string("../../tests/assets/test-db-structure.json")
+        .expect("Unable to read file");
     let status = db.status();
+    let update = db.update_queries(data, None);
 
-    if status.init == false {
-        eprintln!("{} {} {}\n", "Database".yellow(), status.name.cyan(), "has not yet been initialized".yellow());
-        return
+    if update.is_err() {
+        if let Some(UpdateQueriesError::NotInitialized) = update.as_ref().err() {
+            error(format!(
+                "{} {} {}\n",
+                "Database".yellow(),
+                status.name.cyan(),
+                "has not yet been initialized".yellow()
+            ));
+        }
     }
+
+    for line in update.unwrap() {
+        println!("{:?}", line);
+    }
+
+    // if status.init == false {
+    //     eprintln!(
+    //     );
+    //     return;
+    // }
 }

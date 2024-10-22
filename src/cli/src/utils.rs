@@ -101,21 +101,21 @@ pub fn encrypt_password(password: &str, secret: String) -> String {
 }
 
 #[derive(Error, Debug)]
-pub enum DecriptionReturnError {
+pub enum DecryptionReturnError {
     #[error("Decryption error: {0}")]
-     DecriptionError(String),
+     DecryptionError(String),
 
     #[error("Invalid UTF-8 sequence: {0}")]
     Utf8Error(#[from] FromUtf8Error), // Maps UTF-8 conversion errors
 }
 
-impl From<aes_gcm::Error> for DecriptionReturnError {
+impl From<aes_gcm::Error> for DecryptionReturnError {
     fn from(err: aes_gcm::Error) -> Self {
-        DecriptionReturnError::DecriptionError(format!("{:?}", err))
+        DecryptionReturnError::DecryptionError(format!("{:?}", err))
     }
 }
 
-pub fn decrypt_password(password: String, secret: String) -> Result<String, DecriptionReturnError> {
+pub fn decrypt_password(password: String, secret: String) -> Result<String, DecryptionReturnError> {
     let secret_decoded = general_purpose::STANDARD.decode(secret);
     if secret_decoded.is_err() {
         error("Error decoding use secret".to_string());
