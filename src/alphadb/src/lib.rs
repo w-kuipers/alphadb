@@ -22,7 +22,7 @@ use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
 use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
 use crate::utils::globals::CONFIG_TABLE_NAME;
-use crate::utils::types::VerificationIssueLevel;
+use crate::utils::types::ToleratedVerificationIssueLevel;
 use crate::utils::version_number::{get_version_number_int, verify_version_number};
 use mysql::prelude::*;
 pub use mysql::*;
@@ -57,6 +57,15 @@ pub struct Query {
 pub enum Init {
     AlreadyInitialized,
     Success
+}
+
+#[derive(Debug, Clone)]
+struct NotInitialized;
+
+impl std::fmt::Display for NotInitialized {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Database has not yet been initialized")
+    }
 }
 
 impl AlphaDB {
@@ -213,7 +222,7 @@ impl AlphaDB {
         database_version = db_version.0.expect(DB_CONFIG_NO_VERSION);
 
         let version_number_check = panic::catch_unwind(|| {
-            verify_version_number(database_version.clone());
+            verify_version_number(&database_version);
         });
 
         if version_number_check.is_err() {
@@ -239,7 +248,7 @@ impl AlphaDB {
         // Get the latest version
         let latest_version = match update_to_version {
             Some(version) => {
-                if verify_version_number(String::from(version)) {
+                if verify_version_number(&String::from(version)) {
                     version.to_string()
                 } else {
                     panic!("Invalid version number");
@@ -250,7 +259,7 @@ impl AlphaDB {
                 for version in versions {
                     let version = version["_id"].as_str().expect("No verssion number was specified");
 
-                    if get_version_number_int(String::from(version)) > get_version_number_int(latest_version.clone()) {
+                    if get_version_number_int(&String::from(version)) > get_version_number_int(&latest_version) {
                         latest_version = version.to_string();
                     }
                 }
@@ -259,20 +268,20 @@ impl AlphaDB {
         };
 
         // Check if database is up to date
-        if get_version_number_int(latest_version.clone()) <= get_version_number_int(database_version.clone()) {
+        if get_version_number_int(&latest_version) <= get_version_number_int(&database_version) {
             panic!("Database is already up to date");
         }
 
         // Update loop
         for version in versions {
-            let version_int = get_version_number_int(String::from(version["_id"].as_str().unwrap()));
+            let version_int = get_version_number_int(&String::from(version["_id"].as_str().unwrap()));
             // Skip any previous versions
-            if version_int <= get_version_number_int(database_version.clone()) {
+            if version_int <= get_version_number_int(&database_version) {
                 continue;
             }
 
             // Continue if latest version is current
-            if version_int > get_version_number_int(latest_version.clone()) {
+            if version_int > get_version_number_int(&latest_version) {
                 continue;
             }
 
@@ -313,7 +322,7 @@ impl AlphaDB {
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update(&mut self, version_source: String, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: VerificationIssueLevel) {
+    pub fn update(&mut self, version_source: String, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: ToleratedVerificationIssueLevel) {
         if verify {
             // TODO
         }
@@ -393,7 +402,7 @@ mod alphadb_tests {
 
         // Test update (maybe update later)
         let data = fs::read_to_string("../../tests/assets/test-db-structure.json").expect("Unable to read file");
-        db.update(data, None, false, true, VerificationIssueLevel::Low);
+        db.update(data, None, false, true, ToleratedVerificationIssueLevel::Low);
         let status = db.status();
         assert_ne!(status.version, Some("0.0.0".to_string()));
 
