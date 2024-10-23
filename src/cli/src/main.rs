@@ -4,11 +4,12 @@ mod commands;
 mod config;
 mod utils;
 use crate::commands::connect::*;
-use crate::commands::status::*;
 use crate::commands::init::*;
+use crate::commands::status::*;
+use crate::commands::update::*;
+use crate::config::connection::{get_active_connection, remove_connection};
 use crate::config::setup::{config_read, init_config};
-use crate::config::connection::get_active_connection;
-use crate::utils::{error, decrypt_password};
+use crate::utils::{decrypt_password, error};
 use alphadb::AlphaDB;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -23,21 +24,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = config.unwrap();
 
-    // Initialize an an AlphaDB instance, but only 
+    // Initialize an an AlphaDB instance, but only
     // connect if a connection has been marked as active.
     // Some functions do not require a database connection
     let mut db = AlphaDB::new();
     if let Some(conn) = get_active_connection() {
-        let password = decrypt_password(conn.password, config.main.secret.clone().unwrap());
-        
-        // It's safe to unwrap here as the db variable
-        // has specifically been asigned a Some value
+        let password = decrypt_password(conn.connection.password, config.main.secret.clone().unwrap());
+
+        if password.is_err() {
+            remove_connection(conn.label);
+
+            error(format!(
+                "Unable to connect to database {}@{}:{} using saved credentials. The connection has been removed.",
+                conn.connection.database.cyan(),
+                conn.connection.host.cyan(),
+                conn.connection.port.to_string().cyan(),
+            ));
+        }
+
         let connect = db.connect(
-            &conn.host,
-            &conn.user,
-            &password,
-            &conn.database,
-            &conn.port,
+            &conn.connection.host,
+            &conn.connection.user,
+            &password.unwrap(),
+            &conn.connection.database,
+            &conn.connection.port,
         );
 
         if connect.is_err() {
@@ -50,30 +60,73 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .version("1.0.0")
         .subcommand_required(true)
         .arg_required_else_help(true)
+        .subcommand(Command::new("connect").about("Connect to a database"))
         .subcommand(Command::new("init").about("Initialize the database"))
         .subcommand(Command::new("status").about("Get database status"))
-        .subcommand(Command::new("connect").about("Connect to a database"))
+        .subcommand(
+            Command::new("update").about("Update the database").args([
+                Arg::new("no-data")
+                    .short('n')
+                    .long("no-data")
+                    .help("Update the data, but do not insert the default data")
+                    .action(ArgAction::SetTrue),
+                Arg::new("no-verify")
+                    .short('v')
+                    .long("no-verify")
+                    .help("Verify the version source before updating the database")
+                    .action(ArgAction::SetTrue),
+                Arg::new("tolerated-verification-level")
+                    .short('p')
+                    .long("tolerated-verification-level")
+                    .default_value("low")
+                    .help("Specify from which issue level the program will fail (critical, hight, low, all)")
+                    .action(ArgAction::Set)
+            ]),
+        )
         .get_matches();
 
     match matches.subcommand() {
+        Some(("connect", _query_matches)) => {
+            connect(&config);
+        }
         Some(("init", _query_matches)) => {
             if db.connection.is_none() {
                 println!("{}", "No active database connection.".yellow());
-            }
-            else {
+            } else {
                 init(&mut db);
             }
         }
         Some(("status", _query_matches)) => {
             if db.connection.is_none() {
                 println!("{}", "No active database connection.".yellow());
-            }
-            else {
+            } else {
                 status(&mut db);
             }
         }
-        Some(("connect", _query_matches)) => {
-            connect(&config);
+        Some(("update", query_matches)) => {
+            if db.connection.is_none() {
+                println!("{}", "No active database connection.".yellow());
+            } else {
+                // No data should be false by default
+                let mut nodata = false;
+                if let Some(nodata_some) = query_matches.get_one("no-data") {
+                    nodata = *nodata_some;
+                }
+
+                // No verify should be false by default
+                let mut noverify = false;
+                if let Some(noverify_some) = query_matches.get_one("no-verify") {
+                    noverify = *noverify_some;
+                }
+                
+                // Allowed error priority should be low by default
+                let mut allowed_error_priority = "low".to_string();
+                if let Some(allowed_error_priority_some) = query_matches.get_one::<String>("tolerated-verification-level") {
+                    allowed_error_priority = allowed_error_priority_some.to_string();
+                }
+
+                update(&mut db, nodata, noverify, allowed_error_priority);
+            }
         }
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable
     }

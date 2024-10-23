@@ -6,7 +6,7 @@ use rand_core::OsRng;
 use rand_core::RngCore;
 use serde::Deserialize;
 use serde_derive::Serialize;
-use std::fs;
+use std::{env, fs};
 use toml;
 
 pub const ALPHADB_DIR: &str = "alphadb";
@@ -40,9 +40,17 @@ pub fn get_home() -> std::path::PathBuf {
     return home.unwrap();
 }
 
-pub fn init_config() -> Result<(), Box<dyn std::error::Error>> {
+fn get_config_dir() -> std::path::PathBuf {
     let home = get_home();
-    let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
+    if env::consts::OS == "windows" {
+        return home.join("AppData").join("Roaming").join(ALPHADB_DIR);
+    }
+
+    return home.join(CONFIG_DIR).join(ALPHADB_DIR);
+}
+
+pub fn init_config() -> Result<(), Box<dyn std::error::Error>> {
+    let config_dir = get_config_dir();
     let config_file = config_dir.join(CONFIG_FILE);
     fs::create_dir_all(config_dir)?;
 
@@ -71,8 +79,7 @@ pub fn init_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 pub fn config_read() -> Option<Config> {
-    let home = get_home();
-    let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
+    let config_dir = get_config_dir();
     let config_file = config_dir.join(CONFIG_FILE);
 
     let config_content_raw = match fs::read_to_string(&config_file) {

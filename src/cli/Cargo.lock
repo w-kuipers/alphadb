@@ -76,6 +76,7 @@ dependencies = [
  "mysql",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]

@@ -15,10 +15,12 @@
 
 use crate::config::connection::get_active_connection;
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
-use aes_gcm::{Aes256Gcm, Key, Nonce};
+use aes_gcm::{Aes256Gcm, Nonce};
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use rand_core::RngCore;
+use thiserror::Error;
+use std::string::FromUtf8Error;
 
 /// Print function title and current
 /// database connection to the commandline
@@ -29,10 +31,10 @@ pub fn title(title: &str) {
         println!(
             "{} {} {} {}:{}",
             "Connected to database".cyan(),
-            conn.database,
+            conn.connection.database,
             "on".cyan(),
-            conn.host,
-            conn.port
+            conn.connection.host,
+            conn.connection.port
         );
     }
 
@@ -98,7 +100,22 @@ pub fn encrypt_password(password: &str, secret: String) -> String {
     }
 }
 
-pub fn decrypt_password(password: String, secret: String) -> String {
+#[derive(Error, Debug)]
+pub enum DecryptionReturnError {
+    #[error("Decryption error: {0}")]
+     DecryptionError(String),
+
+    #[error("Invalid UTF-8 sequence: {0}")]
+    Utf8Error(#[from] FromUtf8Error), // Maps UTF-8 conversion errors
+}
+
+impl From<aes_gcm::Error> for DecryptionReturnError {
+    fn from(err: aes_gcm::Error) -> Self {
+        DecryptionReturnError::DecryptionError(format!("{:?}", err))
+    }
+}
+
+pub fn decrypt_password(password: String, secret: String) -> Result<String, DecryptionReturnError> {
     let secret_decoded = general_purpose::STANDARD.decode(secret);
     if secret_decoded.is_err() {
         error("Error decoding use secret".to_string());
@@ -124,16 +141,16 @@ pub fn decrypt_password(password: String, secret: String) -> String {
     let decrypted_bytes = cipher.decrypt(
         Nonce::from_slice(&nonce.unwrap()),
         ciphertext.unwrap().as_slice(),
-    );
-    if decrypted_bytes.is_err() {
-        error("Unable to decrypt password".to_string());
-    }
+    )?;
+    // if decrypted_bytes.is_err() {
+    //     error("Unable to decrypt password".to_string());
+    // }
 
     // Convert it back to a string
-    let decrypted_password = String::from_utf8(decrypted_bytes.unwrap());
-    if decrypted_password.is_err() {
-        error("Unable to decrypt password".to_string());
-    }
+    let decrypted_password = String::from_utf8(decrypted_bytes)?;
+    // if decrypted_password.is_err() {
+    //     error("Unable to decrypt password".to_string());
+    // }
 
-    return decrypted_password.unwrap();
+    return Ok(decrypted_password);
 }
