@@ -48,7 +48,6 @@ pub fn new_connection(activate: bool, config: &Config) -> String {
         .unwrap();
 
     let password = Password::new("Password")
-        .with_custom_confirmation_error_message("Passwords do not match")
         .without_confirmation()
         .with_validator(required!("This field is required"))
         .prompt()
