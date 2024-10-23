@@ -7,6 +7,7 @@ use crate::commands::connect::*;
 use crate::commands::init::*;
 use crate::commands::status::*;
 use crate::commands::update::*;
+use crate::commands::vacate::*;
 use crate::config::connection::{get_active_connection, remove_connection};
 use crate::config::setup::{config_read, init_config};
 use crate::utils::{decrypt_password, error};
@@ -83,6 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .action(ArgAction::Set)
             ]),
         )
+        .subcommand(Command::new("vacate").about("Completely empty the database"))
         .get_matches();
 
     match matches.subcommand() {
@@ -126,6 +128,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
 
                 update(&mut db, nodata, noverify, allowed_error_priority);
+            }
+        }
+        Some(("vacate", _query_matches)) => {
+            if db.connection.is_none() {
+                println!("{}", "No active database connection.".yellow());
+            } else {
+                vacate(&mut db);
             }
         }
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable
