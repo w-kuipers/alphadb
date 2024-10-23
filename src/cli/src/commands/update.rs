@@ -17,6 +17,7 @@ use crate::utils::{error, title};
 use alphadb::{utils::types::ToleratedVerificationIssueLevel, AlphaDB, UpdateError};
 use colored::Colorize;
 use std::fs;
+use std::path::PathBuf;
 
 /// Update the database.
 /// User should select a version source
@@ -27,6 +28,7 @@ pub fn update(
     nodata: bool,
     noverify: bool,
     tolerated_verification_level: String,
+    version_source: Option<PathBuf>
 ) {
     title("Update");
 
@@ -47,9 +49,24 @@ pub fn update(
         }
     };
 
-    // The database has to be initialized before it can be updated
-    let data = fs::read_to_string("../../tests/assets/test-db-structure.json")
-        .expect("Unable to read file");
+    let data: String;
+
+    if let Some(version_source) = version_source {
+        let vs_file = fs::read_to_string(&version_source);
+        if vs_file.is_err() {
+            // TODO better error messages for different situations (not exist, unable to read,
+            // etc...)
+            error(format!("An error occured while opening the version source file at '{}'", version_source.to_string_lossy().cyan()));
+        }
+
+        data = vs_file.unwrap();
+    }
+    // TODO run version source selector
+    else {
+        data = fs::read_to_string("../../tests/assets/test-db-structure.json").expect("Unable to read file");
+    }
+
+
     let update = db.update(data, None, nodata, noverify, verification_issue_level);
     let status = db.status();
 
