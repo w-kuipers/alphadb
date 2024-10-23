@@ -77,13 +77,25 @@ impl std::fmt::Display for NoVersionNumber {
     }
 }
 
+#[derive(Debug, Clone)]
+struct AlreadyUpToDate;
+
+impl std::fmt::Display for AlreadyUpToDate {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "The database is already up-to-date")
+    }
+}
+
 #[derive(Error, Debug)]
-pub enum UpdateQueriesError {
+pub enum UpdateError {
     #[error("Database not initialized")]
     NotInitialized,
 
     #[error("Database has no version number")]
     NoVersionNumber,
+
+    #[error("Database already up-to-date")]
+    AlreadyUpToDate,
 }
 
 impl AlphaDB {
@@ -211,7 +223,7 @@ impl AlphaDB {
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>) -> Result<Vec<Query>, UpdateQueriesError> {
+    pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>) -> Result<Vec<Query>, UpdateError> {
         let mut queries: Vec<Query> = Vec::new();
         let version_source: serde_json::Value = serde_json::from_str(&version_source).expect("JSON was not well-formatted");
 
@@ -238,10 +250,10 @@ impl AlphaDB {
 
         // let db_version = from_row::<(Option<String>, Option<String>)>(db_data);
         // database_version = db_version.0.expect(DB_CONFIG_NO_VERSION);
-        
+
         // Verify if the database is initialized
         if !status.init {
-            return Err(UpdateQueriesError::NotInitialized);
+            return Err(UpdateError::NotInitialized);
         }
 
         // Verify if the database configuration contains a version number
@@ -249,7 +261,7 @@ impl AlphaDB {
         if status.version.is_some() {
             database_version = status.version.unwrap();
         } else {
-            return Err(UpdateQueriesError::NoVersionNumber);
+            return Err(UpdateError::NoVersionNumber);
         }
         let version_number_check = verify_version_number(&database_version);
 
@@ -264,11 +276,13 @@ impl AlphaDB {
                 panic!("This database uses a different database version source. The template name does not match the one previously used to update this database.");
             }
         } else {
-
             // TODO move this to the end of the function. The same table is updated there
             queries.push(Query {
                 query: format!("UPDATE {} SET template = ? WHERE db = ?", CONFIG_TABLE_NAME),
-                data: Some(Vec::from([version_source["name"].as_str().unwrap().to_string(), self.db_name.as_ref().unwrap().to_string()])),
+                data: Some(Vec::from([
+                    version_source["name"].as_str().unwrap().to_string(),
+                    self.db_name.as_ref().unwrap().to_string(),
+                ])),
             });
         }
 
@@ -296,7 +310,7 @@ impl AlphaDB {
 
         // Check if database is up to date
         if get_version_number_int(&latest_version) <= get_version_number_int(&database_version) {
-            panic!("Database is already up to date");
+            return Err(UpdateError::AlreadyUpToDate);
         }
 
         // Update loop
@@ -349,29 +363,36 @@ impl AlphaDB {
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update(&mut self, version_source: String, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: ToleratedVerificationIssueLevel) {
+    pub fn update(
+        &mut self,
+        version_source: String,
+        update_to_version: Option<String>,
+        no_data: bool,
+        verify: bool,
+        allowed_error_priority: ToleratedVerificationIssueLevel,
+    ) -> Result<(), UpdateError> {
         if verify {
             // TODO
         }
 
-        let queries = self.update_queries(version_source, update_to_version.as_deref());
+        let queries = self.update_queries(version_source, update_to_version.as_deref())?;
         let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
-        if queries.is_ok() {
-            for query in queries.unwrap() {
-                if let Some(data) = query.data {
-                    match conn.exec_drop(query.query, data) {
-                        Ok(result) => result,
-                        Err(error) => panic!("{:?}", error),
-                    };
-                } else {
-                    match conn.exec_drop(query.query, ()) {
-                        Ok(result) => result,
-                        Err(error) => panic!("{:?}", error),
-                    };
-                }
+        for query in queries {
+            if let Some(data) = query.data {
+                match conn.exec_drop(query.query, data) {
+                    Ok(result) => result,
+                    Err(error) => panic!("{:?}", error),
+                };
+            } else {
+                match conn.exec_drop(query.query, ()) {
+                    Ok(result) => result,
+                    Err(error) => panic!("{:?}", error),
+                };
             }
         }
+
+        Ok(())
     }
 
     pub fn vacate(&mut self) {

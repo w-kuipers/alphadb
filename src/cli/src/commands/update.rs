@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::utils::{error, title};
-use alphadb::{utils::types::ToleratedVerificationIssueLevel, AlphaDB, UpdateQueriesError};
+use alphadb::{utils::types::ToleratedVerificationIssueLevel, AlphaDB, UpdateError};
 use colored::Colorize;
 use std::fs;
 
@@ -50,27 +50,35 @@ pub fn update(
     // The database has to be initialized before it can be updated
     let data = fs::read_to_string("../../tests/assets/test-db-structure.json")
         .expect("Unable to read file");
+    let update = db.update(data, None, nodata, noverify, verification_issue_level);
     let status = db.status();
-    let update = db.update_queries(data, None);
 
     if update.is_err() {
-        if let Some(UpdateQueriesError::NotInitialized) = update.as_ref().err() {
-            error(format!(
+        match update.as_ref().unwrap_err() {
+            UpdateError::NotInitialized => error(format!(
                 "{} {} {}\n",
                 "Database".yellow(),
                 status.name.cyan(),
                 "has not yet been initialized".yellow()
-            ));
+            )),
+            UpdateError::AlreadyUpToDate => error(format!(
+                "{} {} {}\n",
+                "Database".yellow(),
+                status.name.cyan(),
+                "is already up-to-date".yellow()
+            )),
+            UpdateError::NoVersionNumber => error("The database configuration is broken, no version number present.".to_string()),
         }
     }
 
-    for line in update.unwrap() {
-        println!("{:?}", line);
+    // This should not be possible, but hey...
+    if status.version.is_none() {
+        error("An unexpected error occured.".to_string());
     }
 
-    // if status.init == false {
-    //     eprintln!(
-    //     );
-    //     return;
-    // }
+    println!(
+        "{} {}",
+        "Database successfully updated to version".green(),
+        status.version.unwrap().cyan()
+    );
 }
