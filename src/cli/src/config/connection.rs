@@ -1,13 +1,26 @@
+// Copyright (C) 2024 Wibo Kuipers
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use crate::commands::connect::Connection;
-use crate::config::setup::{get_home, Config, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE};
+use crate::config::setup::{get_home, Config, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE, get_config_content};
 use crate::utils::{encrypt_password, error};
 use alphadb::AlphaDB;
 use colored::Colorize;
 use inquire::{required, CustomType, Password, Text};
 use serde::Deserialize;
 use serde_derive::Serialize;
-use std::fmt::write;
-use std::path::PathBuf;
 use std::{collections::BTreeMap, fs};
 use toml;
 
@@ -31,6 +44,11 @@ pub struct Session {
     pub port: u16,
 }
 
+/// Add a new database connection by promting the user 
+/// for the credentials and safing it to the sessions config file
+///
+/// - activate: Set the connection as active after creating it
+/// - config: The full user configuration
 pub fn new_connection(activate: bool, config: &Config) -> String {
     let home = get_home();
 
@@ -99,7 +117,7 @@ pub fn new_connection(activate: bool, config: &Config) -> String {
         .unwrap();
 
     // Get current file contents
-    let sessions_content = get_sessions_content();
+    let sessions_content = get_config_content::<DbSessions>();
     let mut file: DbSessions;
     if sessions_content.is_none() {
         file = DbSessions::default();
@@ -145,32 +163,15 @@ pub fn new_connection(activate: bool, config: &Config) -> String {
     return label;
 }
 
+/// Get all the saved connections from
+/// sessions.toml in user config
 pub fn get_connections() -> Option<Vec<String>> {
-    let home = get_home();
-    let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
-    let sessions_file = config_dir.join(SESSIONS_FILE);
-
-    let sessions_content_raw = match fs::read_to_string(&sessions_file) {
-        Ok(c) => c,
-        Err(_) => {
-            return None;
-        }
-    };
-
-    if sessions_content_raw.is_empty() {
+    let sessions_content = get_config_content::<DbSessions>();
+    if sessions_content.is_none() {
         return None;
     }
 
-    let sessions_content: DbSessions = match toml::from_str(&sessions_content_raw) {
-        Ok(c) => c,
-        Err(_) => {
-            error(format!(
-                "Unable to deserialize config file: '{}' is it corrupted?",
-                sessions_file.display().to_string().blue(),
-            ));
-        }
-    };
-
+    let sessions_content = sessions_content.unwrap();
     let mut connections = Vec::new();
 
     for connection in sessions_content.sessions {
@@ -192,8 +193,10 @@ pub struct ActiveConnection {
     pub connection: Session,
 }
 
+/// Get the currently active connection from 
+/// sessions.toml in user config
 pub fn get_active_connection() -> Option<ActiveConnection> {
-    let sessions_content = get_sessions_content();
+    let sessions_content = get_config_content::<DbSessions>();
     if sessions_content.is_none() {
         return None;
     }
@@ -220,7 +223,7 @@ pub fn get_active_connection() -> Option<ActiveConnection> {
 ///
 /// - label: Label for the connection to be removed
 pub fn set_active_connection(label: &String) {
-    let sessions_content = get_sessions_content();
+    let sessions_content = get_config_content::<DbSessions>();
     if sessions_content.is_none() {
         error("There are no saved connections.".to_string());
     }
@@ -237,65 +240,13 @@ pub fn set_active_connection(label: &String) {
     write_sessions(sessions_content);
 }
 
-/// Write to the sessions.toml file in
-/// user config.
-fn write_sessions(sessions: DbSessions) {
-    let toml_string = match toml::to_string(&sessions) {
-        Ok(c) => c,
-        Err(_) => {
-            error(format!(
-                "An unexpected error occured. Unable to encode generated config."
-            ));
-        }
-    };
-
-    let home = get_home();
-    let sessions_file = home.join(CONFIG_DIR).join(ALPHADB_DIR).join(SESSIONS_FILE);
-
-    match fs::write(&sessions_file, toml_string) {
-        Ok(c) => c,
-        Err(_) => {
-            error(format!(
-                "Unable to write to config file: '{}'",
-                sessions_file.display().to_string().blue(),
-            ));
-        }
-    };
-}
-
-/// Read the sessions.toml file in user
-/// config and parse it to DbSessions struct.
-fn get_sessions_content() -> Option<DbSessions> {
-    let home = get_home();
-    let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
-    let sessions_file = config_dir.join(SESSIONS_FILE);
-
-    let sessions_content_raw = match fs::read_to_string(&sessions_file) {
-        Ok(c) => c,
-        Err(_) => {
-            return None;
-        }
-    };
-
-    let sessions_content: DbSessions = match toml::from_str(&sessions_content_raw) {
-        Ok(c) => c,
-        Err(_) => {
-            error(format!(
-                "Unable to deserialize config file: '{}' is it corrupted?",
-                sessions_file.display().to_string().blue(),
-            ));
-        }
-    };
-
-    return Some(sessions_content);
-}
 
 /// Remove connection credentials from
 /// the sessions.toml file in user config
 ///
 /// - label: Label for the connection to be removed
 pub fn remove_connection(label: String) {
-    let sessions = get_sessions_content();
+    let sessions = get_config_content::<DbSessions>();
 
     // If sessions.toml does not exist, no error is thrown
     // This is debatable
