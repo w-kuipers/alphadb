@@ -24,6 +24,8 @@ use serde_derive::Serialize;
 use std::{collections::BTreeMap, fs};
 use toml;
 
+use super::setup::write_config;
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct DbSessions {
     sessions: BTreeMap<String, Session>,
@@ -237,7 +239,7 @@ pub fn set_active_connection(label: &String) {
     }
 
     let _ = sessions_content.setup.active_session.insert(label.to_string());
-    write_sessions(sessions_content);
+    write_config::<DbSessions>(sessions_content);
 }
 
 
@@ -256,5 +258,5 @@ pub fn remove_connection(label: String) {
 
     let mut sessions = sessions.unwrap();
     sessions.sessions.remove(&label);
-    write_sessions(sessions);
+    write_config::<DbSessions>(sessions);
 }

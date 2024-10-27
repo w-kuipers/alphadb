@@ -28,6 +28,8 @@ use std::{env, fs, path::PathBuf};
 use toml;
 use crate::config::connection::DbSessions;
 use crate::config::version_source::VersionSources;
+use std::any::{Any, TypeId};
+
 
 pub const ALPHADB_DIR: &str = "alphadb";
 pub const CONFIG_DIR: &str = ".config";
@@ -133,10 +135,16 @@ pub fn config_read() -> Option<Config> {
 /// Return the sessions config file path
 ///
 /// _config: The config struct 
-fn get_config_path_from_struct<T>() -> PathBuf {
+fn get_config_path_from_struct<T: 'static + Any>() -> PathBuf {
     let home = get_home();
     let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
 
+    if TypeId::of::<T>() == TypeId::of::<DbSessions>() {
+        println!("is dbsession");
+    }
+    else {
+        println!("not db session");
+    }
 
     return config_dir.join(SESSIONS_FILE);
 }
@@ -180,7 +188,7 @@ where
 ///
 /// T: Config struct. The correct config file will be matched
 /// config: Config data to write to the file
-pub fn write_sessions<T>(config: T)
+pub fn write_config<T>(config: T)
 where
     T: DeserializeOwned + Serialize,
 {
