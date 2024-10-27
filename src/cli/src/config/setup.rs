@@ -140,13 +140,14 @@ fn get_config_path_from_struct<T: 'static + Any>() -> PathBuf {
     let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
 
     if TypeId::of::<T>() == TypeId::of::<DbSessions>() {
-        println!("is dbsession");
+        return config_dir.join(SESSIONS_FILE);
     }
-    else {
-        println!("not db session");
+     
+    if TypeId::of::<T>() == TypeId::of::<VersionSources>() {
+        return config_dir.join(SESSIONS_FILE);
     }
 
-    return config_dir.join(SESSIONS_FILE);
+    error("An unexpected error occured".to_string());
 }
 
 // fn foo(s: impl AsRef<str>) {s.as_ref()}
@@ -156,14 +157,12 @@ fn get_config_path_from_struct<T: 'static + Any>() -> PathBuf {
 /// Read and parse a config file
 ///
 /// T: Config struct. The correct config file will be matched
-pub fn get_config_content<T>() -> Option<T>
+pub fn get_config_content<T: 'static + Any>() -> Option<T>
 where
     T: DeserializeOwned,
 {
-    let home = get_home();
-    let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
-    let sessions_file = config_dir.join(SESSIONS_FILE);
 
+    let sessions_file = get_config_path_from_struct::<T>();
     let sessions_content_raw = match fs::read_to_string(&sessions_file) {
         Ok(c) => c,
         Err(_) => {
@@ -188,7 +187,7 @@ where
 ///
 /// T: Config struct. The correct config file will be matched
 /// config: Config data to write to the file
-pub fn write_config<T>(config: T)
+pub fn write_config<T: 'static + Any>(config: T)
 where
     T: DeserializeOwned + Serialize,
 {
@@ -201,8 +200,7 @@ where
         }
     };
 
-    let home = get_home();
-    let sessions_file = home.join(CONFIG_DIR).join(ALPHADB_DIR).join(SESSIONS_FILE);
+    let sessions_file = get_config_path_from_struct::<T>();
 
     match fs::write(&sessions_file, toml_string) {
         Ok(c) => c,
