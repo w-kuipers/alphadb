@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::config::setup::Config;
+use crate::config::version_source::{select_version_source, VersionSources};
 use crate::utils::{error, title};
-use crate::config::setup::get_config_content;
-use crate::config::version_source::VersionSources;
-use alphadb::{utils::types::ToleratedVerificationIssueLevel, AlphaDB, UpdateError};
+use alphadb::{utils::types::ToleratedVerificationIssueLevel, AlphaDB};
 use colored::Colorize;
 use std::fs;
 use std::path::PathBuf;
@@ -26,11 +26,12 @@ use std::path::PathBuf;
 ///
 /// - db: AlphaDB instance  
 pub fn update(
+    config: &Config,
     db: &mut AlphaDB,
     nodata: bool,
     noverify: bool,
     tolerated_verification_level: String,
-    version_source: Option<PathBuf>
+    version_source: Option<PathBuf>,
 ) {
     title("Update");
 
@@ -58,7 +59,10 @@ pub fn update(
         if vs_file.is_err() {
             // TODO better error messages for different situations (not exist, unable to read,
             // etc...)
-            error(format!("An error occured while opening the version source file at '{}'", version_source.to_string_lossy().cyan()));
+            error(format!(
+                "An error occured while opening the version source file at '{}'",
+                version_source.to_string_lossy().cyan()
+            ));
         }
 
         data = vs_file.unwrap();
@@ -67,9 +71,8 @@ pub fn update(
     else {
         // data = fs::read_to_string("../../tests/assets/test-db-structure.json").expect("Unable to read file");
 
-        let content = get_config_content::<VersionSources>();
+        let source = select_version_source(config);
     }
-
 
     // let update = db.update(data, None, nodata, noverify, verification_issue_level);
     // let status = db.status();

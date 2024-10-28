@@ -35,7 +35,7 @@ pub struct VersionSources {
 ///
 /// - activate: Set the connection as active after creating it
 /// - config: The full user configuration
-pub fn select_version_source(config: &Config) {
+pub fn select_version_source(config: &Config) -> String {
     // Get all available version sources as a vector of strings containing the labels
     if let Some(mut sources) = get_version_sources() {
         sources.push("++ New version source".to_string());
@@ -50,9 +50,13 @@ pub fn select_version_source(config: &Config) {
         let choice = choice.unwrap();
 
         if choice == "++ New version source".to_string() {
+            return "placeholder".to_string();
         } else {
+            return choice;
         }
     }
+
+    return "placeholder".to_string();
 }
 
 /// Get all the saved version source files from

@@ -139,7 +139,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     version_source = Some(vs.into());
                 }
 
-                update(&mut db, nodata, noverify, allowed_error_priority, version_source);
+                update(&config, &mut db, nodata, noverify, allowed_error_priority, version_source);
             }
         }
         Some(("vacate", _query_matches)) => {
