@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::config::connection::DbSessions;
+use crate::config::version_source::VersionSources;
 use crate::utils::error;
 use alphadb::binlog::events::PrimaryKeyWithPrefix;
 use base64::engine::{general_purpose, Engine};
@@ -24,12 +26,9 @@ use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 use serde::Deserialize;
 use serde_derive::Serialize;
+use std::any::{Any, TypeId};
 use std::{env, fs, path::PathBuf};
 use toml;
-use crate::config::connection::DbSessions;
-use crate::config::version_source::VersionSources;
-use std::any::{Any, TypeId};
-
 
 pub const ALPHADB_DIR: &str = "alphadb";
 pub const CONFIG_DIR: &str = ".config";
@@ -101,9 +100,11 @@ pub fn init_config() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn config_read() -> Option<Config> {
-    let config_dir = get_config_dir();
-    let config_file = config_dir.join(CONFIG_FILE);
+pub fn config_read<T: 'static + Any>() -> Option<T>
+where
+    T: DeserializeOwned,
+{
+    let config_file = get_config_path_from_struct::<T>();
 
     let config_content_raw = match fs::read_to_string(&config_file) {
         Ok(c) => c,
@@ -119,7 +120,7 @@ pub fn config_read() -> Option<Config> {
         return None;
     }
 
-    let config_content: Config = match toml::from_str(&config_content_raw) {
+    let config_content: T = match toml::from_str(&config_content_raw) {
         Ok(c) => c,
         Err(_) => {
             error(format!(
@@ -134,7 +135,7 @@ pub fn config_read() -> Option<Config> {
 
 /// Return the sessions config file path
 ///
-/// _config: The config struct 
+/// _config: The config struct
 fn get_config_path_from_struct<T: 'static + Any>() -> PathBuf {
     let home = get_home();
     let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
@@ -142,17 +143,17 @@ fn get_config_path_from_struct<T: 'static + Any>() -> PathBuf {
     if TypeId::of::<T>() == TypeId::of::<DbSessions>() {
         return config_dir.join(SESSIONS_FILE);
     }
-     
+
     if TypeId::of::<T>() == TypeId::of::<VersionSources>() {
-        return config_dir.join(SESSIONS_FILE);
+        return config_dir.join(SOURCES_FILE);
+    }
+
+    if TypeId::of::<T>() == TypeId::of::<Config>() {
+        return config_dir.join(CONFIG_FILE);
     }
 
     error("An unexpected error occured".to_string());
 }
-
-// fn foo(s: impl AsRef<str>) {s.as_ref()}
-// or
-// fn foo(s: impl Into<String>) {s.into()}
 
 /// Read and parse a config file
 ///
@@ -161,26 +162,25 @@ pub fn get_config_content<T: 'static + Any>() -> Option<T>
 where
     T: DeserializeOwned,
 {
-
-    let sessions_file = get_config_path_from_struct::<T>();
-    let sessions_content_raw = match fs::read_to_string(&sessions_file) {
+    let config_file = get_config_path_from_struct::<T>();
+    let config_content_raw = match fs::read_to_string(&config_file) {
         Ok(c) => c,
         Err(_) => {
             return None;
         }
     };
 
-    let sessions_content: T = match toml::from_str(&sessions_content_raw) {
+    let config_content: T = match toml::from_str(&config_content_raw) {
         Ok(c) => c,
         Err(_) => {
             error(format!(
                 "Unable to deserialize config file: '{}' is it corrupted?",
-                sessions_file.display().to_string().blue(),
+                config_file.display().to_string().blue(),
             ));
         }
     };
 
-    return Some(sessions_content);
+    return Some(config_content);
 }
 
 /// Write to a config file
@@ -200,14 +200,14 @@ where
         }
     };
 
-    let sessions_file = get_config_path_from_struct::<T>();
+    let config_file = get_config_path_from_struct::<T>();
 
-    match fs::write(&sessions_file, toml_string) {
+    match fs::write(&config_file, toml_string) {
         Ok(c) => c,
         Err(_) => {
             error(format!(
                 "Unable to write to config file: '{}'",
-                sessions_file.display().to_string().blue(),
+                config_file.display().to_string().blue(),
             ));
         }
     };

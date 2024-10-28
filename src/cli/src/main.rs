@@ -9,7 +9,7 @@ use crate::commands::status::*;
 use crate::commands::update::*;
 use crate::commands::vacate::*;
 use crate::config::connection::{get_active_connection, remove_connection};
-use crate::config::setup::{config_read, init_config};
+use crate::config::setup::{config_read, init_config, Config};
 use crate::utils::{decrypt_password, error};
 use alphadb::AlphaDB;
 use std::path::Path;
@@ -17,7 +17,7 @@ use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_config()?;
-    let config = config_read();
+    let config = config_read::<Config>();
 
     // Config should not be able to be none,
     // if it is, something has gone wrong
