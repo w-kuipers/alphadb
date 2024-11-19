@@ -102,7 +102,7 @@ pub fn new_version_source(config: &Config) -> String {
     }
 
     file.source_files
-        .insert(label.to_string(), version_source_path.into());
+        .insert(label.to_string(), version_source_path.clone().into());
 
     let toml_string = match toml::to_string(&file) {
         Ok(c) => c,
@@ -124,7 +124,7 @@ pub fn new_version_source(config: &Config) -> String {
         }
     };
 
-    return label;
+    return version_source_path;
 }
 
 /// Get all the saved version source files from

@@ -18,8 +18,9 @@ use crate::config::version_source::{select_version_source, VersionSources};
 use crate::utils::{error, title};
 use alphadb::{utils::types::ToleratedVerificationIssueLevel, AlphaDB};
 use colored::Colorize;
-use std::fs;
 use std::path::PathBuf;
+use std::fs;
+use alphadb::UpdateError;
 
 /// Update the database.
 /// User should select a version source
@@ -52,57 +53,54 @@ pub fn update(
         }
     };
 
-    let data: String;
 
+    let vs_file: String;
     if let Some(version_source) = version_source {
-        let vs_file = fs::read_to_string(&version_source);
-        if vs_file.is_err() {
-            // TODO better error messages for different situations (not exist, unable to read,
-            // etc...)
-            error(format!(
-                "An error occured while opening the version source file at '{}'",
-                version_source.to_string_lossy().cyan()
-            ));
+        vs_file = version_source.to_string_lossy().to_string();
+    } else {
+        vs_file = select_version_source(config);
+    }
+
+    let file = fs::read_to_string(&vs_file);
+
+    if file.is_err() {
+        error(format!(
+            "An error occured while opening the version source file at '{}'",
+            vs_file.cyan()
+        ));
+    }
+
+    let data = file.unwrap();
+
+    let update = db.update(data, None, nodata, noverify, verification_issue_level);
+    let status = db.status();
+
+    if update.is_err() {
+        match update.as_ref().unwrap_err() {
+            UpdateError::NotInitialized => error(format!(
+                "{} {} {}\n",
+                "Database".yellow(),
+                status.name.cyan(),
+                "has not yet been initialized".yellow()
+            )),
+            UpdateError::AlreadyUpToDate => error(format!(
+                "{} {} {}\n",
+                "Database".yellow(),
+                status.name.cyan(),
+                "is already up-to-date".yellow()
+            )),
+            UpdateError::NoVersionNumber => error("The database configuration is broken, no version number present.".to_string()),
         }
-
-        data = vs_file.unwrap();
-    }
-    // TODO run version source selector
-    else {
-        // data = fs::read_to_string("../../tests/assets/test-db-structure.json").expect("Unable to read file");
-
-        let source = select_version_source(config);
     }
 
-    // let update = db.update(data, None, nodata, noverify, verification_issue_level);
-    // let status = db.status();
-    //
-    // if update.is_err() {
-    //     match update.as_ref().unwrap_err() {
-    //         UpdateError::NotInitialized => error(format!(
-    //             "{} {} {}\n",
-    //             "Database".yellow(),
-    //             status.name.cyan(),
-    //             "has not yet been initialized".yellow()
-    //         )),
-    //         UpdateError::AlreadyUpToDate => error(format!(
-    //             "{} {} {}\n",
-    //             "Database".yellow(),
-    //             status.name.cyan(),
-    //             "is already up-to-date".yellow()
-    //         )),
-    //         UpdateError::NoVersionNumber => error("The database configuration is broken, no version number present.".to_string()),
-    //     }
-    // }
-    //
-    // // This should not be possible, but hey...
-    // if status.version.is_none() {
-    //     error("An unexpected error occured.".to_string());
-    // }
-    //
-    // println!(
-    //     "{} {}",
-    //     "Database successfully updated to version".green(),
-    //     status.version.unwrap().cyan()
-    // );
+    // This should not be possible, but hey...
+    if status.version.is_none() {
+        error("An unexpected error occured.".to_string());
+    }
+
+    println!(
+        "{} {}",
+        "Database successfully updated to version".green(),
+        status.version.unwrap().cyan()
+    );
 }
