@@ -9,13 +9,14 @@ use crate::commands::status::*;
 use crate::commands::update::*;
 use crate::commands::vacate::*;
 use crate::config::connection::{get_active_connection, remove_connection};
-use crate::config::setup::{config_read, init_config};
+use crate::config::setup::{config_read, init_config, Config};
 use crate::utils::{decrypt_password, error};
 use alphadb::AlphaDB;
+use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_config()?;
-    let config = config_read();
+    let config = config_read::<Config>();
 
     // Config should not be able to be none,
     // if it is, something has gone wrong
@@ -81,6 +82,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .long("tolerated-verification-level")
                     .default_value("low")
                     .help("Specify from which issue level the program will fail (critical, hight, low, all)")
+                    .action(ArgAction::Set),
+                Arg::new("source")
+                    .short('s')
+                    .long("source")
+                    .help("Version source to use for the update")
                     .action(ArgAction::Set)
             ]),
         )
@@ -127,7 +133,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     allowed_error_priority = allowed_error_priority_some.to_string();
                 }
 
-                update(&mut db, nodata, noverify, allowed_error_priority);
+                let mut version_source: Option<PathBuf> = None;
+                if let Some(vs) = query_matches.get_one::<String>("source") {
+                    version_source = Some(vs.into());
+                }
+
+                update(&config, &mut db, nodata, noverify, allowed_error_priority, version_source);
             }
         }
         Some(("vacate", _query_matches)) => {
