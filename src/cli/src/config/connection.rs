@@ -47,7 +47,7 @@ pub struct Session {
 }
 
 /// Add a new database connection by promting the user 
-/// for the credentials and safing it to the sessions config file
+/// for the credentials and saving it to the sessions config file
 ///
 /// - activate: Set the connection as active after creating it
 /// - config: The full user configuration

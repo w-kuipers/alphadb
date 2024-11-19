@@ -12,7 +12,6 @@ use crate::config::connection::{get_active_connection, remove_connection};
 use crate::config::setup::{config_read, init_config, Config};
 use crate::utils::{decrypt_password, error};
 use alphadb::AlphaDB;
-use std::path::Path;
 use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

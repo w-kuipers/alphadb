@@ -232,5 +232,4 @@ mod altertable_tests {
             "ALTER TABLE table MODIFY COLUMN col INT NOT NULL AUTO_INCREMENT, DROP PRIMARY KEY;"
         );
     }
-
 }

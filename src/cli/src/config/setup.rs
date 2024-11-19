@@ -16,7 +16,6 @@
 use crate::config::connection::DbSessions;
 use crate::config::version_source::VersionSources;
 use crate::utils::error;
-use alphadb::binlog::events::PrimaryKeyWithPrefix;
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use home::home_dir;

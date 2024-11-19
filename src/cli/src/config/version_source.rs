@@ -13,16 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 use crate::config::setup::{
-    get_config_content, get_home, Config, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE,
+    get_config_content, get_home, Config, ALPHADB_DIR, CONFIG_DIR, SOURCES_FILE,
 };
 use crate::utils::error;
 use colored::Colorize;
 use inquire::Select;
+use inquire::{CustomType, Text};
 use serde::Deserialize;
 use serde_derive::Serialize;
 use std::path::PathBuf;
 use std::{collections::BTreeMap, fs};
 use toml;
+use serde_json;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct VersionSources {
@@ -50,13 +52,79 @@ pub fn select_version_source(config: &Config) -> String {
         let choice = choice.unwrap();
 
         if choice == "++ New version source".to_string() {
-            return "placeholder".to_string();
+            return new_version_source(config);
         } else {
             return choice;
         }
     }
 
-    return "placeholder".to_string();
+    return new_version_source(config);
+}
+
+/// Add a new version-source by promting the user
+/// for the file/url and saving it to the version source config file
+///
+/// - activate: Set the connection as active after creating it
+/// - config: The full user configuration
+pub fn new_version_source(config: &Config) -> String {
+    let home = get_home();
+
+    print!("\n");
+    let version_source_path = Text::new("Path")
+        .with_help_message("Can either be local JSON files or URL's returning JSON data.")
+        .prompt()
+        .unwrap();
+
+    let vs_file = fs::read_to_string(&version_source_path);
+    if vs_file.is_err() {
+        // TODO better error messages for different situations (not exist, unable to read,
+        // etc...)
+        error(format!(
+            "An error occured while opening the version source file at '{}'",
+            version_source_path.to_string().cyan()
+        ));
+    }
+
+    let version_source: serde_json::Value = serde_json::from_str(&vs_file.unwrap()).expect("JSON was not well-formatted");
+
+    let label: String = CustomType::new("Label")
+        .with_default(version_source["name"].as_str().unwrap().to_string())
+        .prompt()
+        .unwrap();
+
+    // Get current file contents
+    let vs_content = get_config_content::<VersionSources>();
+    let mut file: VersionSources;
+    if vs_content.is_none() {
+        file = VersionSources::default();
+    } else {
+        file = vs_content.unwrap();
+    }
+
+    file.source_files
+        .insert(label.to_string(), version_source_path.into());
+
+    let toml_string = match toml::to_string(&file) {
+        Ok(c) => c,
+        Err(_) => {
+            error(format!(
+                "An unexpected error occured. Unable to encode generated config."
+            ));
+        }
+    };
+    let sources_file = home.join(CONFIG_DIR).join(ALPHADB_DIR).join(SOURCES_FILE);
+
+    match fs::write(&sources_file, toml_string) {
+        Ok(c) => c,
+        Err(_) => {
+            error(format!(
+                "Unable to write to config file: '{}'",
+                sources_file.display().to_string().blue(),
+            ));
+        }
+    };
+
+    return label;
 }
 
 /// Get all the saved version source files from
