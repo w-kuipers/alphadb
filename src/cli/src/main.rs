@@ -10,13 +10,19 @@ use crate::commands::update::*;
 use crate::commands::vacate::*;
 use crate::config::connection::{get_active_connection, remove_connection};
 use crate::config::setup::{config_read, init_config, Config};
-use crate::utils::{decrypt_password, error};
+use crate::utils::{abort, decrypt_password, error};
 use alphadb::AlphaDB;
 use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_config()?;
     let config = config_read::<Config>();
+
+    // Setup handler for when user presses CTRL+C
+    ctrlc::set_handler(|| {
+        abort();
+    })
+    .expect("Error setting user exit handler");
 
     // Config should not be able to be none,
     // if it is, something has gone wrong
@@ -31,7 +37,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Some functions do not require a database connection
     let mut db = AlphaDB::new();
     if let Some(conn) = get_active_connection() {
-        let password = decrypt_password(conn.connection.password, config.main.secret.clone().unwrap());
+        let password = decrypt_password(
+            conn.connection.password,
+            config.main.secret.clone().unwrap(),
+        );
 
         if password.is_err() {
             remove_connection(conn.label);
@@ -126,10 +135,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(noverify_some) = query_matches.get_one("no-verify") {
                     noverify = *noverify_some;
                 }
-                
+
                 // Allowed error priority should be low by default
                 let mut allowed_error_priority = "low".to_string();
-                if let Some(allowed_error_priority_some) = query_matches.get_one::<String>("tolerated-verification-level") {
+                if let Some(allowed_error_priority_some) =
+                    query_matches.get_one::<String>("tolerated-verification-level")
+                {
                     allowed_error_priority = allowed_error_priority_some.to_string();
                 }
 
@@ -138,7 +149,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     version_source = Some(vs.into());
                 }
 
-                update(&config, &mut db, nodata, noverify, allowed_error_priority, version_source);
+                update(
+                    &config,
+                    &mut db,
+                    nodata,
+                    noverify,
+                    allowed_error_priority,
+                    version_source,
+                );
             }
         }
         Some(("vacate", _query_matches)) => {

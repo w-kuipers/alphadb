@@ -15,16 +15,16 @@
 use crate::config::setup::{
     get_config_content, get_home, Config, ALPHADB_DIR, CONFIG_DIR, SOURCES_FILE,
 };
-use crate::utils::error;
+use crate::utils::{abort, error};
 use colored::Colorize;
 use inquire::Select;
 use inquire::{CustomType, Text};
 use serde::Deserialize;
 use serde_derive::Serialize;
+use serde_json;
 use std::path::PathBuf;
 use std::{collections::BTreeMap, fs};
 use toml;
-use serde_json;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct VersionSources {
@@ -42,14 +42,19 @@ pub fn select_version_source(config: &Config) -> String {
     if let Some(mut sources) = get_version_sources() {
         sources.push("++ New version source".to_string());
 
-        let choice = Select::new("Choose a version source to use for this action", sources)
+        let choice = match Select::new("Choose a version source to use for this action", sources)
             .with_vim_mode(config.input.vim_bindings)
-            .prompt();
-        if choice.is_err() {
-            error("An unexpected error occured".to_string());
-        }
+            .prompt()
+        {
+            Ok(choice) => choice,
+            Err(err) => {
+                if let inquire::error::InquireError::OperationInterrupted = err {
+                    abort();
+                }
 
-        let choice = choice.unwrap();
+                error("An unexpected error occured".to_string());
+            }
+        };
 
         if choice == "++ New version source".to_string() {
             return new_version_source(config);
@@ -85,7 +90,8 @@ pub fn new_version_source(config: &Config) -> String {
         ));
     }
 
-    let version_source: serde_json::Value = serde_json::from_str(&vs_file.unwrap()).expect("JSON was not well-formatted");
+    let version_source: serde_json::Value =
+        serde_json::from_str(&vs_file.unwrap()).expect("JSON was not well-formatted");
 
     let label: String = CustomType::new("Label")
         .with_default(version_source["name"].as_str().unwrap().to_string())
