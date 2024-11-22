@@ -37,7 +37,7 @@ pub struct VersionSources {
 ///
 /// - activate: Set the connection as active after creating it
 /// - config: The full user configuration
-pub fn select_version_source(config: &Config) -> String {
+pub fn select_version_source(config: &Config) -> Option<PathBuf> {
     // Get all available version sources as a vector of strings containing the labels
     if let Some(mut sources) = get_version_sources() {
         sources.push("++ New version source".to_string());
@@ -57,13 +57,13 @@ pub fn select_version_source(config: &Config) -> String {
         };
 
         if choice == "++ New version source".to_string() {
-            return new_version_source(config);
+            return get_version_source(new_version_source(config));
         } else {
-            return choice;
+            return get_version_source(choice);
         }
     }
 
-    return new_version_source(config);
+    return get_version_source(new_version_source(config));
 }
 
 /// Add a new version-source by promting the user
@@ -131,6 +131,22 @@ pub fn new_version_source(config: &Config) -> String {
     };
 
     return version_source_path;
+}
+
+/// Get a version source path by label from sources.toml in user config
+fn get_version_source(label: String) -> Option<PathBuf> {
+    let source_content = get_config_content::<VersionSources>();
+    if source_content.is_none() {
+        return None;
+    }
+
+    let source_content = source_content.unwrap();
+    
+    if let Some(vs_path) = source_content.source_files.get(&label) {
+        return Some(vs_path.to_path_buf());
+    }
+
+    return None;
 }
 
 /// Get all the saved version source files from
