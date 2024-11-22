@@ -30,12 +30,13 @@ use std::process;
 pub fn title(title: &str) {
     if let Some(conn) = get_active_connection() {
         println!(
-            "{} {} {} {}:{}",
+            "{} {} {} {}:{} {}",
             "Connected to database".cyan(),
             conn.connection.database,
             "on".cyan(),
             conn.connection.host,
-            conn.connection.port
+            conn.connection.port,
+            format!("({})", conn.label).green()
         );
     }
 
