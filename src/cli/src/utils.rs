@@ -19,8 +19,9 @@ use aes_gcm::{Aes256Gcm, Nonce};
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use rand_core::RngCore;
-use thiserror::Error;
 use std::string::FromUtf8Error;
+use thiserror::Error;
+use std::process;
 
 /// Print function title and current
 /// database connection to the commandline
@@ -39,6 +40,12 @@ pub fn title(title: &str) {
     }
 
     println!("\n{} {} {}\n", "-----".green(), title, "-----".green());
+}
+
+/// Function to abort program
+pub fn abort() {
+    println!("{}", "\nAborted.".red());
+    process::exit(0);
 }
 
 #[cfg(debug_assertions)]
@@ -103,7 +110,7 @@ pub fn encrypt_password(password: &str, secret: String) -> String {
 #[derive(Error, Debug)]
 pub enum DecryptionReturnError {
     #[error("Decryption error: {0}")]
-     DecryptionError(String),
+    DecryptionError(String),
 
     #[error("Invalid UTF-8 sequence: {0}")]
     Utf8Error(#[from] FromUtf8Error), // Maps UTF-8 conversion errors
