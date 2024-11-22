@@ -54,11 +54,17 @@ pub fn update(
     };
 
 
-    let vs_file: String;
+    let vs_file: PathBuf;
     if let Some(version_source) = version_source {
-        vs_file = version_source.to_string_lossy().to_string();
+        vs_file = version_source.to_path_buf();
     } else {
-        vs_file = select_version_source(config);
+        if let Some(path) = select_version_source(config) {
+            vs_file = path;
+        } 
+
+        else {
+            error("No version source was selected".to_string());
+        }
     }
 
     let file = fs::read_to_string(&vs_file);
@@ -66,7 +72,7 @@ pub fn update(
     if file.is_err() {
         error(format!(
             "An error occured while opening the version source file at '{}'",
-            vs_file.cyan()
+            vs_file.to_string_lossy().cyan()
         ));
     }
 
@@ -100,7 +106,7 @@ pub fn update(
 
     println!(
         "{} {}",
-        "Database successfully updated to version".green(),
+        "Database successfully updated to version\n".green(),
         status.version.unwrap().cyan()
     );
 }
