@@ -42,7 +42,7 @@ impl AlphaDB {
         user: String,
         password: String,
         database: String,
-        port: i32,
+        port: u16,
     ) {
         self.alphadb_instance
             .connect(host, user, password, database, port)

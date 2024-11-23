@@ -6,7 +6,7 @@
 // (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// but WITHOUT ANY WARRANTY; without even the implied warranty ofprintln
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
@@ -20,13 +20,13 @@ pub mod version_source_verification;
 
 use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
-use crate::utils::error_messages::DB_CONFIG_NO_VERSION;
 use crate::utils::globals::CONFIG_TABLE_NAME;
-use crate::utils::types::VerificationIssueLevel;
+use crate::utils::types::ToleratedVerificationIssueLevel;
 use crate::utils::version_number::{get_version_number_int, verify_version_number};
 use mysql::prelude::*;
 pub use mysql::*;
 use std::panic;
+use thiserror::Error;
 
 #[derive(Debug)]
 pub struct AlphaDB {
@@ -54,20 +54,66 @@ pub struct Query {
     pub data: Option<Vec<String>>,
 }
 
+pub enum Init {
+    AlreadyInitialized,
+    Success,
+}
+
+#[derive(Debug, Clone)]
+struct NotInitialized;
+
+impl std::fmt::Display for NotInitialized {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Database has not yet been initialized")
+    }
+}
+
+#[derive(Debug, Clone)]
+struct NoVersionNumber;
+
+impl std::fmt::Display for NoVersionNumber {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "There seems to be an issue with the database config. It is initialized, but does not return a valid version. Please manually check the configuration table in your database.")
+    }
+}
+
+#[derive(Debug, Clone)]
+struct AlreadyUpToDate;
+
+impl std::fmt::Display for AlreadyUpToDate {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "The database is already up-to-date")
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum UpdateError {
+    #[error("Database not initialized")]
+    NotInitialized,
+
+    #[error("Database has no version number")]
+    NoVersionNumber,
+
+    #[error("Database already up-to-date")]
+    AlreadyUpToDate,
+}
+
 impl AlphaDB {
     pub fn new() -> AlphaDB {
         AlphaDB { connection: None, db_name: None }
     }
 
-    pub fn connect(&mut self, host: String, user: String, password: String, database: String, port: i32) {
+    pub fn connect(&mut self, host: &String, user: &String, password: &String, database: &String, port: &u16) -> Result<(), mysql::Error> {
         let url = format!("mysql://{}:{}@{}:{}/{}", user, password, host, port, database);
 
         // Establish connection to database
-        let pool = Pool::new(&url[..]).unwrap();
-        self.connection = Some(pool.get_conn().unwrap());
+        let pool = Pool::new(&url[..])?;
+        self.connection = Some(pool.get_conn()?);
 
         // Set the database name
-        self.db_name = Some(database);
+        self.db_name = Some(database.to_string());
+
+        Ok(())
     }
 
     pub fn check(&mut self) -> Check {
@@ -101,11 +147,11 @@ impl AlphaDB {
         Check { check, version }
     }
 
-    pub fn init(&mut self) {
+    pub fn init(&mut self) -> Init {
         // Check if the table is already initialized
         let check = self.check();
         if check.check {
-            panic!("already-initialized");
+            return Init::AlreadyInitialized;
         }
 
         let conn = &mut self.connection.as_mut().expect("Connection could not be established");
@@ -128,6 +174,8 @@ impl AlphaDB {
             (self.db_name.as_ref().unwrap(), "0.0.0"),
         )
         .unwrap();
+
+        return Init::Success;
     }
 
     pub fn status(&mut self) -> Status {
@@ -156,10 +204,8 @@ impl AlphaDB {
                 version = Some(c.0);
                 template = c.1;
             }
-        }
 
-        // Check true means database is initialized
-        if table_check.is_some() {
+            // Check true means database is initialized
             init = true;
         }
 
@@ -177,11 +223,9 @@ impl AlphaDB {
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>) -> Vec<Query> {
+    pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>) -> Result<Vec<Query>, UpdateError> {
         let mut queries: Vec<Query> = Vec::new();
         let version_source: serde_json::Value = serde_json::from_str(&version_source).expect("JSON was not well-formatted");
-
-        let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
         let versions = match version_source["version"].as_array() {
             Some(versions) => versions,
@@ -190,47 +234,62 @@ impl AlphaDB {
             }
         };
 
+        // Check if database is initialized
+        let status = self.status();
+        // let conn = &mut self.connection.as_mut().expect("Connection could not be established");
+
         // Get database version
-        let database_version: String;
-        let db_data: Row = conn
-            .exec_first(
-                format!("SELECT version, template FROM {} WHERE db = ?", CONFIG_TABLE_NAME),
-                (self.db_name.as_ref().unwrap(),),
-            )
-            .expect("Database configuration error")
-            .unwrap();
+        // let database_version: String;
+        // let db_data: Row = conn
+        //     .exec_first(
+        //         format!("SELECT version, template FROM {} WHERE db = ?", CONFIG_TABLE_NAME),
+        //         (self.db_name.as_ref().unwrap(),),
+        //     )
+        //     .expect("Database configuration error")
+        //     .unwrap();
 
-        let db_version = from_row::<(Option<String>, Option<String>)>(db_data);
-        database_version = db_version.0.expect(DB_CONFIG_NO_VERSION);
+        // let db_version = from_row::<(Option<String>, Option<String>)>(db_data);
+        // database_version = db_version.0.expect(DB_CONFIG_NO_VERSION);
 
-        let version_number_check = panic::catch_unwind(|| {
-            verify_version_number(database_version.clone());
-        });
-
-        if version_number_check.is_err() {
-            panic!("{}", DB_CONFIG_NO_VERSION);
+        // Verify if the database is initialized
+        if !status.init {
+            return Err(UpdateError::NotInitialized);
         }
 
+        // Verify if the database configuration contains a version number
+        let database_version: String;
+        if status.version.is_some() {
+            database_version = status.version.unwrap();
+        } else {
+            return Err(UpdateError::NoVersionNumber);
+        }
+        let version_number_check = verify_version_number(&database_version);
+
+        // TODO Should buid in errors to the version number check funtions
+        // if version_number_check.is_err() {
+        //     panic!("{}", DB_CONFIG_NO_VERSION);
+        // }
+
         // Check if templates match
-        match db_version.1 {
-            Some(template) => {
-                if template != version_source["name"].as_str().unwrap() {
-                    panic!("This database uses a different database version source. The template name does not match the one previously used to update this database.");
-                }
+        if let Some(template) = status.template {
+            if template != version_source["name"].as_str().unwrap() {
+                panic!("This database uses a different database version source. The template name does not match the one previously used to update this database.");
             }
-            None => {
-                conn.exec_drop(
-                    format!("UPDATE {} SET template = ? WHERE db = ?", CONFIG_TABLE_NAME),
-                    (version_source["name"].as_str().unwrap(), self.db_name.as_ref().unwrap()),
-                )
-                .unwrap();
-            }
-        };
+        } else {
+            // TODO move this to the end of the function. The same table is updated there
+            queries.push(Query {
+                query: format!("UPDATE {} SET template = ? WHERE db = ?", CONFIG_TABLE_NAME),
+                data: Some(Vec::from([
+                    version_source["name"].as_str().unwrap().to_string(),
+                    self.db_name.as_ref().unwrap().to_string(),
+                ])),
+            });
+        }
 
         // Get the latest version
         let latest_version = match update_to_version {
             Some(version) => {
-                if verify_version_number(String::from(version)) {
+                if verify_version_number(&String::from(version)) {
                     version.to_string()
                 } else {
                     panic!("Invalid version number");
@@ -241,7 +300,7 @@ impl AlphaDB {
                 for version in versions {
                     let version = version["_id"].as_str().expect("No verssion number was specified");
 
-                    if get_version_number_int(String::from(version)) > get_version_number_int(latest_version.clone()) {
+                    if get_version_number_int(&String::from(version)) > get_version_number_int(&latest_version) {
                         latest_version = version.to_string();
                     }
                 }
@@ -250,20 +309,20 @@ impl AlphaDB {
         };
 
         // Check if database is up to date
-        if get_version_number_int(latest_version.clone()) <= get_version_number_int(database_version.clone()) {
-            panic!("Database is already up to date");
+        if get_version_number_int(&latest_version) <= get_version_number_int(&database_version) {
+            return Err(UpdateError::AlreadyUpToDate);
         }
 
         // Update loop
         for version in versions {
-            let version_int = get_version_number_int(String::from(version["_id"].as_str().unwrap()));
+            let version_int = get_version_number_int(&String::from(version["_id"].as_str().unwrap()));
             // Skip any previous versions
-            if version_int <= get_version_number_int(database_version.clone()) {
+            if version_int <= get_version_number_int(&database_version) {
                 continue;
             }
 
             // Continue if latest version is current
-            if version_int > get_version_number_int(latest_version.clone()) {
+            if version_int > get_version_number_int(&latest_version) {
                 continue;
             }
 
@@ -295,7 +354,7 @@ impl AlphaDB {
             data: Some(Vec::from([latest_version, self.db_name.as_ref().unwrap().to_string()])),
         });
 
-        return queries;
+        Ok(queries)
     }
 
     /// **Update**
@@ -304,12 +363,19 @@ impl AlphaDB {
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update(&mut self, version_source: String, update_to_version: Option<String>, no_data: bool, verify: bool, allowed_error_priority: VerificationIssueLevel) {
+    pub fn update(
+        &mut self,
+        version_source: String,
+        update_to_version: Option<String>,
+        no_data: bool,
+        verify: bool,
+        allowed_error_priority: ToleratedVerificationIssueLevel,
+    ) -> Result<(), UpdateError> {
         if verify {
             // TODO
         }
 
-        let queries = self.update_queries(version_source, update_to_version.as_deref());
+        let queries = self.update_queries(version_source, update_to_version.as_deref())?;
         let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
         for query in queries {
@@ -325,6 +391,8 @@ impl AlphaDB {
                 };
             }
         }
+
+        Ok(())
     }
 
     pub fn vacate(&mut self) {
@@ -353,7 +421,7 @@ mod alphadb_tests {
     static USER: &str = "root";
     static PASSWORD: &str = "test";
     static DATABASE: &str = "test";
-    static PORT: i32 = 3306;
+    static PORT: u16 = 3306;
 
     #[test]
     fn test_alphadb() {
@@ -361,7 +429,7 @@ mod alphadb_tests {
         assert!(db.connection.is_none());
 
         // Test connect
-        db.connect(HOST.to_string(), USER.to_string(), PASSWORD.to_string(), DATABASE.to_string(), PORT);
+        let _ = db.connect(&HOST.to_string(), &USER.to_string(), &PASSWORD.to_string(), &DATABASE.to_string(), &PORT);
         assert!(db.connection.is_some());
 
         // Test check
@@ -384,7 +452,7 @@ mod alphadb_tests {
 
         // Test update (maybe update later)
         let data = fs::read_to_string("../../tests/assets/test-db-structure.json").expect("Unable to read file");
-        db.update(data, None, false, true, VerificationIssueLevel::Low);
+        db.update(data, None, false, true, ToleratedVerificationIssueLevel::Low);
         let status = db.status();
         assert_ne!(status.version, Some("0.0.0".to_string()));
 

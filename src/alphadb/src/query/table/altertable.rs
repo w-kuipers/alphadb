@@ -63,7 +63,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
                     // If the column is renamed, get hystorical column name for current version
                     let mut version_column_name = old_primary_key;
                     for rename in column_renames.iter().rev() {
-                        if get_version_number_int(version.to_string()) >= rename.rename_version {
+                        if get_version_number_int(&version.to_string()) >= rename.rename_version {
                             version_column_name = &rename.new_name;
                             break;
                         } else {
@@ -232,5 +232,4 @@ mod altertable_tests {
             "ALTER TABLE table MODIFY COLUMN col INT NOT NULL AUTO_INCREMENT, DROP PRIMARY KEY;"
         );
     }
-
 }

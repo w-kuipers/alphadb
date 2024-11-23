@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::consolidate::primary_key::{self, get_primary_key};
+use crate::utils::consolidate::primary_key::get_primary_key;
 use crate::utils::types::VerificationIssueLevel;
 use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
 use serde_json::Value;

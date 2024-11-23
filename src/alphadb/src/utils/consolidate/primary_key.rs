@@ -30,7 +30,7 @@ pub fn get_primary_key<'a>(version_list: &'a Value, table_name: &str, before_ver
     for version in version_list.as_array().unwrap() {
         // Skip if version is after or equel to before_version
         if let Some(before_version) = before_version {
-            if get_version_number_int(before_version.to_string()) <= get_version_number_int(version["_id"].as_str().unwrap().to_string()) {
+            if get_version_number_int(&before_version.to_string()) <= get_version_number_int(&version["_id"].as_str().unwrap().to_string()) {
                 continue;
             }
         }

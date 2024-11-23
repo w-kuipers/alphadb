@@ -38,11 +38,11 @@ pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &
     let version_list_cloned = version_list.clone();
 
     for version in version_list_cloned.as_array().unwrap() {
-        let v = get_version_number_int(version["_id"].as_str().unwrap().to_string());
+        let v = get_version_number_int(&version["_id"].as_str().unwrap().to_string());
 
         // If the column is renamed, get hystorical column name for current version
         for rename in rename_data.iter().rev() {
-            if get_version_number_int(version["_id"].as_str().unwrap().to_string()) <= rename.rename_version {
+            if get_version_number_int(&version["_id"].as_str().unwrap().to_string()) <= rename.rename_version {
                 version_column_name = &rename.old_name;
                 break;
             } else {
@@ -129,7 +129,7 @@ pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &
     let mut version_loop = |version: &Value| {
         if version.as_object().unwrap().keys().any(|i| i == "altertable") {
             if version["altertable"].as_object().unwrap().keys().any(|t| t == table_name) {
-                let v = get_version_number_int(version["_id"].as_str().unwrap().to_string());
+                let v = get_version_number_int(&version["_id"].as_str().unwrap().to_string());
 
                 // Skip version that are already processed
                 if order == "DESC" {

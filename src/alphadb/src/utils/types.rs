@@ -17,15 +17,36 @@
 ///
 /// Version source verifictaion generates issues of three priorities.
 ///
-/// LOW: Will work, but will not have any effect on the database.
-/// HIGH: Will still work, but might produce a different result than desired.
-/// CRITICAL: Will not execute.
+/// Low: Will work, but will not have any effect on the database.
+/// High: Will still work, but might produce a different result than desired.
+/// Critical: Will not execute.
 #[derive(Debug, Copy, Clone)]
 pub enum VerificationIssueLevel {
-    /// LOW: Will work, but will not have any effect on the database
+    /// Low: Will work, but will not have any effect on the database
     Low,
-    /// HIGH: Will still work, but might produce a different result than desired.
+    /// High: Will still work, but might produce a different result than desired.
     High,
-    /// CRITICAL: Will not execute.
+    /// Critical: Will not execute.
     Critical,
+}
+
+/// ** Allowed verification issue level**
+///
+/// Matches VerificationIssueLevel, but adds an additional value: All.
+/// Used for functions where VerificationIssueLevel is decided by the user.
+///
+/// Low: Will pass with verification errors below level high.
+/// High: Will pass with verification errors below level Critical.
+/// Critical: Will ignore all errors.
+/// All: Will fail with an error of any level.
+#[derive(Debug, Copy, Clone)]
+pub enum ToleratedVerificationIssueLevel {
+    /// Low: Will pass with verification errors below level high.
+    Low,
+    /// High: Will pass with verification errors below level Critical.
+    High,
+    /// Critical: Will ignore all errors.
+    Critical,
+    /// All: Will fail with an error of any level.
+    All,
 }
