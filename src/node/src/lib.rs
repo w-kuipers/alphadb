@@ -1,8 +1,25 @@
 use wasm_bindgen::prelude::*;
+use alphadb::AlphaDB as AlphaDBCore;
 
 #[wasm_bindgen]
-pub fn test_js(param: &str) -> String {
-    println!("Runs in JavaScript: {}", param);
+struct AlphaDB {
+    pub alphadb_instance: AlphaDBCore,
+}
 
-    return format!("returned '{}' from Rust", param);
+#[wasm_bindgen]
+impl AlphaDb {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self {
+            alphadb_instance: AlphaDBCore::new(),
+        }
+    }
+
+    pub fn get(&self) -> i32 {
+        self.internal
+    }
+
+    pub fn set(&mut self, val: i32) {
+        self.internal = val;
+    }
 }
