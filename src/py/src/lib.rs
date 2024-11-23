@@ -48,18 +48,6 @@ impl AlphaDB {
             .connect(host, user, password, database, port)
     }
 
-    fn check<'a>(&mut self) -> Py<PyAny> {
-        return Python::with_gil(|py: Python| {
-            let check = self.alphadb_instance.check();
-            let check_value = HashMap::from([
-                ("check", check.check.to_object(py)),
-                ("version", check.version.to_object(py)),
-            ]);
-
-            check_value.to_object(py)
-        });
-    }
-
     fn init(&mut self) {
         self.alphadb_instance.init();
     }

@@ -18,3 +18,4 @@ pub mod globals;
 pub mod version_number;
 pub mod consolidate;
 pub mod types;
+pub mod check;
