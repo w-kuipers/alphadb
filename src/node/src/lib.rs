@@ -2,12 +2,12 @@ use wasm_bindgen::prelude::*;
 use alphadb::AlphaDB as AlphaDBCore;
 
 #[wasm_bindgen]
-struct AlphaDB {
+pub struct AlphaDB {
     pub alphadb_instance: AlphaDBCore,
 }
 
 #[wasm_bindgen]
-impl AlphaDb {
+impl AlphaDB {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self {
@@ -15,11 +15,15 @@ impl AlphaDb {
         }
     }
 
-    pub fn get(&self) -> i32 {
-        self.internal
-    }
-
-    pub fn set(&mut self, val: i32) {
-        self.internal = val;
-    }
+    // pub fn connect(
+    //     &mut self,
+    //     host: String,
+    //     user: String,
+    //     password: String,
+    //     database: String,
+    //     port: i32,
+    // ) {
+    //     self.alphadb_instance
+    //         .connect(host, user, password, database, port)
+    // }
 }
