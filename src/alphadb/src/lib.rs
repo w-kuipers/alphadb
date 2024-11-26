@@ -26,6 +26,7 @@ use crate::utils::types::ToleratedVerificationIssueLevel;
 use crate::utils::version_number::{get_version_number_int, verify_version_number};
 use crate::methods::connect::connect;
 use crate::methods::init::{init, InitError, Init};
+use crate::methods::status::{status, StatusError, Status};
 use mysql::prelude::*;
 use mysql::*;
 use std::panic;
@@ -35,14 +36,6 @@ use thiserror::Error;
 pub struct AlphaDB {
     pub connection: Option<PooledConn>,
     pub db_name: Option<String>,
-}
-
-#[derive(Debug)]
-pub struct Status {
-    pub init: bool,
-    pub version: Option<String>,
-    pub name: String,
-    pub template: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -117,47 +110,17 @@ impl AlphaDB {
         return init(&self.db_name, &mut self.connection);
     }
 
-    pub fn status(&mut self) -> Status {
-        let mut init = false;
-        let mut version: Option<String> = None;
-        let mut template: Option<String> = None;
-        let db_name = self.db_name.as_ref().unwrap();
-
-        let conn = &mut self.connection.as_mut().expect("Connection could not be established");
-
-        // Check if the configuration table exists
-        let table_check: Option<String> = conn
-            .exec_first(
-                "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
-                (db_name, CONFIG_TABLE_NAME),
-            )
-            .unwrap();
-
-        if table_check.is_some() {
-            let fetched: Option<Row> = conn
-                .exec_first(format!("SELECT version, template FROM {} where db = ?", CONFIG_TABLE_NAME), (db_name,))
-                .unwrap();
-
-            if fetched.is_some() {
-                let c = from_row::<(String, Option<String>)>(fetched.unwrap());
-                version = Some(c.0);
-                template = c.1;
-            }
-
-            // Check true means database is initialized
-            init = true;
-        }
-
-        Status {
-            init,
-            version,
-            name: db_name.to_string(),
-            template,
-        }
+    /// Get database status.
+    ///
+    /// Returns:
+    /// - If it is initialized
+    /// - The database version
+    /// - The datbase name
+    /// - The name name of the used version source (template)
+    pub fn status(&mut self) -> Result<Status, StatusError> {
+        return status(&self.db_name, &mut self.connection); 
     }
 
-    /// **Update queries**
-    ///
     /// Generate MySQL queries to update the tables. Return Vec<Query>
     ///
     /// - version_source: Complete JSON version source
@@ -174,7 +137,7 @@ impl AlphaDB {
         };
 
         // Check if database is initialized
-        let status = self.status();
+        let status = self.status().unwrap();
         // let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 
         // Get database version
@@ -374,13 +337,13 @@ mod alphadb_tests {
         assert!(db.connection.is_some());
 
         // Test init
-        db.init();
+        let _ = db.init();
         let checked = check(&db.db_name, &mut db.connection).unwrap();
         assert_eq!(checked.check, true);
         assert_eq!(checked.version, Some("0.0.0".to_string()));
 
         // Test status
-        let status = db.status();
+        let status = db.status().unwrap();
         assert_eq!(status.init, true);
         assert_eq!(status.version, Some("0.0.0".to_string()));
         assert_eq!(status.name, DATABASE);
@@ -389,7 +352,7 @@ mod alphadb_tests {
         // Test update (maybe update later)
         let data = fs::read_to_string("../../tests/assets/test-db-structure.json").expect("Unable to read file");
         let _ = db.update(data, None, false, true, ToleratedVerificationIssueLevel::Low);
-        let status = db.status();
+        let status = db.status().unwrap();
         assert_ne!(status.version, Some("0.0.0".to_string()));
 
         // Test vacate
@@ -398,7 +361,7 @@ mod alphadb_tests {
         assert_eq!(checked.check, false);
         assert_eq!(checked.version, None);
 
-        let status = db.status();
+        let status = db.status().unwrap();
         assert_eq!(status.init, false);
         assert_eq!(status.version, None);
         assert_eq!(status.name, DATABASE);
