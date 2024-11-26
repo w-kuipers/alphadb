@@ -28,3 +28,21 @@ pub fn connect(host: &String, user: &String, password: &String, database: &Strin
     let pool = Pool::new(&url[..])?;
     return Ok(pool.get_conn()?);
 }
+
+#[cfg(test)]
+mod connect_tests {
+    use super::*;
+
+    static HOST: &str = "localhost";
+    static USER: &str = "root";
+    static PASSWORD: &str = "test";
+    static DATABASE: &str = "test";
+    static PORT: u16 = 3306;
+
+    #[test]
+    fn test_connect() {
+        let conn = connect(&HOST.to_string(), &USER.to_string(), &PASSWORD.to_string(), &DATABASE.to_string(), &PORT);
+        println!("{:?}", conn);
+        assert!(conn.is_ok());
+    }
+}
