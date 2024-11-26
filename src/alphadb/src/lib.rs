@@ -25,6 +25,7 @@ use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::types::ToleratedVerificationIssueLevel;
 use crate::utils::version_number::{get_version_number_int, verify_version_number};
 use crate::utils::check::check;
+use crate::methods::connect;
 use mysql::prelude::*;
 pub use mysql::*;
 use std::panic;
@@ -110,11 +111,8 @@ impl AlphaDB {
     /// - database: Database name
     /// - port: MySQL port
     pub fn connect(&mut self, host: &String, user: &String, password: &String, database: &String, port: &u16) -> Result<(), mysql::Error> {
-        let url = format!("mysql://{}:{}@{}:{}/{}", user, password, host, port, database);
-
         // Establish connection to database
-        let pool = Pool::new(&url[..])?;
-        self.connection = Some(pool.get_conn()?);
+        self.connection = Some(connect::connect(host, user, password, database, port)?);
 
         // Set the database name
         self.db_name = Some(database.to_string());
