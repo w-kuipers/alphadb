@@ -24,10 +24,10 @@ use crate::query::table::createtable::createtable;
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::types::ToleratedVerificationIssueLevel;
 use crate::utils::version_number::{get_version_number_int, verify_version_number};
-use crate::utils::check::check;
 use crate::methods::connect::connect;
+use crate::methods::init::{init, InitError, Init};
 use mysql::prelude::*;
-pub use mysql::*;
+use mysql::*;
 use std::panic;
 use thiserror::Error;
 
@@ -49,11 +49,6 @@ pub struct Status {
 pub struct Query {
     pub query: String,
     pub data: Option<Vec<String>>,
-}
-
-pub enum Init {
-    AlreadyInitialized,
-    Success,
 }
 
 #[derive(Debug, Clone)]
@@ -100,10 +95,7 @@ impl AlphaDB {
         AlphaDB { connection: None, db_name: None }
     }
 
-    /// **Connect**
-    ///
-    /// Connect method for the main AlphaDB class. creates the connection pool
-    /// to the database
+    /// Establish a database connection
     ///
     /// - host: MySQL host
     /// - user: Database user
@@ -120,36 +112,9 @@ impl AlphaDB {
         Ok(())
     }
 
-    pub fn init(&mut self) -> Init {
-        // Check if the table is already initialized
-        let checked = check(&self.db_name, &mut self.connection);
-
-        if checked.is_ok() && checked.unwrap().check {
-            return Init::AlreadyInitialized;
-        }
-
-        let conn = &mut self.connection.as_mut().expect("Connection could not be established");
-
-        // Create the configuration table
-        conn.query_drop(format!(
-            "CREATE TABLE {} (
-                    db VARCHAR(100) NOT NULL,
-                    version VARCHAR(50) NOT NULL,
-                    template VARCHAR(50) NULL,
-                    PRIMARY KEY (db) 
-                )",
-            CONFIG_TABLE_NAME
-        ))
-        .unwrap();
-
-        // Insert db version
-        conn.exec_drop(
-            format!("INSERT INTO {} (db, version) VALUES (?, ?)", CONFIG_TABLE_NAME),
-            (self.db_name.as_ref().unwrap(), "0.0.0"),
-        )
-        .unwrap();
-
-        return Init::Success;
+    /// Initialize the database
+    pub fn init(&mut self) -> Result<Init, InitError> {
+        return init(&self.db_name, &mut self.connection);
     }
 
     pub fn status(&mut self) -> Status {
@@ -390,6 +355,7 @@ impl AlphaDB {
 mod alphadb_tests {
     use super::*;
     use std::fs;
+    use crate::utils::check::check;
 
     static HOST: &str = "localhost";
     static USER: &str = "root";
@@ -406,11 +372,6 @@ mod alphadb_tests {
         let _ = db.connect(&HOST.to_string(), &USER.to_string(), &PASSWORD.to_string(), &DATABASE.to_string(), &PORT);
         println!("{:?}", db.connection);
         assert!(db.connection.is_some());
-
-        // Test check
-        // let check = db.check();
-        // assert_eq!(check.check, false);
-        // assert_eq!(check.version, None);
 
         // Test init
         db.init();

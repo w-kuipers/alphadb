@@ -14,69 +14,69 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::utils::globals::CONFIG_TABLE_NAME;
+use crate::utils::check::check;
 use crate::utils::errors::AlphaDBError;
-use mysql::{prelude::*, PooledConn};
+use mysql::*;
+use mysql::prelude::*;
 use thiserror::Error;
 
-#[derive(Debug)]
-pub struct Check {
-    pub check: bool,
-    pub version: Option<String>,
+pub enum Init {
+    AlreadyInitialized,
+    Success,
 }
 
 #[derive(Error, Debug)]
-pub enum CheckError {
+pub enum InitError {
     #[error(transparent)]
     AlphaDbError(#[from] AlphaDBError),
+
+    #[error(transparent)]
+    MySqlError(#[from] mysql::Error),
 }
 
-/// **Check**
+/// Create a connection pool to the database and return it.
 ///
-/// Check if the database is initialized and get the current version
-pub fn check(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> Result<Check, CheckError> {
-    let mut check = false;
-    let mut version: Option<String> = None;
+/// - db_name: The database name
+/// - connection: Active connection pool to the database
+pub fn init(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> Result<Init, InitError> {
+    // Check if the table is already initialized
+    let checked = check(db_name, connection);
+
+    if checked.is_ok() && checked.unwrap().check {
+        return Ok(Init::AlreadyInitialized);
+    }
 
     if db_name.is_none() {
         return Err(AlphaDBError {
             message: "The database name was None".to_string()
         }.into());
     }
-
     let db_name = db_name.as_ref().unwrap();
 
     if let Some(conn) = connection.as_mut() {
-        
-        
-        // Check if the configuration table exists
-        let table_check: Option<String> = conn
-            .exec_first(
-                "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
-                (&db_name, CONFIG_TABLE_NAME),
-            )
-            .unwrap();
+        // Create the configuration table
+        conn.query_drop(format!(
+            "CREATE TABLE {} (
+                db VARCHAR(100) NOT NULL,
+                version VARCHAR(50) NOT NULL,
+                template VARCHAR(50) NULL,
+                PRIMARY KEY (db) 
+            )",
+            CONFIG_TABLE_NAME
+        ))?;
 
-        if !table_check.is_none() {
-            let fetched: Option<String> = conn
-                .exec_first(format!("SELECT version FROM {} where db = ?", CONFIG_TABLE_NAME), (db_name,))
-                .unwrap();
+        // Insert db version
+        conn.exec_drop(
+            format!("INSERT INTO {} (db, version) VALUES (?, ?)", CONFIG_TABLE_NAME),
+            (db_name, "0.0.0"),
+        )?;
 
-            if fetched.is_some() {
-                version = fetched;
-            }
-        }
 
-        // Check true means database is redy for use
-        if table_check.is_some() && version.is_some() {
-            check = true;
-        }
+        return Ok(Init::Success);
     }
     else {
         return Err(AlphaDBError {
             message: "The database connection was None".to_string()
         }.into());
     }
-
-
-    Ok(Check { check, version })
 }
