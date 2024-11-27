@@ -20,3 +20,4 @@ pub mod consolidate;
 pub mod types;
 pub mod check;
 pub mod errors;
+pub mod json;
