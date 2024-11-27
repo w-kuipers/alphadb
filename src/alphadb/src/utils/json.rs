@@ -36,3 +36,55 @@ pub fn object_iter(object: &serde_json::Value) -> Result<serde_json::map::Keys<'
         })
     }
 }
+
+#[cfg(test)]
+mod json_tests {
+    use super::*;
+    use serde_json::*;
+
+    #[test]
+    fn test_get_object_keys() {
+        let value = json!({
+            "key": "value",
+            "key2": "value",
+            "key3": "value",
+            "key4": "value",
+            "key4": "value",
+        });
+
+        // Array should not be able to be converted to object (obviously...)
+        let arrayvalue = json!([
+            "test", "test", "tes"
+        ]);
+
+        let objectkeys = get_object_keys(&value);
+        let arraykeys = get_object_keys(&arrayvalue);
+
+        assert!(objectkeys.is_ok());
+        assert!(arraykeys.is_err());
+        assert!(objectkeys.unwrap().len() == 4);
+    }
+
+    #[test]
+    fn test_object_iter() {
+        let value = json!({
+            "key": "value",
+            "key2": "value",
+            "key3": "value",
+            "key4": "value",
+            "key4": "value",
+        });
+
+        // Array should not be able to be converted to object (obviously...)
+        let arrayvalue = json!([
+            "test", "test", "tes"
+        ]);
+
+        let objectkeys = object_iter(&value);
+        let arraykeys = object_iter(&arrayvalue);
+
+        assert!(objectkeys.is_ok());
+        assert!(arraykeys.is_err());
+        assert!(objectkeys.unwrap().len() == 4);
+    }
+}
