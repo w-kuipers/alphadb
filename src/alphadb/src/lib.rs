@@ -13,20 +13,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+pub mod methods;
 mod query;
 pub mod utils;
 mod verification;
 pub mod version_source_verification;
-pub mod methods;
 
-use crate::utils::types::ToleratedVerificationIssueLevel;
 use crate::methods::connect::connect;
-use crate::methods::init::{init, InitError, Init};
-use crate::methods::status::{status, StatusError, Status};
-use crate::methods::update_queries::{update_queries, UpdateQueriesError, Query};
+use crate::methods::init::{init, Init, InitError};
+use crate::methods::status::{status, Status, StatusError};
+use crate::methods::update::{update, UpdateError};
+use crate::methods::update_queries::{update_queries, Query, UpdateQueriesError};
+use crate::utils::types::ToleratedVerificationIssueLevel;
 use mysql::prelude::*;
 use mysql::*;
-use std::panic;
 
 #[derive(Debug)]
 pub struct AlphaDB {
@@ -69,7 +69,7 @@ impl AlphaDB {
     /// - The datbase name
     /// - The name name of the used version source (template)
     pub fn status(&mut self) -> Result<Status, StatusError> {
-        return status(&self.db_name, &mut self.connection); 
+        return status(&self.db_name, &mut self.connection);
     }
 
     /// Generate MySQL queries to update the tables. Return Vec<Query>
@@ -89,33 +89,20 @@ impl AlphaDB {
     pub fn update(
         &mut self,
         version_source: String,
-        update_to_version: Option<String>,
+        update_to_version: Option<&str>,
         no_data: bool,
         verify: bool,
         allowed_error_priority: ToleratedVerificationIssueLevel,
-    ) -> Result<(), UpdateQueriesError> {
-        if verify {
-            // TODO
-        }
-
-        let queries = self.update_queries(version_source, update_to_version.as_deref())?;
-        let conn = &mut self.connection.as_mut().expect("Connection could not be established");
-
-        for query in queries {
-            if let Some(data) = query.data {
-                match conn.exec_drop(query.query, data) {
-                    Ok(result) => result,
-                    Err(error) => panic!("{:?}", error),
-                };
-            } else {
-                match conn.exec_drop(query.query, ()) {
-                    Ok(result) => result,
-                    Err(error) => panic!("{:?}", error),
-                };
-            }
-        }
-
-        Ok(())
+    ) -> Result<(), UpdateError> {
+        return update(
+            &self.db_name,
+            &mut self.connection,
+            version_source,
+            update_to_version,
+            no_data,
+            verify,
+            allowed_error_priority,
+        );
     }
 
     pub fn vacate(&mut self) {
@@ -138,8 +125,8 @@ impl AlphaDB {
 #[cfg(test)]
 mod alphadb_tests {
     use super::*;
-    use std::fs;
     use crate::utils::check::check;
+    use std::fs;
 
     static HOST: &str = "localhost";
     static USER: &str = "root";
