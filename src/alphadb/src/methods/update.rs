@@ -39,8 +39,13 @@ pub enum UpdateError {
 ///
 /// Generate MySQL queries to update the tables. Run the updates on the database
 ///
+/// - db_name: The database name
+/// - connection: Active connection pool to the database
 /// - version_source: Complete JSON version source
 /// - update_to_version (optional): Version number to update to
+/// - no_data: If true, the default data will not be inserted to the database
+/// - verify: If true, the version source will be verified before running the updates
+/// - allowed_error_priority: The issuelevel that will be ignored after verification
 pub fn update(
     db_name: &Option<String>,
     connection: &mut Option<PooledConn>,

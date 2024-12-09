@@ -29,8 +29,7 @@ pub enum VacateError {
 
 /// **Vacate**
 ///
-/// Entirely empty the database
-///
+/// - connection: Active connection pool to the database
 pub fn vacate(connection: &mut Option<PooledConn>) -> Result<(), VacateError> {
     if let Some(conn) = connection.as_mut() {
         conn.query_drop("SET FOREIGN_KEY_CHECKS = 0")?;
