@@ -6,18 +6,22 @@
 // (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// but WITHOUT ANY WARRANTY; without even the implied warranty ofprintln
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod error_messages;
-pub mod globals;
-pub mod version_number;
-pub mod consolidate;
-pub mod types;
-pub mod check;
-pub mod errors;
-pub mod json;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub struct AlphaDBError {
+    pub message: String,
+}
+
+impl std::fmt::Display for AlphaDBError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "AlphaDB Error: {}", self.message)
+    }
+}
