@@ -18,6 +18,7 @@ mod query;
 pub mod utils;
 mod verification;
 pub mod version_source_verification;
+pub mod prelude;
 
 use crate::methods::connect::connect;
 pub use crate::methods::init::{init, Init, InitError};

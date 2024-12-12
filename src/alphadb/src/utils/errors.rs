@@ -20,8 +20,18 @@ pub struct AlphaDBError {
     pub message: String,
 }
 
+pub trait Get {
+    fn message(&self) -> String;
+}
+
 impl std::fmt::Display for AlphaDBError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "AlphaDB Error: {}", self.message)
+    }
+}
+
+impl Get for AlphaDBError {
+    fn message(&self) -> String {
+        return self.message.clone();
     }
 }

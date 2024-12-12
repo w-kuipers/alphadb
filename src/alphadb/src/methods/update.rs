@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::methods::update_queries::{update_queries, UpdateQueriesError};
-use crate::utils::errors::AlphaDBError;
+use crate::utils::errors::{Get, AlphaDBError};
 use crate::utils::types::ToleratedVerificationIssueLevel;
 use mysql::*;
 use mysql::prelude::*;
@@ -33,6 +33,15 @@ pub enum UpdateError {
 
     #[error(transparent)]
     UpdateQueriesError(#[from] UpdateQueriesError),
+}
+
+impl Get for UpdateError {
+    fn message(&self) -> String {
+        match self {
+            UpdateError::AlphaDbError(e) => e.message(),
+            UpdateError::UpdateQueriesError(e) => e.message(),
+        }
+    }
 }
 
 /// **Update**

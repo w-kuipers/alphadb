@@ -16,7 +16,7 @@
 use crate::methods::status::{status, StatusError};
 use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
-use crate::utils::errors::AlphaDBError;
+use crate::utils::errors::{Get, AlphaDBError};
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::json::{get_object_keys, object_iter};
 use crate::utils::version_number::{get_latest_version, get_version_number_int, verify_version_number};
@@ -38,7 +38,17 @@ pub enum UpdateQueriesError {
     MySqlError(#[from] mysql::Error),
 
     #[error(transparent)]
-    UpdateError(#[from] StatusError),
+    StatusError(#[from] StatusError),
+}
+
+impl Get for UpdateQueriesError {
+    fn message(&self) -> String {
+        match self {
+            UpdateQueriesError::AlphaDbError(e) => e.message(),
+            UpdateQueriesError::StatusError(e) => e.message(),
+            UpdateQueriesError::MySqlError(e) => format!("MySQL Error: {:?}", e),
+        }
+    }
 }
 
 /// Generate MySQL queries to update the tables. Return Vec<Query>

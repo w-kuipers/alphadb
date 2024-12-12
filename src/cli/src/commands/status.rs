@@ -26,7 +26,7 @@ pub fn status(db: &mut AlphaDB) {
     let status = match db.status() {
         Ok(s) => s,
         Err(_) => {
-            error("An error occured while getting the database status".to_string());
+            error("Unable to retrieve database status".to_string());
         }
     };
 

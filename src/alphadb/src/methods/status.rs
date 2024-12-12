@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::errors::AlphaDBError;
+use crate::utils::errors::{Get, AlphaDBError};
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use mysql::prelude::*;
 use mysql::*;
@@ -34,6 +34,15 @@ pub enum StatusError {
 
     #[error(transparent)]
     MySqlError(#[from] mysql::Error),
+}
+
+impl Get for StatusError {
+    fn message(&self) -> String {
+        match self {
+            StatusError::AlphaDbError(e) => e.message(),
+            StatusError::MySqlError(e) => format!("MySQL Error: {:?}", e),
+        }
+    }
 }
 
 /// Get database status. Returns if it is initialized, it's version, name and template name
