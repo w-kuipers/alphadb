@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::title;
+use crate::utils::{error, title};
 use alphadb::AlphaDB;
 use colored::Colorize;
 
@@ -23,15 +23,23 @@ use colored::Colorize;
 pub fn status(db: &mut AlphaDB) {
     title("Status");
 
-    let status = db.status();
+    let status = match db.status() {
+        Ok(s) => s,
+        Err(_) => {
+            error("An error occured while getting the database status".to_string());
+        }
+    };
 
     println!("Database: {}", status.name);
 
-    if status.template.is_none() {
-        println!("Template: None");
-    } else {
-        println!("Template: {}", status.template.unwrap());
-    }
+    match status.template {
+        Some(template) => {
+            println!("Template: {}", template);
+        }
+        None => {
+            println!("Template: None");
+        }
+    };
 
     if status.init == true {
         println!("Status: {}", "Initialized".cyan());
@@ -39,12 +47,15 @@ pub fn status(db: &mut AlphaDB) {
         println!("Status: {}", "Uninitialized".yellow());
     }
 
-    if status.version.is_none() {
-        println!("Version: None");
-    } else {
-        println!("Version: {}", status.version.unwrap());
-    }
+    match status.version {
+        Some(version) => {
+            println!("Version: {}", version);
+        }
+        None => {
+            println!("Version: None");
+        }
+    };
 
     // Empty line for better readability
-    println!("  "); 
+    println!("  ");
 }
