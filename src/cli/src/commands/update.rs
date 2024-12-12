@@ -16,11 +16,12 @@
 use crate::config::setup::Config;
 use crate::config::version_source::{select_version_source, VersionSources};
 use crate::utils::{error, title};
+use alphadb::prelude::*;
+use alphadb::UpdateError;
 use alphadb::{utils::types::ToleratedVerificationIssueLevel, AlphaDB};
 use colored::Colorize;
-use std::path::PathBuf;
 use std::fs;
-use alphadb::UpdateError;
+use std::path::PathBuf;
 
 /// Update the database.
 /// User should select a version source
@@ -53,60 +54,59 @@ pub fn update(
         }
     };
 
-
     let vs_file: PathBuf;
     if let Some(version_source) = version_source {
         vs_file = version_source.to_path_buf();
     } else {
         if let Some(path) = select_version_source(config) {
             vs_file = path;
-        } 
-
-        else {
+        } else {
             error("No version source was selected".to_string());
         }
     }
 
-    let file = fs::read_to_string(&vs_file);
+    let data = match fs::read_to_string(&vs_file) {
+        Ok(f) => f,
+        Err(_) => {
+            error(format!(
+                "An error occured while opening the version source file at '{}'",
+                vs_file.to_string_lossy().cyan()
+            ));
+        }
+    };
 
-    if file.is_err() {
-        error(format!(
-            "An error occured while opening the version source file at '{}'",
-            vs_file.to_string_lossy().cyan()
-        ));
-    }
+    let status = match db.status() {
+        Ok(s) => s,
+        Err(_) => {
+            error("Unable to retrieve database status".to_string());
+        }
+    };
 
-    let data = file.unwrap();
-
-    let update = db.update(data, None, nodata, noverify, verification_issue_level);
-    let status = db.status();
-
-    if update.is_err() {
-        match update.as_ref().unwrap_err() {
-            UpdateError::NotInitialized => error(format!(
+    match db.update(data, None, nodata, noverify, verification_issue_level) {
+        Ok(_) => {
+            println!(
+                "{} {}\n",
+                "Database successfully updated to version".green(),
+                status.version.unwrap().cyan()
+            );
+        }
+        Err(e) => match e.error().as_str() {
+            "not-initialized" => error(format!(
                 "{} {} {}\n",
                 "Database".yellow(),
                 status.name.cyan(),
                 "has not yet been initialized".yellow()
             )),
-            UpdateError::AlreadyUpToDate => error(format!(
+            "up-to-date" => error(format!(
                 "{} {} {}\n",
                 "Database".yellow(),
                 status.name.cyan(),
                 "is already up-to-date".yellow()
             )),
-            UpdateError::NoVersionNumber => error("The database configuration is broken, no version number present.".to_string()),
-        }
-    }
-
-    // This should not be possible, but hey...
-    if status.version.is_none() {
-        error("An unexpected error occured.".to_string());
-    }
-
-    println!(
-        "{} {}",
-        "Database successfully updated to version\n".green(),
-        status.version.unwrap().cyan()
-    );
+            "no-version-number" => error(
+                "The database configuration is broken, no version number present.".to_string(),
+            ),
+            _ => error("An unexpected error occured.".to_string()),
+        },
+    };
 }
