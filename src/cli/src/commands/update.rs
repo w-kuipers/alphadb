@@ -14,10 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::config::setup::Config;
-use crate::config::version_source::{select_version_source, VersionSources};
+use crate::config::version_source::select_version_source;
 use crate::utils::{error, title};
 use alphadb::prelude::*;
-use alphadb::UpdateError;
 use alphadb::{utils::types::ToleratedVerificationIssueLevel, AlphaDB};
 use colored::Colorize;
 use std::fs;
