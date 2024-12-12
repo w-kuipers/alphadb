@@ -15,7 +15,7 @@
 
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::check::check;
-use crate::utils::errors::AlphaDBError;
+use crate::utils::errors::{Get, AlphaDBError};
 use mysql::*;
 use mysql::prelude::*;
 use thiserror::Error;
@@ -32,6 +32,21 @@ pub enum InitError {
 
     #[error(transparent)]
     MySqlError(#[from] mysql::Error),
+}
+
+impl Get for InitError {
+    fn message(&self) -> String {
+        match self {
+            InitError::AlphaDbError(e) => e.message(),
+            InitError::MySqlError(e) => format!("MySQL Error: {:?}", e),
+        }
+    }
+    fn error(&self) -> String {
+        match self {
+            InitError::AlphaDbError(e) => e.error(),
+            InitError::MySqlError(_) => String::new(),
+        }
+    }
 }
 
 /// Create a connection pool to the database and return it.

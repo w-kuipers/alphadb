@@ -43,6 +43,12 @@ impl Get for StatusError {
             StatusError::MySqlError(e) => format!("MySQL Error: {:?}", e),
         }
     }
+    fn error(&self) -> String {
+        match self {
+            StatusError::AlphaDbError(e) => e.error(),
+            StatusError::MySqlError(_) => String::new(),
+        }
+    }
 }
 
 /// Get database status. Returns if it is initialized, it's version, name and template name

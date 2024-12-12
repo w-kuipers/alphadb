@@ -49,6 +49,13 @@ impl Get for UpdateQueriesError {
             UpdateQueriesError::MySqlError(e) => format!("MySQL Error: {:?}", e),
         }
     }
+    fn error(&self) -> String {
+        match self {
+            UpdateQueriesError::AlphaDbError(e) => e.error(),
+            UpdateQueriesError::StatusError(e) => e.error(),
+            UpdateQueriesError::MySqlError(e) => String::from(""),
+        }
+    }
 }
 
 /// Generate MySQL queries to update the tables. Return Vec<Query>
@@ -94,6 +101,7 @@ pub fn update_queries(
     if !status.init {
         return Err(AlphaDBError {
             message: "The database is not initialized".to_string(),
+            error: "not-initialized".to_string(),
             ..Default::default()
         }
         .into());
@@ -105,6 +113,7 @@ pub fn update_queries(
         None => {
             return Err(AlphaDBError {
                 message: "The database has no version number".to_string(),
+                error: "no-version-number".to_string(),
                 ..Default::default()
             }
             .into());
@@ -151,6 +160,7 @@ pub fn update_queries(
     if get_version_number_int(&latest_version) <= get_version_number_int(&database_version) {
         return Err(AlphaDBError {
             message: "The database is already up-to-date".to_string(),
+            error: "up-to-date".to_string(),
             ..Default::default()
         }
         .into());

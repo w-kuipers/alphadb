@@ -42,6 +42,12 @@ impl Get for UpdateError {
             UpdateError::UpdateQueriesError(e) => e.message(),
         }
     }
+    fn error(&self) -> String {
+        match self {
+            UpdateError::AlphaDbError(e) => e.error(),
+            UpdateError::UpdateQueriesError(e) => e.error(),
+        }
+    }
 }
 
 /// **Update**
