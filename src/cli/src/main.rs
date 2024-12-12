@@ -14,9 +14,16 @@ use crate::utils::{abort, decrypt_password, error};
 use alphadb::AlphaDB;
 use std::path::PathBuf;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    init_config()?;
-    let config = config_read::<Config>();
+fn main() {
+    init_config();
+    let config = match config_read::<Config>() {
+        Some(c) => c,
+        // Config should not be able to be none,
+        // if it is, something has gone wrong
+        None => {
+            error("An unexpected error occured. User config not defined.".to_string());
+        }
+    };
 
     // Setup handler for when user presses CTRL+C
     ctrlc::set_handler(|| {
@@ -24,25 +31,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     })
     .expect("Error setting user exit handler");
 
-    // Config should not be able to be none,
-    // if it is, something has gone wrong
-    if config.is_none() {
-        error("An unexpected error occured. User config not defined.".to_string());
-    }
-
-    let config = config.unwrap();
-
     // Initialize an an AlphaDB instance, but only
     // connect if a connection has been marked as active.
     // Some functions do not require a database connection
     let mut db = AlphaDB::new();
-    if let Some(conn) = get_active_connection() {
-        let password = decrypt_password(
-            conn.connection.password,
-            config.main.secret.clone().unwrap(),
-        );
+    let conn = match get_active_connection() {
+        Some(c) => c,
+        None => {
+            println!("{}", "No active database connection.".yellow());
+            return;
+        }
+    };
 
-        if password.is_err() {
+    let password = match decrypt_password(
+        conn.connection.password,
+        config.main.secret.clone().unwrap(),
+    ) {
+        Ok(p) => p,
+        Err(_) => {
             remove_connection(conn.label);
 
             error(format!(
@@ -52,19 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 conn.connection.port.to_string().cyan(),
             ));
         }
-
-        let connect = db.connect(
-            &conn.connection.host,
-            &conn.connection.user,
-            &password.unwrap(),
-            &conn.connection.database,
-            &conn.connection.port,
-        );
-
-        if connect.is_err() {
-            error(connect.err().unwrap().to_string());
-        }
-    }
+    };
 
     let matches = Command::new("alphadb")
         .about("MySQL database version management")
@@ -102,72 +96,68 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .subcommand(Command::new("vacate").about("Completely empty the database"))
         .get_matches();
 
-    match matches.subcommand() {
-        Some(("connect", _query_matches)) => {
-            connect(&config);
-        }
-        Some(("init", _query_matches)) => {
+    if let Some(m) = matches.subcommand() {
+        if m.0 != "connect" {
+            match db.connect(
+                &conn.connection.host,
+                &conn.connection.user,
+                &password,
+                &conn.connection.database,
+                &conn.connection.port,
+            ) {
+                Ok(_) => (),
+                Err(e) => {
+                    error(e.to_string());
+                }
+            };
+
             if db.connection.is_none() {
                 println!("{}", "No active database connection.".yellow());
-            } else {
-                init(&mut db);
+                return;
             }
         }
-        Some(("status", _query_matches)) => {
-            if db.connection.is_none() {
-                println!("{}", "No active database connection.".yellow());
-            } else {
-                status(&mut db);
-            }
-        }
-        Some(("update", query_matches)) => {
-            if db.connection.is_none() {
-                println!("{}", "No active database connection.".yellow());
-            } else {
-                // No data should be false by default
-                let mut nodata = false;
-                if let Some(nodata_some) = query_matches.get_one("no-data") {
-                    nodata = *nodata_some;
-                }
-
-                // No verify should be false by default
-                let mut noverify = false;
-                if let Some(noverify_some) = query_matches.get_one("no-verify") {
-                    noverify = *noverify_some;
-                }
-
-                // Allowed error priority should be low by default
-                let mut allowed_error_priority = "low".to_string();
-                if let Some(allowed_error_priority_some) =
-                    query_matches.get_one::<String>("tolerated-verification-level")
-                {
-                    allowed_error_priority = allowed_error_priority_some.to_string();
-                }
-
-                let mut version_source: Option<PathBuf> = None;
-                if let Some(vs) = query_matches.get_one::<String>("source") {
-                    version_source = Some(vs.into());
-                }
-
-                update(
-                    &config,
-                    &mut db,
-                    nodata,
-                    noverify,
-                    allowed_error_priority,
-                    version_source,
-                );
-            }
-        }
-        Some(("vacate", _query_matches)) => {
-            if db.connection.is_none() {
-                println!("{}", "No active database connection.".yellow());
-            } else {
-                vacate(&mut db);
-            }
-        }
-        _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable
     }
 
-    Ok(())
+    match matches.subcommand() {
+        Some(("connect", _query_matches)) => connect(&config),
+        Some(("init", _query_matches)) => init(&mut db),
+        Some(("status", _query_matches)) => status(&mut db),
+        Some(("update", query_matches)) => {
+            // No data should be false by default
+            let mut nodata = false;
+            if let Some(nodata_some) = query_matches.get_one("no-data") {
+                nodata = *nodata_some;
+            }
+
+            // No verify should be false by default
+            let mut noverify = false;
+            if let Some(noverify_some) = query_matches.get_one("no-verify") {
+                noverify = *noverify_some;
+            }
+
+            // Allowed error priority should be low by default
+            let mut allowed_error_priority = "low".to_string();
+            if let Some(allowed_error_priority_some) =
+                query_matches.get_one::<String>("tolerated-verification-level")
+            {
+                allowed_error_priority = allowed_error_priority_some.to_string();
+            }
+
+            let mut version_source: Option<PathBuf> = None;
+            if let Some(vs) = query_matches.get_one::<String>("source") {
+                version_source = Some(vs.into());
+            }
+
+            update(
+                &config,
+                &mut db,
+                nodata,
+                noverify,
+                allowed_error_priority,
+                version_source,
+            );
+        }
+        Some(("vacate", _query_matches)) => vacate(&mut db),
+        _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable
+    }
 }

@@ -70,10 +70,10 @@ fn get_config_dir() -> std::path::PathBuf {
     return home.join(CONFIG_DIR).join(ALPHADB_DIR);
 }
 
-pub fn init_config() -> Result<(), Box<dyn std::error::Error>> {
+pub fn init_config() -> () {
     let config_dir = get_config_dir();
     let config_file = config_dir.join(CONFIG_FILE);
-    fs::create_dir_all(config_dir)?;
+    let _ = fs::create_dir_all(config_dir);
 
     // If no config file exists, it must be created along
     // with a secret for encryption
@@ -87,7 +87,7 @@ pub fn init_config() -> Result<(), Box<dyn std::error::Error>> {
             .secret
             .insert(general_purpose::STANDARD.encode(secret));
 
-        fs::File::create(&config_file)?;
+        let _ = fs::File::create(&config_file);
         let toml_string = toml::to_string(&config);
         if toml_string.is_err() {
             error("Error occured when initializing config".to_string())
@@ -96,7 +96,6 @@ pub fn init_config() -> Result<(), Box<dyn std::error::Error>> {
             error("Error occured when initializing config".to_string())
         };
     }
-    Ok(())
 }
 
 pub fn config_read<T: 'static + Any>() -> Option<T>
