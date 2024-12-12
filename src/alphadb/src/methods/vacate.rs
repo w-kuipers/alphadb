@@ -46,6 +46,7 @@ pub fn vacate(connection: &mut Option<PooledConn>) -> Result<(), VacateError> {
     } else {
         return Err(AlphaDBError {
             message: "The database connection was None".to_string(),
+            ..Default::default()
         }
         .into());
     }

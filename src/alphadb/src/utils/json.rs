@@ -21,7 +21,8 @@ pub fn get_object_keys(object: &serde_json::Value) -> Result<Vec<&String>, Alpha
         Ok(obj.keys().into_iter().collect::<Vec<&String>>())
     } else {
         Err(AlphaDBError {
-            message: "Unable to convert the value to an object".to_string()
+            message: "Unable to convert the value to an object".to_string(),
+            ..Default::default()
         })
     }
 }
@@ -32,7 +33,8 @@ pub fn object_iter(object: &serde_json::Value) -> Result<serde_json::map::Keys<'
         Ok(obj.keys().into_iter())
     } else {
         Err(AlphaDBError {
-            message: "Unable to convert the value to an object".to_string()
+            message: "Unable to convert the value to an object".to_string(),
+            ..Default::default()
         })
     }
 }

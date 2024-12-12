@@ -18,6 +18,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub struct AlphaDBError {
     pub message: String,
+    pub error: Option<String>
 }
 
 pub trait Get {
@@ -33,5 +34,14 @@ impl std::fmt::Display for AlphaDBError {
 impl Get for AlphaDBError {
     fn message(&self) -> String {
         return self.message.clone();
+    }
+}
+
+impl Default for AlphaDBError {
+    fn default() -> Self {
+        AlphaDBError {
+            message: String::new(),
+            error: None,
+        }
     }
 }

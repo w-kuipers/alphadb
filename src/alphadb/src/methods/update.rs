@@ -14,10 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::methods::update_queries::{update_queries, UpdateQueriesError};
-use crate::utils::errors::{Get, AlphaDBError};
+use crate::utils::errors::{AlphaDBError, Get};
 use crate::utils::types::ToleratedVerificationIssueLevel;
-use mysql::*;
 use mysql::prelude::*;
+use mysql::*;
 use thiserror::Error;
 
 #[derive(Debug, Clone)]
@@ -76,9 +76,7 @@ pub fn update(
                 match conn.exec_drop(query.query, data) {
                     Ok(result) => result,
                     Err(error) => {
-                        return Err(AlphaDBError {
-                            message: error.to_string()
-                        }.into());
+                        return Err(AlphaDBError { message: error.to_string(), ..Default::default() }.into());
                     }
                 };
             } else {
@@ -86,8 +84,10 @@ pub fn update(
                     Ok(result) => result,
                     Err(error) => {
                         return Err(AlphaDBError {
-                            message: error.to_string()
-                        }.into());
+                            message: error.to_string(),
+                            ..Default::default()
+                        }
+                        .into());
                     }
                 };
             }
@@ -95,6 +95,7 @@ pub fn update(
     } else {
         return Err(AlphaDBError {
             message: "The database connection was None".to_string(),
+            ..Default::default()
         }
         .into());
     }
