@@ -18,11 +18,12 @@ mod query;
 pub mod utils;
 mod verification;
 pub mod version_source_verification;
+pub mod prelude;
 
 use crate::methods::connect::connect;
-use crate::methods::init::{init, Init, InitError};
+pub use crate::methods::init::{init, Init, InitError};
 use crate::methods::status::{status, Status, StatusError};
-use crate::methods::update::{update, UpdateError};
+pub use crate::methods::update::{update, UpdateError};
 use crate::methods::update_queries::{update_queries, Query, UpdateQueriesError};
 use crate::utils::types::ToleratedVerificationIssueLevel;
 use mysql::prelude::*;

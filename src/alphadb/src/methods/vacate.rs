@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::errors::AlphaDBError;
+use crate::utils::errors::{Get, AlphaDBError};
 use mysql::prelude::*;
 use mysql::*;
 use thiserror::Error;
@@ -25,6 +25,21 @@ pub enum VacateError {
 
     #[error(transparent)]
     MySqlError(#[from] mysql::Error),
+}
+
+impl Get for VacateError {
+    fn message(&self) -> String {
+        match self {
+            VacateError::AlphaDbError(e) => e.message(),
+            VacateError::MySqlError(e) => format!("MySQL Error: {:?}", e),
+        }
+    }
+    fn error(&self) -> String {
+        match self {
+            VacateError::AlphaDbError(e) => e.error(),
+            VacateError::MySqlError(_) => String::new(),
+        }
+    }
 }
 
 /// **Vacate**
@@ -46,6 +61,7 @@ pub fn vacate(connection: &mut Option<PooledConn>) -> Result<(), VacateError> {
     } else {
         return Err(AlphaDBError {
             message: "The database connection was None".to_string(),
+            ..Default::default()
         }
         .into());
     }

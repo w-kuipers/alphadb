@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::title;
+use crate::utils::{title, error};
 use alphadb::{AlphaDB, Init};
 use colored::Colorize;
 
@@ -23,7 +23,12 @@ use colored::Colorize;
 pub fn init(db: &mut AlphaDB) {
     title("Initialize");
 
-    let init = db.init();
+    let init = match db.init() {
+        Ok(i) => i,
+        Err(_) => {
+            error("Failed to retrieve data for initialization status".to_string());
+        }
+    };
 
     match init {
         Init::AlreadyInitialized => {

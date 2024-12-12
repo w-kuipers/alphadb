@@ -39,7 +39,8 @@ pub fn check(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> R
 
     if db_name.is_none() {
         return Err(AlphaDBError {
-            message: "The database name was None".to_string()
+            message: "The database name was None".to_string(),
+            ..Default::default()
         }.into());
     }
 
@@ -73,7 +74,8 @@ pub fn check(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> R
     }
     else {
         return Err(AlphaDBError {
-            message: "The database connection was None".to_string()
+            message: "The database connection was None".to_string(),
+            ..Default::default()
         }.into());
     }
 

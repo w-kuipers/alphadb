@@ -15,7 +15,7 @@
 
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::check::check;
-use crate::utils::errors::AlphaDBError;
+use crate::utils::errors::{Get, AlphaDBError};
 use mysql::*;
 use mysql::prelude::*;
 use thiserror::Error;
@@ -34,6 +34,21 @@ pub enum InitError {
     MySqlError(#[from] mysql::Error),
 }
 
+impl Get for InitError {
+    fn message(&self) -> String {
+        match self {
+            InitError::AlphaDbError(e) => e.message(),
+            InitError::MySqlError(e) => format!("MySQL Error: {:?}", e),
+        }
+    }
+    fn error(&self) -> String {
+        match self {
+            InitError::AlphaDbError(e) => e.error(),
+            InitError::MySqlError(_) => String::new(),
+        }
+    }
+}
+
 /// Create a connection pool to the database and return it.
 ///
 /// - db_name: The database name
@@ -48,7 +63,8 @@ pub fn init(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> Re
 
     if db_name.is_none() {
         return Err(AlphaDBError {
-            message: "The database name was None".to_string()
+            message: "The database name was None".to_string(),
+            ..Default::default()
         }.into());
     }
     let db_name = db_name.as_ref().unwrap();
@@ -76,7 +92,8 @@ pub fn init(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> Re
     }
     else {
         return Err(AlphaDBError {
-            message: "The database connection was None".to_string()
+            message: "The database connection was None".to_string(),
+            ..Default::default()
         }.into());
     }
 }

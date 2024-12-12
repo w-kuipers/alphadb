@@ -16,7 +16,7 @@
 use crate::methods::status::{status, StatusError};
 use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
-use crate::utils::errors::AlphaDBError;
+use crate::utils::errors::{AlphaDBError, Get};
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::json::{get_object_keys, object_iter};
 use crate::utils::version_number::{get_latest_version, get_version_number_int, verify_version_number};
@@ -38,7 +38,24 @@ pub enum UpdateQueriesError {
     MySqlError(#[from] mysql::Error),
 
     #[error(transparent)]
-    UpdateError(#[from] StatusError),
+    StatusError(#[from] StatusError),
+}
+
+impl Get for UpdateQueriesError {
+    fn message(&self) -> String {
+        match self {
+            UpdateQueriesError::AlphaDbError(e) => e.message(),
+            UpdateQueriesError::StatusError(e) => e.message(),
+            UpdateQueriesError::MySqlError(e) => format!("MySQL Error: {:?}", e),
+        }
+    }
+    fn error(&self) -> String {
+        match self {
+            UpdateQueriesError::AlphaDbError(e) => e.error(),
+            UpdateQueriesError::StatusError(e) => e.error(),
+            UpdateQueriesError::MySqlError(e) => String::from(""),
+        }
+    }
 }
 
 /// Generate MySQL queries to update the tables. Return Vec<Query>
@@ -61,6 +78,7 @@ pub fn update_queries(
         None => {
             return Err(AlphaDBError {
                 message: "Version information data not complete. Must contain 'latest', 'version' and 'name'. Latest is the latest version number, version is a JSON object containing the database structure and name is the database template name.".to_string(),
+            ..Default::default()
             }.into());
         }
     };
@@ -73,6 +91,7 @@ pub fn update_queries(
         None => {
             return Err(AlphaDBError {
                 message: "The database name was None".to_string(),
+                ..Default::default()
             }
             .into());
         }
@@ -82,6 +101,8 @@ pub fn update_queries(
     if !status.init {
         return Err(AlphaDBError {
             message: "The database is not initialized".to_string(),
+            error: "not-initialized".to_string(),
+            ..Default::default()
         }
         .into());
     }
@@ -92,6 +113,8 @@ pub fn update_queries(
         None => {
             return Err(AlphaDBError {
                 message: "The database has no version number".to_string(),
+                error: "no-version-number".to_string(),
+                ..Default::default()
             }
             .into());
         }
@@ -102,6 +125,7 @@ pub fn update_queries(
         None => {
             return Err(AlphaDBError {
                 message: format!("No rootlevel name was specified"),
+                ..Default::default()
             }
             .into());
         }
@@ -136,6 +160,8 @@ pub fn update_queries(
     if get_version_number_int(&latest_version) <= get_version_number_int(&database_version) {
         return Err(AlphaDBError {
             message: "The database is already up-to-date".to_string(),
+            error: "up-to-date".to_string(),
+            ..Default::default()
         }
         .into());
     }
@@ -147,6 +173,7 @@ pub fn update_queries(
             None => {
                 return Err(AlphaDBError {
                     message: format!("Version index {i}: Missing a version number"),
+                    ..Default::default()
                 }
                 .into());
             }
