@@ -75,6 +75,8 @@ pub fn update(
         }
     };
 
+    let update = db.update(data, None, nodata, noverify, verification_issue_level);
+
     let status = match db.status() {
         Ok(s) => s,
         Err(_) => {
@@ -82,7 +84,7 @@ pub fn update(
         }
     };
 
-    match db.update(data, None, nodata, noverify, verification_issue_level) {
+    match update {
         Ok(_) => {
             println!(
                 "{} {}\n",
