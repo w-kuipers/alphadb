@@ -53,7 +53,7 @@ impl Get for UpdateQueriesError {
         match self {
             UpdateQueriesError::AlphaDbError(e) => e.error(),
             UpdateQueriesError::StatusError(e) => e.error(),
-            UpdateQueriesError::MySqlError(e) => String::from(""),
+            UpdateQueriesError::MySqlError(_) => String::from(""),
         }
     }
 }

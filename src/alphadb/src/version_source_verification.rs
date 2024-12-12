@@ -20,8 +20,8 @@ use serde_json::Value;
 
 #[derive(Debug, Clone)]
 pub struct VerificationIssue {
-    level: VerificationIssueLevel,
-    message: String,
+    pub level: VerificationIssueLevel,
+    pub message: String,
 }
 
 #[derive(Debug, Clone)]

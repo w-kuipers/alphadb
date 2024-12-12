@@ -38,7 +38,7 @@ pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &
     let version_list_cloned = version_list.clone();
 
     for version in version_list_cloned.as_array().unwrap() {
-        let v = get_version_number_int(&version["_id"].as_str().unwrap().to_string());
+        let _v = get_version_number_int(&version["_id"].as_str().unwrap().to_string());
 
         // If the column is renamed, get hystorical column name for current version
         for rename in rename_data.iter().rev() {

@@ -66,9 +66,9 @@ pub fn update(
     connection: &mut Option<PooledConn>,
     version_source: String,
     update_to_version: Option<&str>,
-    no_data: bool,
+    _no_data: bool,
     verify: bool,
-    allowed_error_priority: ToleratedVerificationIssueLevel,
+    _allowed_error_priority: ToleratedVerificationIssueLevel,
 ) -> Result<(), UpdateError> {
     if verify {
         // TODO
