@@ -20,7 +20,7 @@ mod verification;
 pub mod version_source_verification;
 pub mod prelude;
 
-use crate::methods::connect::connect;
+use crate::methods::connect::{connect, ConnectError};
 pub use crate::methods::init::{init, Init, InitError};
 use crate::methods::status::{status, Status, StatusError};
 pub use crate::methods::update::{update, UpdateError};
@@ -47,7 +47,7 @@ impl AlphaDB {
     /// - password: User password for the database
     /// - database: Database name
     /// - port: MySQL port
-    pub fn connect(&mut self, host: &String, user: &String, password: &String, database: &String, port: &u16) -> Result<(), mysql::Error> {
+    pub fn connect(&mut self, host: &String, user: &String, password: &String, database: &String, port: &u16) -> Result<(), ConnectError> {
         // Establish connection to database
         self.connection = Some(connect(host, user, password, database, port)?);
 
