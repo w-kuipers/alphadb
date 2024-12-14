@@ -1,0 +1,36 @@
+{
+  "name": "@alphadb/darwin-arm64",
+  "description": "Prebuilt binary package for `alphadb` on `darwin-arm64`.",
+  "version": "1.0.0",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "main": "index.node",
+  "files": [
+    "index.node"
+  ],
+  "neon": {
+    "type": "binary",
+    "rust": "aarch64-apple-darwin",
+    "node": "darwin-arm64",
+    "os": "darwin",
+    "arch": "arm64",
+    "abi": null
+  },
+  "author": "Wibo Kuipers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/w-kuipers/alphadb.git"
+  },
+  "keywords": [
+    "database"
+  ],
+  "bugs": {
+    "url": "https://github.com/w-kuipers/alphadb/issues"
+  },
+  "homepage": "https://github.com/w-kuipers/alphadb#readme",
+  "license": "GPL-3.0"
+}
