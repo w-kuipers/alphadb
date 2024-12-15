@@ -30,6 +30,7 @@ interface AlphaDB {
 	status(): Status;
 	updateQueries(version_source: VersionSource, update_to_version?: string): Array<Query>;
 	update(version_source: VersionSource, update_to_version?: string, no_data?: boolean, verify?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel): void;
+	vacate(): void;
 }
 
 
@@ -43,6 +44,7 @@ declare module "./load.cjs" {
 	function status(conn: any, internaldbname: any): Status;
 	function update_queries(conn: any, internaldbname: any, version_source: string, update_to_version: string): Array<Query>;
 	function update(conn: any, internaldbname: any, version_source: string, update_to_version: string, no_data: boolean, verify: boolean, tolerated_verification_issue_level: string): Array<Query>;
+	function vacate(conn: any): void;
 }
 
 class AlphaDB {
@@ -75,6 +77,10 @@ class AlphaDB {
 		if (typeof toleratedVerificationIssueLevel === "undefined") toleratedVerificationIssueLevel = "LOW";
 
 		return addon.update(this.conn, this.internaldbname, JSON.stringify(version_source), update_to_version, no_data, verify, toleratedVerificationIssueLevel);
+	}
+
+	public vacate() {
+		addon.vacate(this.conn);
 	}
 }
 
