@@ -14,13 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::types::PooledConnWrap;
-use alphadb::methods::update_queries::update_queries;
+use alphadb::methods::update::update;
 use alphadb::prelude::*;
+use alphadb::utils::types::ToleratedVerificationIssueLevel;
 use neon::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub fn update_queries_wrap(mut cx: FunctionContext) -> JsResult<JsArray> {
+pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let conn_rc = cx.argument::<JsBox<Rc<RefCell<Option<PooledConnWrap>>>>>(0)?;
     let mut conn = conn_rc.borrow_mut();
 
@@ -29,7 +30,10 @@ pub fn update_queries_wrap(mut cx: FunctionContext) -> JsResult<JsArray> {
 
     let version_source = cx.argument::<JsString>(2)?.value(&mut cx);
     let update_to_version = cx.argument::<JsString>(3)?.value(&mut cx);
-    
+    let no_data = cx.argument::<JsBoolean>(4)?.value(&mut cx);
+    let verify = cx.argument::<JsBoolean>(5)?.value(&mut cx);
+    let allowed_error_priority = cx.argument::<JsString>(6)?.value(&mut cx);
+
     // The TypeScript wrapper allows for update_to_version to be undefined
     // so it's set to NOVERSION if that is the case
     let mut update_to_version_processed: Option<&str> = None;
@@ -37,45 +41,32 @@ pub fn update_queries_wrap(mut cx: FunctionContext) -> JsResult<JsArray> {
         update_to_version_processed = Some(update_to_version.as_str()); 
     }
 
-    let query_array = cx.empty_array();
+    // The TypeScript version of the issuelevel is strings, they need to 
+    // be mapped to the Enum
+    let allowed_error_priority_processed: ToleratedVerificationIssueLevel = match allowed_error_priority.as_str() {
+        "LOW" => ToleratedVerificationIssueLevel::Low,
+        "HIGH" => ToleratedVerificationIssueLevel::High,
+        "CRITICAL" => ToleratedVerificationIssueLevel::Critical,
+        "ALL" => ToleratedVerificationIssueLevel::All,
+        _ => ToleratedVerificationIssueLevel::Low
+    };
 
     if let Some(conn) = conn.as_mut() {
-        match update_queries(
+        match update(
             &db_name.clone(),
             &mut conn.inner,
             version_source,
-            update_to_version_processed
+            update_to_version_processed,
+            no_data,
+            verify,
+            allowed_error_priority_processed
         ) {
-            Ok(c) => {
-                // Convert to JS array
-                for (i, q) in c.iter().enumerate() {
-                    let tup = cx.empty_array();
-
-                    let query = cx.string(q.query.clone());
-                    tup.set(&mut cx, 0, query)?;
-
-                    // Convert the data
-                    let data = cx.empty_array();
-                    match &q.data {
-                        Some(d) => {
-                            for (di, v) in d.iter().enumerate() {
-                                let v = cx.string(v);
-                                data.set(&mut cx, di as u32, v)?;
-                            }
-                        }
-                        None => (),
-                    }
-
-                    tup.set(&mut cx, 1, data)?;
-
-                    query_array.set(&mut cx, i as u32, tup)?;
-                }
+            Ok(_) => {
+                return Ok(cx.undefined());     
             }
             Err(e) => cx.throw_error(e.message())?,
-        };
+        }
     } else {
         return cx.throw_error("Connection is missing.");
     }
-
-    return Ok(query_array);
 }

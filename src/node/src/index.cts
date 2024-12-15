@@ -20,6 +20,8 @@ interface VersionSource {
 	version: Array<Version>;
 }
 
+type ToleratedVerificationIssueLevel = "LOW" | "HIGH" | "CRITICAL" | "ALL";
+
 interface AlphaDB {
 	conn: any;
 	internaldbname: any;
@@ -27,6 +29,7 @@ interface AlphaDB {
 	init(): void;
 	status(): Status;
 	updateQueries(version_source: VersionSource, update_to_version?: string): Array<Query>;
+	update(version_source: VersionSource, update_to_version?: string, no_data?: boolean, verify?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel): void;
 }
 
 
@@ -38,7 +41,8 @@ declare module "./load.cjs" {
 	function connect(conn: any, internaldbname: any, host: string, user: string, password: string, database: string, port: number): void;
 	function init(conn: any, internaldbname: any): void;
 	function status(conn: any, internaldbname: any): Status;
-	function update_queries(conn: any, internaldbname: any, version_source: string, update_to_version?: string): Array<Query>;
+	function update_queries(conn: any, internaldbname: any, version_source: string, update_to_version: string): Array<Query>;
+	function update(conn: any, internaldbname: any, version_source: string, update_to_version: string, no_data: boolean, verify: boolean, tolerated_verification_issue_level: string): Array<Query>;
 }
 
 class AlphaDB {
@@ -62,6 +66,15 @@ class AlphaDB {
 	public updateQueries(version_source: VersionSource, update_to_version?: string) {
 		if (typeof update_to_version === "undefined") update_to_version = "NOVERSION";
 		return addon.update_queries(this.conn, this.internaldbname, JSON.stringify(version_source), update_to_version);
+	}
+
+	public update(version_source: VersionSource, update_to_version?: string, no_data?: boolean, verify?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel) {
+		if (typeof update_to_version === "undefined") update_to_version = "NOVERSION";
+		if (typeof no_data === "undefined") no_data = false;
+		if (typeof verify === "undefined") verify = true;
+		if (typeof toleratedVerificationIssueLevel === "undefined") toleratedVerificationIssueLevel = "LOW";
+
+		return addon.update(this.conn, this.internaldbname, JSON.stringify(version_source), update_to_version, no_data, verify, toleratedVerificationIssueLevel);
 	}
 }
 
