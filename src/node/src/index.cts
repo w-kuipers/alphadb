@@ -1,8 +1,8 @@
-// The Rust addon.
 import * as addon from './load.cjs';
 
 interface AlphaDB {
 	conn: any;
+	internaldbname: any;
 	connect(host: string, user: string, password: string, database: string, port: number): void;
 	init(): void;
 }
@@ -11,21 +11,24 @@ interface AlphaDB {
 // which otherwise by default are `any`.
 declare module "./load.cjs" {
 	const conn: any;
-	function connect(conn: any, host: string, user: string, password: string, database: string, port: number): void;
+	const internaldbname: any;
+	function connect(conn: any, internaldbname: any, host: string, user: string, password: string, database: string, port: number): void;
+	function init(conn: any, internaldbname: any): void;
 }
-
-// export const AlphaDB = addon.AlphaDB;
 
 class AlphaDB {
 	private constructor() {
 		this.conn = addon.conn;
+		this.internaldbname = addon.internaldbname;
 	}
 
 	public connect(host: string, user: string, password: string, database: string, port: number) {
-		addon.connect(this.conn, host, user, password, database, port);
+		addon.connect(this.conn, this.internaldbname, host, user, password, database, port);
 	}
 
-	// init(): void;
+	public init() {
+		addon.init(this.conn, this.internaldbname);
+	}
 }
 
 export {

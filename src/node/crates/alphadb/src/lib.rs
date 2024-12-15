@@ -13,62 +13,64 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use alphadb::methods::connect::connect;
+use alphadb::methods::init::init;
 use alphadb::prelude::*;
 use mysql::PooledConn;
 use neon::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
-use alphadb::methods::connect::connect;
-use alphadb::methods::init::init;
 
-struct PooledConnWrap(PooledConn);
+struct PooledConnWrap {
+    inner: Option<PooledConn>,
+}
+
 impl Finalize for PooledConnWrap {}
 
 fn connect_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let conn_rc = cx.argument::<JsBox<Rc<RefCell<Option<PooledConnWrap>>>>>(0)?;
     let mut conn = conn_rc.borrow_mut();
 
-    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(0)?;
+    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(1)?;
     let mut db_name = db_name_rc.borrow_mut();
 
-    let host = cx.argument::<JsString>(1)?.value(&mut cx);
-    let user = cx.argument::<JsString>(2)?.value(&mut cx);
-    let password = cx.argument::<JsString>(3)?.value(&mut cx);
-    let database = cx.argument::<JsString>(4)?.value(&mut cx);
-    let port = cx.argument::<JsNumber>(5)?.value(&mut cx) as u16;
+    let host = cx.argument::<JsString>(2)?.value(&mut cx);
+    let user = cx.argument::<JsString>(3)?.value(&mut cx);
+    let password = cx.argument::<JsString>(4)?.value(&mut cx);
+    let database = cx.argument::<JsString>(5)?.value(&mut cx);
+    let port = cx.argument::<JsNumber>(6)?.value(&mut cx) as u16;
 
     let c = match connect(&host, &user, &password, &database, &port) {
         Ok(c) => c,
         Err(e) => cx.throw_error(e.message())?,
     };
 
-    *conn = Some(PooledConnWrap(c));
+    *conn = Some(PooledConnWrap { inner: Some(c) });
     *db_name = Some(database);
-
 
     Ok(cx.undefined())
 }
 
 fn init_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let conn_rc = cx.argument::<JsBox<Rc<RefCell<Option<PooledConnWrap>>>>>(0)?;
-    let conn = conn_rc.borrow_mut();
+    let mut conn_ref = conn_rc.borrow_mut();
 
-    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(0)?;
-    let db_name = db_name_rc.borrow_mut();
+    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(1)?;
+    let db_name_ref = db_name_rc.borrow_mut();
 
-    let c = match conn {
-        Some(c) => c.0,
-        None => {
-            panic!("Temp panic");
+    if let Some(conn) = conn_ref.as_mut() {
+        match init(&db_name_ref.clone(), &mut conn.inner) {
+            Ok(i) => match i {
+                alphadb::Init::AlreadyInitialized => {
+                    cx.throw_error("The database is already initialized.")
+                }
+                alphadb::Init::Success => return Ok(cx.undefined()),
+            },
+            Err(e) => return cx.throw_error(e.message()),
         }
-    };
-
-    match init(&Some(db_name.unwrap()), &mut Some(conn.unwrap().0)) {
-        Ok(_) => cx.undefined(),
-        Err(e) => cx.throw_error(e.message())?,
-    };
-
-    Ok(cx.undefined())
+    } else {
+        return cx.throw_error("Connection is missing.");
+    }
 }
 
 #[neon::main]
@@ -79,8 +81,9 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
     let db_name = Rc::new(RefCell::new(None::<String>));
     let db_name_rc = cx.boxed(db_name);
 
+    cx.export_value("internaldbname", db_name_rc)?;
     cx.export_value("conn", conn_rc)?;
-    cx.export_value("conn", conn_rc)?;
-    cx.export_function("connect", c)?;
+    cx.export_function("connect", connect_wrap)?;
+    cx.export_function("init", init_wrap)?;
     Ok(())
 }
