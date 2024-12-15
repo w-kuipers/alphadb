@@ -1,10 +1,18 @@
 import * as addon from './load.cjs';
 
+interface Status {
+	init: boolean;
+	version: string | null;
+	name: string;
+	template: string | null;
+}
+
 interface AlphaDB {
 	conn: any;
 	internaldbname: any;
 	connect(host: string, user: string, password: string, database: string, port: number): void;
 	init(): void;
+	status(): Status;
 }
 
 // Use this declaration to assign types to the addon's exports,
@@ -14,6 +22,7 @@ declare module "./load.cjs" {
 	const internaldbname: any;
 	function connect(conn: any, internaldbname: any, host: string, user: string, password: string, database: string, port: number): void;
 	function init(conn: any, internaldbname: any): void;
+	function status(conn: any, internaldbname: any): Status;
 }
 
 class AlphaDB {
@@ -28,6 +37,10 @@ class AlphaDB {
 
 	public init() {
 		addon.init(this.conn, this.internaldbname);
+	}
+
+	public status() {
+		return addon.status(this.conn, this.internaldbname);
 	}
 }
 
