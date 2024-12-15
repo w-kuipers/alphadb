@@ -13,7 +13,33 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub use mysql::*;
+use mysql::*;
+use thiserror::Error;
+use crate::prelude::*;
+
+#[derive(Error, Debug)]
+pub enum ConnectError {
+    #[error(transparent)]
+    AlphaDbError(#[from] AlphaDBError),
+
+    #[error(transparent)]
+    MySqlError(#[from] mysql::Error),
+}
+
+impl Get for ConnectError {
+    fn message(&self) -> String {
+        match self {
+            ConnectError::AlphaDbError(e) => e.message(),
+            ConnectError::MySqlError(e) => format!("MySQL Error: {:?}", e),
+        }
+    }
+    fn error(&self) -> String {
+        match self {
+            ConnectError::AlphaDbError(e) => e.error(),
+            ConnectError::MySqlError(_) => String::new(),
+        }
+    }
+}
 
 /// Create a connection pool to the database and return it.
 ///
@@ -22,7 +48,7 @@ pub use mysql::*;
 /// - password: User password for the database
 /// - database: Database name
 /// - port: MySQL port
-pub fn connect(host: &String, user: &String, password: &String, database: &String, port: &u16) -> Result<PooledConn, mysql::Error> {
+pub fn connect(host: &String, user: &String, password: &String, database: &String, port: &u16) -> Result<PooledConn, ConnectError> {
     let url = format!("mysql://{}:{}@{}:{}/{}", user, password, host, port, database);
 
     let pool = Pool::new(&url[..])?;

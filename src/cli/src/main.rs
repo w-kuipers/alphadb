@@ -12,7 +12,6 @@ use crate::config::connection::{get_active_connection, remove_connection};
 use crate::config::setup::{config_read, init_config, Config};
 use crate::utils::{abort, decrypt_password, error};
 use alphadb::AlphaDB;
-use alphadb::prelude::*;
 use std::path::PathBuf;
 
 fn main() {
