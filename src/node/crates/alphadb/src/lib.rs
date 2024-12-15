@@ -19,6 +19,7 @@ mod types;
 use crate::methods::connect::connect_wrap;
 use crate::methods::init::init_wrap;
 use crate::methods::status::status_wrap;
+use crate::methods::update_queries::update_queries_wrap;
 use crate::types::PooledConnWrap;
 use neon::prelude::*;
 use std::cell::RefCell;
@@ -37,5 +38,6 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
     cx.export_function("connect", connect_wrap)?;
     cx.export_function("init", init_wrap)?;
     cx.export_function("status", status_wrap)?;
+    cx.export_function("update_queries", update_queries_wrap)?;
     Ok(())
 }
