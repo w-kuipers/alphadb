@@ -1,4 +1,4 @@
-from typing import TypedDict, Optional, Union, List, Tuple, Literal
+from typing import List, Literal, Optional, Tuple, TypedDict, Union
 
 class Check(TypedDict):
     check: bool
@@ -20,9 +20,6 @@ CRITICAL: Will not execute.
 class AlphaDB:
     def connect(self, host: str, user: str, password: str, database: str, port: Optional[int] = 3306): ...
     """Connect to a database"""
-
-    def check(self) -> Check: ...
-    """Check database status"""
 
     def init(self): ...
     """Initialize the database"""
