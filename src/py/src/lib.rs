@@ -17,13 +17,12 @@ use alphadb::methods::connect::connect;
 use alphadb::methods::init::init;
 use alphadb::methods::status::status;
 use alphadb::methods::update_queries::update_queries;
-use alphadb::prelude::*;
 use alphadb::methods::update_queries::Query as AdbQuery;
-use mysql::{prelude::*, PooledConn};
+use alphadb::methods::vacate::vacate;
+use alphadb::prelude::*;
+use mysql::PooledConn;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::types::PyList;
-use pyo3::types::*;
 
 #[pyclass]
 struct AlphaDB {
@@ -44,7 +43,6 @@ pub struct Query {
     pub query: String,
     pub data: Option<Vec<String>>,
 }
-
 
 impl From<AdbQuery> for Query {
     fn from(q: AdbQuery) -> Self {
@@ -135,7 +133,7 @@ impl AlphaDB {
                     for query in queries {
                         queries_converted.push(query.into());
                     }
-    
+
                     Ok(queries_converted)
                 }
                 Err(e) => Err(PyRuntimeError::new_err(e.message())),
@@ -179,11 +177,15 @@ impl AlphaDB {
     //         no_data_wrapper,
     //         allowed_error_priority_wrapper,
     //     );
-    // }
     //
-    // fn vacate(&mut self) {
-    //     self.alphadb_instance.vacate();
     // }
+
+    fn vacate(&mut self) -> PyResult<()> {
+        match vacate(&mut self.connection) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(PyRuntimeError::new_err(e.message())),
+        }
+    }
 }
 
 #[pymodule(name = "alphadb")]
