@@ -16,13 +16,14 @@
 use alphadb::methods::connect::connect;
 use alphadb::methods::init::init;
 use alphadb::methods::status::status;
+use alphadb::methods::update_queries::update_queries;
 use alphadb::prelude::*;
+use alphadb::methods::update_queries::Query as AdbQuery;
 use mysql::{prelude::*, PooledConn};
 use pyo3::exceptions::PyRuntimeError;
-// use pyo3::types::PyList;
 use pyo3::prelude::*;
-use pyo3::types::IntoPyDict;
-use std::collections::HashMap;
+use pyo3::types::PyList;
+use pyo3::types::*;
 
 #[pyclass]
 struct AlphaDB {
@@ -36,6 +37,22 @@ pub struct Status {
     pub version: Option<String>,
     pub name: String,
     pub template: Option<String>,
+}
+
+#[derive(Debug, IntoPyObject, IntoPyObjectRef)]
+pub struct Query {
+    pub query: String,
+    pub data: Option<Vec<String>>,
+}
+
+
+impl From<AdbQuery> for Query {
+    fn from(q: AdbQuery) -> Self {
+        Query {
+            data: q.data,
+            query: q.query,
+        }
+    }
 }
 
 #[pymethods]
@@ -80,51 +97,52 @@ impl AlphaDB {
     }
 
     fn status(&mut self) -> PyResult<Py<PyAny>> {
-        Python::with_gil(|py| {
-            match status(&self.db_name, &mut self.connection) {
-                Ok(s) => {
-                    let status =  Status {
-                        init: s.init,
-                        version: s.version,
-                        name: s.name,
-                        template: s.template,
-                    }.into_pyobject(py);
+        Python::with_gil(|py| match status(&self.db_name, &mut self.connection) {
+            Ok(s) => {
+                let status = Status {
+                    init: s.init,
+                    version: s.version,
+                    name: s.name,
+                    template: s.template,
+                }
+                .into_pyobject(py);
 
-                    match status {
-                        Ok(status) => Ok(status.into()),
-                        Err(_) => Err(PyRuntimeError::new_err("Unable to parse return value")),
+                match status {
+                    Ok(status) => Ok(status.into()),
+                    Err(_) => Err(PyRuntimeError::new_err("Unable to parse return value")),
+                }
+            }
+            Err(e) => Err(PyRuntimeError::new_err(e.message())),
+        })
+    }
+
+    #[pyo3(signature = (version_source, update_to_version=None))]
+    fn update_queries(
+        &mut self,
+        version_source: String,
+        update_to_version: Option<&str>,
+    ) -> PyResult<Vec<Query>> {
+        Python::with_gil(|_py| {
+            match update_queries(
+                &self.db_name,
+                &mut self.connection,
+                version_source,
+                update_to_version,
+            ) {
+                Ok(queries) => {
+                    let mut queries_converted: Vec<Query> = Vec::new();
+
+                    for query in queries {
+                        queries_converted.push(query.into());
                     }
+    
+                    Ok(queries_converted)
                 }
                 Err(e) => Err(PyRuntimeError::new_err(e.message())),
             }
         })
     }
 
-    // #[pyo3(signature = (version_source, update_to_version=None))]
-    // fn update_queries(
-    //     &mut self,
-    //     version_source: String,
-    //     update_to_version: Option<&str>,
-    // ) -> PyResult<Py<PyAny>> {
-    //     let queries = self
-    //         .alphadb_instance
-    //         .update_queries(version_source, update_to_version);
-    //
-    //     Python::with_gil(|py| {
-    //         let queries_py_list: Vec<_> = queries
-    //             .into_iter()
-    //             .map(|query| {
-    //                 let data_py_list = PyList::new_bound(py, query.data);
-    //                 vec![query.query.into_py(py), data_py_list.into()]
-    //             })
-    //             .collect();
-    //
-    //         let py_list = PyList::new_bound(py, queries_py_list);
-    //
-    //         Ok(py_list.into())
-    //     })
-    // }
-    //
     // #[pyo3(signature = (version_source, update_to_version=None, no_data=false, verify=true, allowed_error_priority=PyVerificationIssueLevel::Low))]
     // fn update(
     //     &mut self,
