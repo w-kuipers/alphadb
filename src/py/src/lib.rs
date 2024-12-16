@@ -16,10 +16,12 @@
 use alphadb::methods::connect::connect;
 use alphadb::methods::init::init;
 use alphadb::methods::status::status;
+use alphadb::methods::update::update;
 use alphadb::methods::update_queries::update_queries;
 use alphadb::methods::update_queries::Query as AdbQuery;
 use alphadb::methods::vacate::vacate;
 use alphadb::prelude::*;
+use alphadb::utils::types::ToleratedVerificationIssueLevel;
 use mysql::PooledConn;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -51,6 +53,19 @@ impl From<AdbQuery> for Query {
             query: q.query,
         }
     }
+}
+
+#[pyclass(eq, eq_int)]
+#[derive(Clone, PartialEq)]
+enum PyToleratedVerificationIssueLevel {
+    /// Low: Will pass with verification errors below level high.
+    Low,
+    /// High: Will pass with verification errors below level Critical.
+    High,
+    /// Critical: Will ignore all errors.
+    Critical,
+    /// All: Will fail with an error of any level.
+    All,
 }
 
 #[pymethods]
@@ -141,44 +156,47 @@ impl AlphaDB {
         })
     }
 
-    // #[pyo3(signature = (version_source, update_to_version=None, no_data=false, verify=true, allowed_error_priority=PyVerificationIssueLevel::Low))]
-    // fn update(
-    //     &mut self,
-    //     version_source: String,
-    //     update_to_version: Option<String>,
-    //     no_data: Option<bool>,
-    //     verify: Option<bool>,
-    //     allowed_error_priority: PyVerificationIssueLevel,
-    // ) {
-    //     let mut no_data_wrapper = false;
-    //     let mut verify_wrapper = true;
-    //     let allowed_error_priority_wrapper: VerificationIssueLevel;
-    //
-    //     if no_data.is_some() {
-    //         no_data_wrapper = no_data.unwrap();
-    //     }
-    //
-    //     if verify.is_some() {
-    //         verify_wrapper = verify.unwrap();
-    //     }
-    //
-    //     if let PyVerificationIssueLevel::Low { .. } = allowed_error_priority {
-    //         allowed_error_priority_wrapper = VerificationIssueLevel::Low;
-    //     } else if let PyVerificationIssueLevel::High { .. } = allowed_error_priority {
-    //         allowed_error_priority_wrapper = VerificationIssueLevel::High;
-    //     } else {
-    //         allowed_error_priority_wrapper = VerificationIssueLevel::Critical;
-    //     }
-    //
-    //     self.alphadb_instance.update(
-    //         version_source,
-    //         update_to_version,
-    //         verify_wrapper,
-    //         no_data_wrapper,
-    //         allowed_error_priority_wrapper,
-    //     );
-    //
-    // }
+    #[pyo3(signature = (version_source, update_to_version=None, no_data=false, verify=true, allowed_error_priority=PyToleratedVerificationIssueLevel::Low))]
+    fn update(
+        &mut self,
+        version_source: String,
+        update_to_version: Option<String>,
+        no_data: Option<bool>,
+        verify: Option<bool>,
+        allowed_error_priority: PyToleratedVerificationIssueLevel,
+    ) -> PyResult<()> {
+        let allowed_error_priority = match allowed_error_priority {
+            PyToleratedVerificationIssueLevel::Low => ToleratedVerificationIssueLevel::Low,
+            PyToleratedVerificationIssueLevel::High => ToleratedVerificationIssueLevel::High,
+            PyToleratedVerificationIssueLevel::Critical => {
+                ToleratedVerificationIssueLevel::Critical
+            }
+            PyToleratedVerificationIssueLevel::All => ToleratedVerificationIssueLevel::All,
+        };
+
+        let no_data = match no_data {
+            Some(nd) => nd,
+            None => false,
+        };
+
+        let verify = match verify {
+            Some(v) => v,
+            None => false,
+        };
+
+        match update(
+            &self.db_name,
+            &mut self.connection,
+            version_source,
+            update_to_version.as_deref(),
+            verify,
+            no_data,
+            allowed_error_priority,
+        ) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(PyRuntimeError::new_err(e.message())),
+        }
+    }
 
     fn vacate(&mut self) -> PyResult<()> {
         match vacate(&mut self.connection) {
