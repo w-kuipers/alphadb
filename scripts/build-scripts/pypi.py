@@ -38,6 +38,8 @@ with open(setup_path, "r") as i:
 #
 # else:
 
+print(sys.platform)
+
 if sys.platform == "linux" or sys.platform == "linux2":
     subprocess.Popen(["maturin", "build", "--release"], cwd=os.path.join(os.getcwd(), src_path)).wait()
 else:
