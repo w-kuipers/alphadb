@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: python-api
-          path: ./target/wheels/
+          path: ./src/py/target/wheels/
 
   # build-os-specific-linux_x86_64:
   #   name: Build CLI and JS wrapper (Linux_x86_64)
@@ -208,7 +208,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: python-api
-          path: target/wheels/
+          path: ./src/py/target/wheels/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
