@@ -42,7 +42,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           pip install auditwheel
-          for whl in ./target/wheels/*.whl; do
+          for whl in ./src/py/target/wheels/*.whl; do
             auditwheel repair "$whl" -w ./target/wheels/
           done
 
