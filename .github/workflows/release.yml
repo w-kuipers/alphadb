@@ -217,6 +217,36 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
+  publish-to-cargo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions/setup-rust@v1
+        with:
+          rust-version: stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Build binary wheel
+        run: |
+          python scripts/build-scripts/cargo.py ${{ github.ref_name }}
+
+      - name: Install dependencies
+        run: cargo build --release
+
+      - name: Publish to Cargo
+        env:
+          CARGO_AUTH_TOKEN: ${{ secrets.CARGO_AUTH_TOKEN }}
+        run: |
+          cargo login $CARGO_AUTH_TOKEN
+          cargo publish
+
   # github-release:
   #   name: Sign with Sigstore and upload them to GitHub Release
   #   needs:
