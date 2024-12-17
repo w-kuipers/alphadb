@@ -27,15 +27,18 @@ jobs:
         run: docker pull quay.io/pypa/manylinux2014_x86_64
 
       - name: Build wheels in manylinux container
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/io \
             quay.io/pypa/manylinux2014_x86_64 \
-            /bin/bash -c "
-            yum install -y python${{ matrix.python-version//.}}-devel \
-            && python${{ matrix.python-version }} -m pip install maturin \
-            && python${{ matrix.python-version }} -m maturin build --release --manylinux 2014
-          "
+            /bin/bash -c "\
+              yum install -y python${PYTHON_VERSION/./}-devel && \
+              python${PYTHON_VERSION} -m pip install maturin && \
+              python${PYTHON_VERSION} -m maturin build --release --manylinux 2014 \
+            "
+
 
       # - name: Install Rust
       #   uses: actions-rs/toolchain@v1
