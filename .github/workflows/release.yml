@@ -23,38 +23,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Pull manylinux2014 Docker image
-        run: docker pull quay.io/pypa/manylinux2014_x86_64
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
 
-      - name: Build wheels in manylinux container
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/io \
-            quay.io/pypa/manylinux2014_x86_64 \
-            /bin/bash -c "\
-              cd src/py \
-              /opt/python/cp${PYTHON_VERSION//.}-cp${PYTHON_VERSION//.}/bin/pip install maturin && \
-              /opt/python/cp${PYTHON_VERSION//.}-cp${PYTHON_VERSION//.}/bin/maturin build --release --manylinux 2014 \
-            "
-
-
-      # - name: Install Rust
-      #   uses: actions-rs/toolchain@v1
-      #   with:
-      #     profile: minimal
-      #     toolchain: stable
-      #     override: true
-      #
       # - name: Install Maturin
       #   run: pip install maturin
-      #
+
       # - name: Build binary wheel
       #   run: |
       #     python3 -m  pip install build --user
       #     python3 scripts/build-scripts/pypi.py ${{ github.ref_name }}
-      #
+
       # - name: Audit Linux wheels
       #   if: matrix.os == 'ubuntu-latest'
       #   run: |
