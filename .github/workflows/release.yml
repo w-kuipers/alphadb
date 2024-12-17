@@ -34,6 +34,7 @@ jobs:
             -v ${{ github.workspace }}:/io \
             quay.io/pypa/manylinux2014_x86_64 \
             /bin/bash -c "\
+              cd src/py \
               /opt/python/cp${PYTHON_VERSION//.}-cp${PYTHON_VERSION//.}/bin/pip install maturin && \
               /opt/python/cp${PYTHON_VERSION//.}-cp${PYTHON_VERSION//.}/bin/maturin build --release --manylinux 2014 \
             "
