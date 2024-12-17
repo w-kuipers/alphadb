@@ -30,13 +30,13 @@ jobs:
           toolchain: stable
           override: true
 
-      # - name: Install Maturin
-      #   run: pip install maturin
+      - name: Install Maturin
+        run: pip install maturin
 
-      # - name: Build binary wheel
-      #   run: |
-      #     python3 -m  pip install build --user
-      #     python3 scripts/build-scripts/pypi.py ${{ github.ref_name }}
+      - name: Build binary wheel
+        run: |
+          python3 -m  pip install build --user
+          python3 scripts/build-scripts/pypi.py ${{ github.ref_name }}
 
       # - name: Audit Linux wheels
       #   if: matrix.os == 'ubuntu-latest'
