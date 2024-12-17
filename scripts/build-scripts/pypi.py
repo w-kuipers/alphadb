@@ -37,7 +37,11 @@ with open(setup_path, "r") as i:
 #     subprocess.Popen(docker_command, cwd=os.path.join(os.getcwd(), src_path)).wait()
 #
 # else:
-subprocess.Popen(["maturin", "build", "--release"], cwd=os.path.join(os.getcwd(), src_path)).wait()
+
+if sys.platform == "linux" or sys.platform == "linux2":
+    subprocess.Popen(["maturin", "build", "--release"], cwd=os.path.join(os.getcwd(), src_path)).wait()
+else:
+    subprocess.Popen(["maturin", "build", "--release", "--manylinux", "off"], cwd=os.path.join(os.getcwd(), src_path)).wait()
 
 with open(setup_path, "r") as i:
     c = i.read()
