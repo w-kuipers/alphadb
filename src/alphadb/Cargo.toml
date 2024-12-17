@@ -11,7 +11,7 @@ repository = "https://github.com/w-kuipers/alphadb"
 readme = "README.md"
 
 [dependencies]
-mysql = "*"
+mysql = "25.0.1"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 thiserror = "1.0.64"
