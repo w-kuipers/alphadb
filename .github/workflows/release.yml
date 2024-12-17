@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [macos-latest, windows-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
@@ -35,8 +35,8 @@ jobs:
 
       - name: Build binary wheel
         run: |
-          python3 -m  pip install build --user
-          python3 scripts/build-scripts/pypi.py ${{ github.ref_name }}
+          python -m  pip install build --user
+          python scripts/build-scripts/pypi.py ${{ github.ref_name }}
 
       # - name: Audit Linux wheels
       #   if: matrix.os == 'ubuntu-latest'
