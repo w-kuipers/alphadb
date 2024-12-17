@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 
 if len(sys.argv) == 1 or not sys.argv[1][0] == "v":
@@ -9,14 +10,18 @@ if len(sys.argv) == 1 or not sys.argv[1][0] == "v":
 else:
     version = sys.argv[1]
 
-with open("setup.py", "r") as i:
+src_path = "src/py"
+setup_path = os.path.join(os.getcwd(), src_path, "pyproject.toml")
+
+with open(setup_path, "r") as i:
     c = i.read()
-    with open("setup.py", "w") as i2:
+    with open(setup_path, "w") as i2:
         i2.write(c.replace('"indev"', f'"{version}"'))
 
-os.system("python3 -m build")
+# os.system("maturin build --release")
+subprocess.Popen(["maturin", "build", "--release"], cwd=os.path.join(os.getcwd(), src_path)).wait()
 
-with open("setup.py", "r") as i:
+with open(setup_path, "r") as i:
     c = i.read()
-    with open("setup.py", "w") as i2:
+    with open(setup_path, "w") as i2:
         i2.write(c.replace(f'"{version}"', '"indev"'))

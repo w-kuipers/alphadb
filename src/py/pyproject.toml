@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "alphadb"
-version = "1.0.0b20"
+version = "indev"
 author = "Wibo Kuipers"
 requires-python = ">=3.8"
 classifiers = [
