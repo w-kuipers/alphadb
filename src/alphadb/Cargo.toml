@@ -1,9 +1,13 @@
 [package]
 name = "alphadb"
-version = "0.1.0"
+authors = ["Wibo Kuipers <wkuipersoss@gmail.com>"]
+version = "1.0.0-dev16"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "A powerful and flexible tool for MySQL database version management."
+license = "GPL-3.0"
+homepage = "https://www.example.com/alphadb"
+repository = "https://github.com/username/alphadb"   
+readme = "README.md"
 
 [dependencies]
 mysql = "*"
