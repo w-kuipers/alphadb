@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
@@ -23,28 +23,42 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+      - name: Pull manylinux2014 Docker image
+        run: docker pull quay.io/pypa/manylinux2014_x86_64
 
-      - name: Install Maturin
-        run: pip install maturin
-
-      - name: Build binary wheel
+      - name: Build wheels in manylinux container
         run: |
-          python3 -m  pip install build --user
-          python3 scripts/build-scripts/pypi.py ${{ github.ref_name }}
+          docker run --rm \
+            -v ${{ github.workspace }}:/io \
+            quay.io/pypa/manylinux2014_x86_64 \
+            /bin/bash -c "
+            yum install -y python${{ matrix.python-version//.}}-devel \
+            && python${{ matrix.python-version }} -m pip install maturin \
+            && python${{ matrix.python-version }} -m maturin build --release --manylinux 2014
+          "
 
-      - name: Audit Linux wheels
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          pip install auditwheel
-          for whl in ./src/py/target/wheels/*.whl; do
-            auditwheel repair "$whl" -w ./target/wheels/
-          done
+      # - name: Install Rust
+      #   uses: actions-rs/toolchain@v1
+      #   with:
+      #     profile: minimal
+      #     toolchain: stable
+      #     override: true
+      #
+      # - name: Install Maturin
+      #   run: pip install maturin
+      #
+      # - name: Build binary wheel
+      #   run: |
+      #     python3 -m  pip install build --user
+      #     python3 scripts/build-scripts/pypi.py ${{ github.ref_name }}
+      #
+      # - name: Audit Linux wheels
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: |
+      #     pip install auditwheel
+      #     for whl in ./src/py/target/wheels/*.whl; do
+      #       auditwheel repair "$whl" -w ./target/wheels/
+      #     done
 
       - name: Store Python API
         uses: actions/upload-artifact@v3
