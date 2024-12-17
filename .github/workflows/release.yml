@@ -1,203 +1,139 @@
 name: Release for production
 
-on:
-  push:
-    tags:
-      v1.0.0dev*
+on: push
 
 jobs:
   build-py:
     name: Build Python API
     if: startsWith(github.ref, 'refs/tags/')
-    strategy:
-      matrix:
-        # os: [macos-latest, windows-latest, ubuntu-latest]
-        os: [ubuntu-latest]
-        python-version: ["3.12"]
-        # python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
-        
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.x"
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      - name: Install Maturin
-        run: pip install maturin
-
-      - name: Build binary wheel
+      - name: Build binary wheel and source tarball
         run: |
-          pip install build --user
-          python scripts/build-scripts/pypi.py ${{ github.ref_name }}
-
-      # - name: Audit Linux wheels
-      #   if: matrix.os == 'ubuntu-latest'
-      #   run: |
-      #     pip install auditwheel
-      #     for whl in ./src/py/target/wheels/*.whl; do
-      #       auditwheel repair "$whl" -w ./target/wheels/
-      #     done
+          python3 -m  pip install build --user
+          python3 scripts/build-scripts/pypi.py ${{ github.ref_name }}
 
       - name: Store Python API
         uses: actions/upload-artifact@v3
         with:
           name: python-api
-          path: ./src/py/target/wheels/
+          path: dist/
 
-  # build-os-specific-linux_x86_64:
-  #   name: Build CLI and JS wrapper (Linux_x86_64)
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #   runs-on: ubuntu-latest
-  #
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: Setup python
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: "3.12"
-  #     
-  #     - name: Install pyinstaller
-  #       run: python3 -m pip install pyinstaller
-  #
-  #     - name: Build executable
-  #       run: |
-  #         python3 -m pip install -r requirements.txt
-  #         python3 scripts/build-scripts/linux.py ${{ github.ref_name }} x86_64          
-  #         python3 scripts/build-scripts/node_linux.py ${{ github.ref_name }} x86_64
-  #         python3 scripts/package-scripts/linux_x86_64.py ${{ github.ref_name }}
-  #
-  #     - name: Store CLI
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: cli
-  #         path: dist/cli/
-  #         
-  #     - name: Store JS wrapper
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: js-wrapper
-  #         path: dist/node/
-  #
-  # build-os-specific-darwin_x86_64:
-  #   name: Build CLI and JS wrapper (Darwin_x86_64)
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #   runs-on: macos-latest
-  #
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: Setup python
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: "3.12"
-  #     
-  #     - name: Install pyinstaller
-  #       run: python3 -m pip install pyinstaller
-  #
-  #     - name: Build executable
-  #       run: |
-  #         python3 -m pip install -r requirements.txt
-  #         python3 scripts/build-scripts/darwin.py ${{ github.ref_name }} x86_64          
-  #         python3 scripts/build-scripts/node_darwin.py ${{ github.ref_name }} x86_64
-  #         python3 scripts/package-scripts/darwin.py ${{ github.ref_name }} x86_64
-  #
-  #     - name: Store CLI
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: cli
-  #         path: dist/cli/
-  #         
-  #     - name: Store JS wrapper
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: js-wrapper
-  #         path: dist/node/
-  # 
-  # build-os-specific-windows_x86_64:
-  #   name: Build CLI and JS wrapper  (Windows_x86_64)
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #   runs-on: windows-latest
-  #
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: Setup python
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: "3.12"
-  #
-  #     - name: Install pyinstaller
-  #       run: python -m pip install pyinstaller
-  #
-  #     - name: Build executable
-  #       run: |
-  #         python -m pip install -r requirements.txt
-  #         python scripts/build-scripts/win32.py ${{ github.ref_name }}
-  #         python scripts/build-scripts/node_win32.py ${{ github.ref_name }}
-  #         python scripts/package-scripts/win32_x86_64.py ${{ github.ref_name }}
-  #
-  #     - name: Store CLI
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: cli
-  #         path: dist/cli/
-  #
-  #     - name: Store JS wrapper
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: js-wrapper
-  #         path: dist/node/
+  build-os-specific-linux_x86_64:
+    name: Build CLI and JS wrapper
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      
+      - name: Install pyinstaller
+        run: python3 -m pip install pyinstaller
+
+      - name: Build executable
+        run: |
+          python3 -m pip install -r requirements.txt
+          python3 scripts/build-scripts/linux.py ${{ github.ref_name }} x86_64          
+          python3 scripts/build-scripts/node_linux.py ${{ github.ref_name }} x86_64
+          python3 scripts/package-scripts/linux_x86_64.py ${{ github.ref_name }}
+
+      - name: Store CLI
+        uses: actions/upload-artifact@v3
+        with:
+          name: cli
+          path: dist/cli/
+          
+      - name: Store JS wrapper
+        uses: actions/upload-artifact@v3
+        with:
+          name: js-wrapper
+          path: dist/node/
   
-  # publish-to-npm:
-  #   name: Create NPM package
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #   needs: 
-  #     - build-os-specific-windows_x86_64
-  #     - build-os-specific-linux_x86_64
-  #     - build-os-specific-darwin_x86_64
-  #   environment:
-  #     name: release
-  #   runs-on: ubuntu-latest
-  #   
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: Setup node
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 20
-  #         registry-url: https://registry.npmjs.org
-  #
-  #     - name: Setup python
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: 3.12
-  #
-  #     - name: Download binaries
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: js-wrapper
-  #         path: dist/
-  #
-  #     - name: Publish to NPM
-  #       env:
-  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-  #       run: |
-  #         python3 scripts/package-scripts/node.py ${{ github.ref_name }}
-  #         cd temp/node
-  #         npm publish --access public
+  build-os-specific-windows_x86_64:
+    name: Build CLI and JS wrapper
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install pyinstaller
+        run: python -m pip install pyinstaller
+
+      - name: Build executable
+        run: |
+          python -m pip install -r requirements.txt
+          python scripts/build-scripts/win32.py ${{ github.ref_name }}
+          python scripts/build-scripts/node_win32.py ${{ github.ref_name }}
+          python scripts/package-scripts/win32_x86_64.py ${{ github.ref_name }}
+
+      - name: Store CLI
+        uses: actions/upload-artifact@v3
+        with:
+          name: cli
+          path: dist/cli/
+
+      - name: Store JS wrapper
+        uses: actions/upload-artifact@v3
+        with:
+          name: js-wrapper
+          path: dist/node/
+  
+  publish-to-npm:
+    name: Create NPM package
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: 
+      - build-os-specific-windows_x86_64
+      - build-os-specific-linux_x86_64
+    environment:
+      name: release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+
+      - name: Download binaries
+        uses: actions/download-artifact@v3
+        with:
+          name: js-wrapper
+          path: dist/
+
+      - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: |
+          python3 scripts/package-scripts/node.py ${{ github.ref_name }}
+          cd temp/node
+          npm publish --access public
 
   publish-to-pypi:
     name: Publish to PyPI
@@ -219,37 +155,36 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
-  # github-release:
-  #   name: Sign with Sigstore and upload them to GitHub Release
-  #   needs:
-  #     - publish-to-pypi
-  #     - build-os-specific-windows_x86_64
-  #     - build-os-specific-linux_x86_64
-  #     - build-os-specific-darwin_x86_64
-  #   runs-on: ubuntu-latest
-  #
-  #   permissions:
-  #     contents: write
-  #     id-token: write
-  #
-  #   steps:
-  #     - name: Download PyPI builds
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: python-api
-  #         path: dist/
-  #     - name: Download linux cli build
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: cli
-  #         path: dist/
-  #     - name: Create GitHub Release
-  #       env:
-  #         GITHUB_TOKEN: ${{ github.token }}
-  #       run: |
-  #         gh release create -p '${{ github.ref_name }}' --repo '${{ github.repository }}' --generate-notes;
-  #
-  #     - name: Upload artifact signatures to GitHub Release
-  #       env:
-  #         GITHUB_TOKEN: ${{ github.token }}
-  #       run: gh release upload '${{ github.ref_name }}' dist/** --repo '${{ github.repository }}'
+  github-release:
+    name: Sign with Sigstore and upload them to GitHub Release
+    needs:
+      - publish-to-pypi
+      - build-os-specific-windows_x86_64
+      - build-os-specific-linux_x86_64
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Download PyPI builds
+        uses: actions/download-artifact@v3
+        with:
+          name: python-api
+          path: dist/
+      - name: Download linux cli build
+        uses: actions/download-artifact@v3
+        with:
+          name: cli
+          path: dist/
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          gh release create -p '${{ github.ref_name }}' --repo '${{ github.repository }}' --generate-notes;
+
+      - name: Upload artifact signatures to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: gh release upload '${{ github.ref_name }}' dist/** --repo '${{ github.repository }}'
