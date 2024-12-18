@@ -13,7 +13,7 @@ else:
 src_path = "src/alphadb"
 setup_path = os.path.join(os.getcwd(), src_path, "Cargo.toml")
 
-new_version_line = f'version = "{version}"\n'
+new_version_line = f'version = "{version[1:]}"\n'
 
 with open(setup_path, "r") as file:
     lines = file.readlines()
@@ -24,3 +24,5 @@ for i, line in enumerate(lines):
 
 with open(setup_path, "w") as file:
     file.writelines(lines)
+
+subprocess.Popen(["cargo", "build", "--release"], cwd=os.path.join(os.getcwd(), src_path)).wait()
