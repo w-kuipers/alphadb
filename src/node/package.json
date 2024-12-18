@@ -1,6 +1,6 @@
 {
   "name": "alphadb",
-  "version": "1.0.0",
+"version": "23.0",
   "description": "",
   "main": "./lib/index.cjs",
   "scripts": {
@@ -11,11 +11,7 @@
     "postcross-build": "neon dist -m /target < cross.log",
     "debug": "npm run cargo-build --",
     "build": "npm run cargo-build -- --release",
-    "cross": "npm run cross-build -- --release",
-    "prepack": "tsc &&neon update",
-    "version": "neon bump --binaries platforms && git add .",
-    "release": "gh workflow run release.yml -f dryrun=false -f version=patch",
-    "dryrun": "gh workflow run publish.yml -f dryrun=true"
+    "cross": "npm run cross-build -- --release"
   },
   "author": "Wibo Kuipers",
   "license": "GPL-3.0",

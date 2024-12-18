@@ -2,6 +2,12 @@
 name = "alphadb-python-wrapper"
 version = "1.0.0"
 edition = "2021"
+description = "A powerful and flexible tool for MySQL database version management."
+license = "GPL-3.0"
+license-file = "LICENSE"
+homepage = "https://alphadb.w-kuipers.com"
+repository = "https://github.com/w-kuipers/alphadb"   
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]

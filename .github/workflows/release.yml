@@ -6,44 +6,16 @@ on:
       v1.0.0-dev.*
 
 jobs:
-  publish-py:
+  # publish-py:
     # uses: ./.github/workflows/publish-py.yml
     
-  publish-cargo:
+  # publish-cargo:
     # uses: ./.github/workflows/publish-cargo.yml
-  
 
-  # github-release:
-  #   name: Sign with Sigstore and upload them to GitHub Release
-  #   needs:
-  #     - publish-to-pypi
-  #     - build-os-specific-windows_x86_64
-  #     - build-os-specific-linux_x86_64
-  #     - build-os-specific-darwin_x86_64
-  #   runs-on: ubuntu-latest
-  #
-  #   permissions:
-  #     contents: write
-  #     id-token: write
-  #
-  #   steps:
-  #     - name: Download PyPI builds
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: python-api
-  #         path: dist/
-  #     - name: Download linux cli build
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: cli
-  #         path: dist/
-  #     - name: Create GitHub Release
-  #       env:
-  #         GITHUB_TOKEN: ${{ github.token }}
-  #       run: |
-  #         gh release create -p '${{ github.ref_name }}' --repo '${{ github.repository }}' --generate-notes;
-  #
-  #     - name: Upload artifact signatures to GitHub Release
-  #       env:
-  #         GITHUB_TOKEN: ${{ github.token }}
-  #       run: gh release upload '${{ github.ref_name }}' dist/** --repo '${{ github.repository }}'
+  publish-node:
+    uses: ./.github/workflows/publish-node.yml
+  
+  publish-github-release:
+    needs: publish-node
+    uses: ./.github/workflows/publish-github-release.yml
+

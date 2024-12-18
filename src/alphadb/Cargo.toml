@@ -1,7 +1,7 @@
 [package]
 name = "alphadb"
 authors = ["Wibo Kuipers <wkuipersoss@gmail.com>"]
-version = "indev"
+version = "23.0.22-dev.238"
 edition = "2021"
 description = "A powerful and flexible tool for MySQL database version management."
 license = "GPL-3.0"

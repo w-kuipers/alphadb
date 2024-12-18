@@ -1,4 +1,4 @@
-name: Build Python package
+name: Build Cargo package
 
 on:
   workflow_call:
