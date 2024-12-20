@@ -7,9 +7,10 @@ jobs:
   release:
     name: Sign with Sigstore and upload them to GitHub Release
     runs-on: ubuntu-latest
-    matrix:
-      os: [macos-latest, windows-latest]
-      # os: [macos-latest, windows-latest, ubuntu-latest]
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+        # os: [macos-latest, windows-latest, ubuntu-latest]
 
     permissions:
       contents: write
