@@ -1,11 +1,11 @@
-name: Build Python package
+name: Build Node binaries
 
 on:
   workflow_call:
 
 jobs:
   build:
-    name: Build Python API
+    name: Build Node binaries
     if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
@@ -49,4 +49,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-bin
-          path: ./node-bin/
+          path: .src/node/node-bin/
