@@ -7,6 +7,9 @@ jobs:
   release:
     name: Sign with Sigstore and upload them to GitHub Release
     runs-on: ubuntu-latest
+    matrix:
+      os: [macos-latest, windows-latest]
+      # os: [macos-latest, windows-latest, ubuntu-latest]
 
     permissions:
       contents: write
@@ -16,14 +19,16 @@ jobs:
       - name: Download Node binaries
         uses: actions/download-artifact@v4
         with:
-          name: node-api
+          name: node-bin-${{ matrix.os }}
           path: node-bin/
 
       - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          gh release create -p '${{ github.ref_name }}' --repo '${{ github.repository }}' --generate-notes;
+          if ! gh release view '${{ github.ref_name }}' --repo '${{ github.repository }}' >/dev/null 2>&1; then
+            gh release create -p '${{ github.ref_name }}' --repo '${{ github.repository }}' --generate-notes;
+          fi
 
       - name: Upload artifact signatures to GitHub Release
         env:
