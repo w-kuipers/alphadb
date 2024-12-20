@@ -4,65 +4,56 @@ on:
   workflow_call:
 
 jobs:
-  build:
-    name: Build Python API
-    if: startsWith(github.ref, 'refs/tags/')
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest]
-        # os: [macos-latest, windows-latest, ubuntu-latest]
-        
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-
-      - name: Install Deps
-        # run: cargo install cross
-        run: |
-          npm install --global typescript
-          npm install --global yarn
-
-      - name: Build node package
-        run: |
-          python scripts/build-scripts/node.py ${{ github.ref_name }}
-          python scripts/package-scripts/node.py
-
-      - name: Store Node Package
-        uses: actions/upload-artifact@v3
-        with:
-          name: node-api
-          path: ./node-dist/
-
-      - name: Store Node binary
-        uses: actions/upload-artifact@v3
-        with:
-          name: node-bin
-          path: ./node-bin/
+  # build:
+  #   name: Build Python API
+  #   if: startsWith(github.ref, 'refs/tags/')
+  #   strategy:
+  #     matrix:
+  #       os: [macos-latest, windows-latest]
+  #       # os: [macos-latest, windows-latest, ubuntu-latest]
+  #       
+  #   runs-on: ${{ matrix.os }}
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: "3.12"
+  #
+  #     - name: Install Rust
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         profile: minimal
+  #         toolchain: stable
+  #         override: true
+  #     
+  #     - name: Setup node
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #         registry-url: https://registry.npmjs.org
+  #
+  #     - name: Install Deps
+  #       # run: cargo install cross
+  #       run: |
+  #         npm install --global typescript
+  #         npm install --global yarn
+  #
+  #     - name: Build node package
+  #       run: |
+  #         python scripts/build-scripts/node.py ${{ github.ref_name }}
+  #
+  #     - name: Store Node binary
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: node-bin
+  #         path: ./node-bin/
 
   publish:
     name: Create NPM package
     if: startsWith(github.ref, 'refs/tags/')
-    needs: 
-      - build
     environment:
       name: release
     runs-on: ubuntu-latest
@@ -76,14 +67,18 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org
 
-      - name: Download binaries
-        uses: actions/download-artifact@v3
-        with:
-          name: node-api
+      - name: Authenticate with NPM
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_AUTH_TOKEN }}" > ~/.npmrc
+
+      - name: Build node package
+        run: |
+          npm install --global typescript
+          python scripts/package-scripts/node.py ${{ github.ref_name }}
+
 
       - name: Publish to NPM
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
         run: |
-          npm config set _authToken=${{ secrets.NPM_AUTH_TOKEN }}
+          cd node-dist
           npm publish --access public

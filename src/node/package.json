@@ -1,6 +1,6 @@
 {
-  "name": "alphadb",
-"version": "23.0",
+  "name": "@w-kuipers/alphadb",
+	"version": "23.0",
   "description": "",
   "main": "./lib/index.cjs",
   "scripts": {
