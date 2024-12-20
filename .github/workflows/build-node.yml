@@ -48,5 +48,5 @@ jobs:
       - name: Store Node binary
         uses: actions/upload-artifact@v4
         with:
-          name: node-bin
+          name: node-bin-${{ matrix-os }}
           path: ./src/node/node-bin/
