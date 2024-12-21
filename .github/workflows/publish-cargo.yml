@@ -1,6 +1,0 @@
-name: Build Cargo package
-
-on:
-  workflow_call:
-
-jobs:

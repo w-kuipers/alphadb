@@ -56,8 +56,10 @@ if sys.platform == "darwin":
 
 if sys.platform.startswith("linux"):
     system = "Linux"
-    targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]
-    target_names = ["x86_64", "aarch64"]
+    # targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]
+    # target_names = ["x86_64", "aarch64"]
+    targets = ["x86_64-unknown-linux-gnu"]
+    target_names = ["x86_64"]
 
 if sys.platform == "win32":
     system = "Windows"
@@ -72,7 +74,12 @@ for i, target in enumerate(targets):
     name = f"alphadb-cli_{version}_{system}-{target_names[i]}"
 
     subprocess.Popen(["rustup", "target", "add", target], cwd=base_dir).wait()
-    subprocess.Popen(["cargo", "build", "--release", "--target", target], cwd=base_dir).wait()
+
+    if target == "aarch64-unknown-linux-gnu":
+        subprocess.Popen(["docker", "build", "-f", join(cwd, "scripts/build-scripts/rust-arm-build.dockerfile"), "-t", "rust-arm-build", "."], cwd=base_dir).wait()
+        subprocess.Popen(["docker", "run", "--rm", "-v", f"{cwd}:/app", "rust-arm-build"], cwd=base_dir).wait()
+    else:
+        subprocess.Popen(["cargo", "build", "--release", "--target", target], cwd=base_dir).wait()
 
     mv("LICENSE")
     mv("README.md")
