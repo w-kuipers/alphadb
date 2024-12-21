@@ -83,14 +83,13 @@ for i, target in enumerate(targets):
 
     mv("LICENSE")
     mv("README.md")
-
     if sys.platform == "linux" or sys.platform == "linux2" or sys.platform == "darwin":
         mv(f"target/{target}/release/alphadb-cli", "alphadb")
-        subprocess.Popen(["tar", "-czvf", "release.tar.gz", "alphadb"], cwd=join(cwd, new_dir)).wait()
-        shutil.move(join(cwd, new_dir, "release.tar.gz"), join(cwd, f"dist/{name}.tar.gz"))
+        subprocess.Popen(["tar", "-czvf", "release.tar.gz", "alphadb"], cwd=new_dir).wait()
+        shutil.move(join(new_dir, "release.tar.gz"), join(cwd, f"dist/{name}.tar.gz"))
     else:
         mv(f"target/{target}/release/alphadb-cli.exe", "alphadb.exe")
-        shutil.make_archive(os.path.join(cwd, "release"), "zip", os.path.join(cwd, new_dir, "alphadb"))
-        shutil.move(join(cwd, new_dir, "release.zip"), join(cwd, f"dist/{name}.zip"))
+        shutil.make_archive(base_name="release", format="zip", root_dir=new_dir)
+        shutil.move(join("release.zip"), join(cwd, f"dist/{name}.zip"))
 
     shutil.rmtree(new_dir)

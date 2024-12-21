@@ -9,8 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [macos-latest]
-        # os: [macos-latest, windows-latest, ubuntu-latest]
+        # os: [macos-latest]
+        os: [macos-latest, windows-latest, ubuntu-latest]
 
     permissions:
       contents: write
@@ -19,6 +19,7 @@ jobs:
     steps:
       - name: Download Node binaries
         uses: actions/download-artifact@v4
+        if: matrix.os == 'macos-latest'
         with:
           name: node-bin-${{ matrix.os }}
           path: node-bin/
