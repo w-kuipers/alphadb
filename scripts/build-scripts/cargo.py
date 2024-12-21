@@ -17,14 +17,15 @@ setup_paths = [setup_path, cli_path]
 
 new_version_line = f'version = "{version[1:]}"\n'
 
-with open(setup_path, "r") as file:
-    lines = file.readlines()
+for path in setup_paths:
+    with open(path, "r") as file:
+        lines = file.readlines()
 
-for i, line in enumerate(lines):
-    if line.startswith("version ="):
-        lines[i] = new_version_line
+    for i, line in enumerate(lines):
+        if line.startswith("version ="):
+            lines[i] = new_version_line
 
-with open(setup_path, "w") as file:
-    file.writelines(lines)
+    with open(path, "w") as file:
+        file.writelines(lines)
 
 subprocess.Popen(["cargo", "build", "--release"], cwd=os.path.join(os.getcwd(), src_path)).wait()
