@@ -30,10 +30,18 @@ jobs:
         run: |
           python scripts/build-scripts/cargo.py ${{ github.ref_name }}
 
-      - name: Publish to Cargo
+      - name: Publish API to Cargo
         env:
           CARGO_AUTH_TOKEN: ${{ secrets.CARGO_AUTH_TOKEN }}
         run: |
           cd src/alphadb
+          cargo login $CARGO_AUTH_TOKEN
+          cargo publish --allow-dirty
+
+      - name: Publish CLI to Cargo
+        env:
+          CARGO_AUTH_TOKEN: ${{ secrets.CARGO_AUTH_TOKEN }}
+        run: |
+          cd src/cli
           cargo login $CARGO_AUTH_TOKEN
           cargo publish --allow-dirty

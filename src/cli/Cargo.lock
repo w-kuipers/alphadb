@@ -71,12 +71,34 @@ checksum = "5c6cb57a04249c6480766f7f7cef5467412af1490f8d1e243141daddada3264f"
 
 [[package]]
 name = "alphadb"
-version = "23.0.22-dev.238"
+version = "1.0.0-dev.132"
 dependencies = [
  "mysql",
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "alphadb-cli"
+version = "1.0.0-dev.132"
+dependencies = [
+ "aead",
+ "aes",
+ "aes-gcm",
+ "alphadb",
+ "base64 0.22.1",
+ "clap",
+ "colored",
+ "ctrlc",
+ "home",
+ "inquire",
+ "rand_core",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "thiserror",
+ "toml",
 ]
 
 [[package]]
@@ -381,28 +403,6 @@ name = "clap_lex"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
-
-[[package]]
-name = "cli"
-version = "0.1.0"
-dependencies = [
- "aead",
- "aes",
- "aes-gcm",
- "alphadb",
- "base64 0.22.1",
- "clap",
- "colored",
- "ctrlc",
- "home",
- "inquire",
- "rand_core",
- "serde",
- "serde_derive",
- "serde_json",
- "thiserror",
- "toml",
-]
 
 [[package]]
 name = "cmake"

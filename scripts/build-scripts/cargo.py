@@ -12,6 +12,8 @@ else:
 
 src_path = "src/alphadb"
 setup_path = os.path.join(os.getcwd(), src_path, "Cargo.toml")
+cli_path = os.path.join(os.getcwd(), "src/cli", "Cargo.toml")
+setup_paths = [setup_path, cli_path]
 
 new_version_line = f'version = "{version[1:]}"\n'
 

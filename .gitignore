@@ -4,6 +4,7 @@ test.db
 temp/
 node_modules/
 node-dist/
+package-bin/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

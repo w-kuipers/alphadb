@@ -1,6 +1,6 @@
 [package]
-name = "cli"
-version = "0.1.0"
+name = "alphadb-cli"
+version = "1.0.0-dev.132"
 edition = "2021"
 
 [dependencies]

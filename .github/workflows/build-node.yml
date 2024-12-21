@@ -9,7 +9,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [macos-latest]
         # os: [macos-latest, windows-latest, ubuntu-latest]
         
     runs-on: ${{ matrix.os }}

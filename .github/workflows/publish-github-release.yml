@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [macos-latest]
         # os: [macos-latest, windows-latest, ubuntu-latest]
 
     permissions:
@@ -22,6 +22,12 @@ jobs:
         with:
           name: node-bin-${{ matrix.os }}
           path: node-bin/
+
+      - name: Download CLI binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-bin-${{ matrix.os }}
+          path: cli-bin/
 
       - name: Create GitHub Release
         env:
@@ -36,3 +42,4 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           gh release upload '${{ github.ref_name }}' node-bin/** --repo '${{ github.repository }}'
+          gh release upload '${{ github.ref_name }}' cli-bin/** --repo '${{ github.repository }}'
