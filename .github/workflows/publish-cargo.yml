@@ -3,45 +3,4 @@ name: Build Cargo package
 on:
   workflow_call:
 
-
 jobs:
-  publish:
-    name: Publish to Crates.io
-    runs-on: ubuntu-latest
-    environment:
-      name: release
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
-
-      - name: Build binaries
-        run: |
-          python scripts/build-scripts/cargo.py ${{ github.ref_name }}
-
-      - name: Publish API to Cargo
-        env:
-          CARGO_AUTH_TOKEN: ${{ secrets.CARGO_AUTH_TOKEN }}
-        run: |
-          cd src/alphadb
-          cargo login $CARGO_AUTH_TOKEN
-          cargo publish --allow-dirty
-
-      - name: Publish CLI to Cargo
-        env:
-          CARGO_AUTH_TOKEN: ${{ secrets.CARGO_AUTH_TOKEN }}
-        run: |
-          cd src/cli
-          cargo login $CARGO_AUTH_TOKEN
-          cargo publish --allow-dirty

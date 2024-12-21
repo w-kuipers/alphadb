@@ -16,6 +16,7 @@ cli_path = os.path.join(os.getcwd(), "src/cli", "Cargo.toml")
 setup_paths = [setup_path, cli_path]
 
 new_version_line = f'version = "{version[1:]}"\n'
+dep_line = f'alphadb = "{version[1:]}"\n'
 
 for path in setup_paths:
     with open(path, "r") as file:
@@ -28,4 +29,13 @@ for path in setup_paths:
     with open(path, "w") as file:
         file.writelines(lines)
 
-subprocess.Popen(["cargo", "build", "--release"], cwd=os.path.join(os.getcwd(), src_path)).wait()
+## replace AlphaDB dependency for Cargo
+with open(cli_path, "r") as file:
+    lines = file.readlines()
+
+for i, line in enumerate(lines):
+    if 'alphadb = { path = "../alphadb" }' in line:
+        lines[i] = dep_line
+
+with open(cli_path, "w") as file:
+    file.writelines(lines)
