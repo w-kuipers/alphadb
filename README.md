@@ -1,4 +1,4 @@
-![AlphaDB](https://github.com/w-kuipers/alphadb/blob/main/assets/ALPHADB_Github-Social-Preview.png?raw=true)
+![AlphaDB](https://github.com/w-kuipers/alphadb/blob/main/assets/alphadb-banner.png?raw=true)
 
 [![GitHub releases](https://img.shields.io/github/v/release/w-kuipers/alphadb)](https://github.com/w-kuipers/alphadb/releases)
 [![PyPI release](https://img.shields.io/pypi/v/alphadb.svg)](https://pypi.org/project/alphadb/)
@@ -48,40 +48,31 @@ Visit the [official documentation](https://alphadb.w-kuipers.com/)
 
 ## Installation
 
-### Install using `PIP`
+### Install using `Cargo`
 
-    pip install alphadb
-
-Note that `pip` refers to the Python 3 package manager. In an environment where Python 2 is also present the correct command may be `pip3`.
+    cargo install alphadb-cli
 
 ## Usage
 
-Import AlphaDB
-``` python
-from alphadb import AlphaDB
+Connect to a database
+``` bash
+alphadb connect
 ```
-Connect to a database.
-``` python
-db = AlphaDB()
-db.connect(
-    host="localhost",
-    user="user",
-    password="password",
-    database="database"
-)
-```
+
+You will be asked to provide the database credentials. After connecting the connection will be saved for later use.
+
 Make sure the database is empty, back it up if necessary. If the database is not empty, you can use the `vacate` method.
-Note that this function will erase ALL data in the database and there is no way to get it back. For extra safety the argument `confirm=True` is required for the function to run.
-``` python
-db.vacate(confirm=True)
+Note that this function will erase ALL data in the database and this action is irriversible.
+``` bash
+alphadb vacate
 ```
-The database is now ready to be initialized. The `init` method will create the `adb_conf` table. This holds configuration data for the database.
-``` python
-db.init()
+The database is now ready to be initialized. The `init` command will create the `adb_conf` table. This holds configuration data for the database.
+``` bash
+alphadb init
 ```
 Now we update the database. For this we need to give it a structure. The database version information is a JSON structure formatted as such:
-``` python
-database_version_source = {
+``` json
+{
     "name": "mydb", ## Database name, does not have to, but is advised to match the actual database name
     "version": [ ## List containing database versions
         {
@@ -123,26 +114,11 @@ database_version_source = {
 }
 ```
 
-Then call the `update` method.
-``` python
-db.update(version_source=database_version_source)
+Then run the update command.
+``` bash
+alphadb update
 ```
-## Exceptions
-
-#### NoConnection
-
-The `NoConnection` exception is thrown when a method is called while no database connection is active.
-
-#### DBNotInitialized
-
-The `DBNotInitialized` exception is thrown when the database is not yet initialized.
-``` python
-Database.init() ## Will initialize the database and thus resolve the error
-```
-#### DBTemplateNoMatch
-
-The `DBTemplateNoMatch` exception is thrown when de database was previously updated using another version source.
-On initialization, a table `adb_conf` is created. In this table the column `template` is used to save the version source template name. Make sure it matches.
+You will be asked to select a version source. This can be a path to a JSON file or a URL returning JSON data.
 
 ## License
 
