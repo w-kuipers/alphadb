@@ -38,9 +38,15 @@ jobs:
             gh release create -p '${{ github.ref_name }}' --repo '${{ github.repository }}' --generate-notes;
           fi
 
-      - name: Upload artifact signatures to GitHub Release
+      - name: Upload CLI binaries
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload '${{ github.ref_name }}' cli-bin/** --repo '${{ github.repository }}'
+
+      - name: Upload Node binaries
+        if: matrix.os == 'macos-latest'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           gh release upload '${{ github.ref_name }}' node-bin/** --repo '${{ github.repository }}'
-          gh release upload '${{ github.ref_name }}' cli-bin/** --repo '${{ github.repository }}'
