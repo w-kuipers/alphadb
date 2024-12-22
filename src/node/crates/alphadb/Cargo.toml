@@ -1,6 +1,6 @@
 [package]
 name = "alphadb"
-version = "1.0.0"
+version = "23.0.22-dev.238-node"
 authors = ["Wibo Kuipers"]
 license = "GPL-3.0"
 edition = "2021"
@@ -14,4 +14,4 @@ crate-type = ["cdylib"]
 [dependencies]
 neon = "1"
 alphadb = { path = "../../../alphadb" }
-mysql = "*"
+mysql = "25.0.1"

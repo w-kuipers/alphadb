@@ -70,7 +70,7 @@ class AlphaDB {
 		return addon.update_queries(this.conn, this.internaldbname, JSON.stringify(version_source), update_to_version);
 	}
 
-	public update(version_source: VersionSource, update_to_version?: string, no_data?: boolean, verify?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel) {
+	public async update(version_source: VersionSource, update_to_version?: string, no_data?: boolean, verify?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel) {
 		if (typeof update_to_version === "undefined") update_to_version = "NOVERSION";
 		if (typeof no_data === "undefined") no_data = false;
 		if (typeof verify === "undefined") verify = true;
