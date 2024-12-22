@@ -45,10 +45,44 @@
 			}
 		},
 		{
+			"_id": "0.0.3",
+			"createtable": {
+				"table3": {
+					"col1": {
+						"type": "INT",
+						"a_i": true,
+						"unique": true
+					},
+					"col2": {
+						"type": "VARCHAR",
+						"length": 100,
+						"default": "default value"
+					}
+				}
+			}
+		},
+		{
+			"_id": "0.0.4",
+			"createtable": {
+				"table4": {
+					"primary_key": "thecol1",
+					"thecol1": {
+						"type": "INT",
+						"a_i": true
+					},
+					"thecol2": {
+						"type": "VARCHAR",
+						"length": 100,
+						"default": "some value"
+					}
+				}
+			}
+		},
+		{
 			"_id": "0.1.0",
 			"altertable": {
 				"table1": {
-					"dropcolumn": ["col1", "col3"],
+					"dropcolumn": ["col3", "col1"],
 					"addcolumn": {
 						"col5": {
 							"type": "TEXT",
@@ -118,27 +152,48 @@
 		{
 			"_id": "0.2.4",
 			"altertable": {
+				"table4": {
+					"primary_key": "thecol2",
+					"modifycolumn": {
+						"thecol2": {
+							"length": 3000,
+							"recreate": false
+						}
+					}
+				}
+			}
+		},
+		{
+			"_id": "0.2.5",
+			"altertable": {
 				"table2": {
 					"modifycolumn": {
 						"secondrenameoncol1": {
 							"recreate": false,
-							"null": true
+							"null": false
 						},
 						"col2": {
 							"recreate": false,
 							"length": 2
 						}
-					},
-					"primary_key": null
+					}
 				},
 				"table1": {
 					"primary_key": "col4",
 					"modifycolumn": {
 						"col2": {
 							"recreate": false,
-							"length": "200"
+							"length": 200
 						}
 					}
+				}
+			}
+		},
+		{
+			"_id": "0.2.6",
+			"altertable": {
+				"table4": {
+					"primary_key": "thecol1"
 				}
 			}
 		}

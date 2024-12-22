@@ -1,0 +1,36 @@
+{
+  "name": "@alphadb/linux-x64-gnu",
+  "description": "Prebuilt binary package for `alphadb` on `linux-x64-gnu`.",
+  "version": "1.0.0",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "index.node",
+  "files": [
+    "index.node"
+  ],
+  "neon": {
+    "type": "binary",
+    "rust": "x86_64-unknown-linux-gnu",
+    "node": "linux-x64-gnu",
+    "os": "linux",
+    "arch": "x64",
+    "abi": "gnu"
+  },
+  "author": "Wibo Kuipers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/w-kuipers/alphadb.git"
+  },
+  "keywords": [
+    "database"
+  ],
+  "bugs": {
+    "url": "https://github.com/w-kuipers/alphadb/issues"
+  },
+  "homepage": "https://github.com/w-kuipers/alphadb#readme",
+  "license": "GPL-3.0"
+}

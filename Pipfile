@@ -1,5 +1,0 @@
-PIPENV_VERBOSITY=-1
-
-[scripts]
-test = "coverage run -m pytest"
-html = "coverage html --omit='*/test*'"
