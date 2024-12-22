@@ -26,22 +26,6 @@ AlphaDB is currently in `beta` stage. Breaking changes should be expected.
 - **Version Control for Your Database**: Keep your database schema in sync with your application code.
 - **Lightweight and Developer-Friendly**: Designed to integrate smoothly into your development workflow.
 
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li><a href="#documentation">Documentation</a></li>
-    <li>
-      <a href="#installation">Installation</a>
-      <ul>
-        <li><a href="#install-using-pip">Install using PIP</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#exceptions">Exceptions</a></li>
-    <li><a href="#license">License</a></li>
-  </ol>
-</details>
-
 ## Documentation
 
 Visit the [official documentation](https://alphadb.w-kuipers.com/)
