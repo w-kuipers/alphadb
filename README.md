@@ -55,19 +55,19 @@ The database is now ready to be initialized. The `init` command will create the 
 ``` bash
 alphadb init
 ```
-Now we update the database. For this we need to give it a structure. The database version information is a JSON structure formatted as such:
+Now we update the database. For this we need to give it a structure. Read more about [version sources](https://alphadb.w-kuipers.com/version-source).
 ``` json
 {
-    "name": "mydb", ## Database name, does not have to, but is advised to match the actual database name
-    "version": [ ## List containing database versions
+    "name": "mydb",
+    "version": [
         {
-            "_id": "0.1.0", ## Database version
-            "createtable": { ## Object containing tables to be created,
-                "customers": { ## Object key will be used as table name
+            "_id": "0.1.0",
+            "createtable": {
+                "customers": {
                     "primary_key": "id",
-                    "name": { ## Object key will be used as column name
-                        "type": "VARCHAR", ## Data type
-                        "length": 100, ## Date max length,
+                    "name": {
+                        "type": "VARCHAR",
+                        "length": 100,
                     },
                     "id": {
                         "type": "INT",
