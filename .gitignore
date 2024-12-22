@@ -3,7 +3,8 @@ test.db
 .DS_Store
 temp/
 node_modules/
-.adbcache/
+node-dist/
+package-bin/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
