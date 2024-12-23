@@ -1,38 +1,32 @@
 import os
 import shutil
 import subprocess
-from os.path import join
 import sys
+from os.path import join
 
-if len(sys.argv) == 1 or not sys.argv[1][0] == "v":
-    print("No valid version supplied.")
-    version = "dev"
-    if not input("Would you like to use version 'dev'? (y/N): ") == "y":
-        exit()
-else:
-    version = sys.argv[1]
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from utils import get_version_number, replace_line
+
+version = get_version_number()
 
 cwd = os.getcwd()
 base_dir = join(cwd, "src/node")
 new_dir = join(cwd, "node-dist/")
 package_path = os.path.join(cwd, base_dir, "package.json")
+cargo_path = os.path.join(cwd, base_dir, "crates/alphadb/Cargo.toml")
 
 os.mkdir(new_dir)
 new_version_line = f'"version": "{version[1:]}",\n'
+cargo_version_line = f'alphadb = "{version[1:]}",\n'
 
-with open(package_path, "r") as file:
-    lines = file.readlines()
+replace_line('"version":', new_version_line, package_path)
+replace_line("alphadb =", cargo_version_line, cargo_path)
 
-for i, line in enumerate(lines):
-    if '"version": "' in line:
-        lines[i] = new_version_line
-
-with open(package_path, "w") as file:
-    file.writelines(lines)
-
-
-subprocess.Popen(["npm", "install"], cwd=os.path.join(cwd, base_dir)).wait()
+subprocess.Popen(
+    ["npm", "install", "--ignore-scripts"], cwd=os.path.join(cwd, base_dir)
+).wait()
 subprocess.Popen(["tsc"], cwd=os.path.join(cwd, base_dir)).wait()
+
 
 def mv(file):
     shutil.copy(join(base_dir, file), join(new_dir, file))
@@ -45,4 +39,6 @@ def mvd(directory):
 mv("package.json")
 mv("LICENSE")
 mv("README.md")
+mv("Cargo.toml")
 mvd("lib")
+mvd("crates")

@@ -3,6 +3,7 @@ name: Release for production
 on:
   push:
     tags:
+      # v1.0.0-dev.*
       v1.0.0-beta.*
 
 jobs:
@@ -28,7 +29,7 @@ jobs:
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-    
+
   publish-cargo:
     name: Publish to Crates.io
     runs-on: ubuntu-latest
@@ -70,10 +71,9 @@ jobs:
           cargo login $CARGO_AUTH_TOKEN
           cargo publish --allow-dirty
 
-
   build-node:
     uses: ./.github/workflows/build-node.yml
-  
+
   publish-node:
     name: Create NPM package
     if: startsWith(github.ref, 'refs/tags/')
@@ -84,21 +84,20 @@ jobs:
 
     environment:
       name: release
-    
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version: "lts/*"
           # cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: "https://registry.npmjs.org"
 
       - name: Build node package
         run: |
           npm install --global typescript
           python scripts/package-scripts/node.py ${{ github.ref_name }}
-
 
       - name: Publish to NPM
         env:
@@ -116,7 +115,7 @@ jobs:
         # os: [ubuntu-latest, macos-latest]
         # os: [windows-latest]
         os: [macos-latest, windows-latest, ubuntu-latest]
-        
+
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -139,11 +138,8 @@ jobs:
           name: cli-bin-${{ matrix.os }}
           path: ./dist/
 
-
   publish-github-release:
-    needs: 
-      # - publish-py
+    needs:
       - build-node
       - package-cli
     uses: ./.github/workflows/publish-github-release.yml
-
