@@ -52,11 +52,13 @@ for path in setup_paths:
 
 mac = ["darwin-x64", "darwin-arm64"]
 win = ["win32-x64-msvc"]
-linux = ["linux-x64-gnu", "linux-arm64-gnu"]
+linux = ["linux-x64-gnu"]
+# linux = ["linux-x64-gnu", "linux-arm64-gnu"]
 
 mac_r = ["x86_64-apple-darwin", "aarch64-apple-darwin"]
 win_r = ["x86_64-pc-windows-msvc"]
-linux_r = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]
+linux_r = ["x86_64-unknown-linux-gnu"]
+# linux_r = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]
 
 cwd = os.path.abspath(os.path.join(os.getcwd(), base_dir))
 
@@ -64,13 +66,17 @@ subprocess.Popen(["yarn"], cwd=cwd, shell=True).wait()
 
 if sys.platform == "linux" or sys.platform == "linux2":
     subprocess.Popen(["sudo", "apt", "install", "-y", "gcc-aarch64-linux-gnu"]).wait()
-    subprocess.Popen(["sudo", "apt", "install", "-y", "pkg-config", "libssl-dev"]).wait()
+    subprocess.Popen(
+        ["sudo", "apt", "install", "-y", "pkg-config", "libssl-dev"]
+    ).wait()
     subprocess.Popen(["echo", '"OPENSSL_DIR=/usr/lib/ssl"', ">>", "$GITHUB_ENV"]).wait()
     for i, system in enumerate(linux_r):
         subprocess.Popen(["rustup", "target", "add", system], cwd=cwd).wait()
         subprocess.Popen(["yarn", "build", "--target", system], cwd=cwd).wait()
 
-        shutil.move("src/node/index.node", os.path.join(node_bin_dir, f"{linux[i]}.node"))
+        shutil.move(
+            "src/node/index.node", os.path.join(node_bin_dir, f"{linux[i]}.node")
+        )
 
 if sys.platform == "darwin":
     for i, system in enumerate(mac_r):
@@ -81,7 +87,11 @@ if sys.platform == "darwin":
 
 if sys.platform == "win32":
     for i, system in enumerate(win_r):
-        subprocess.Popen(["rustup", "target", "add", system], cwd=cwd, shell=True).wait()
-        subprocess.Popen(["yarn", "build", "--target", system], cwd=cwd, shell=True).wait()
+        subprocess.Popen(
+            ["rustup", "target", "add", system], cwd=cwd, shell=True
+        ).wait()
+        subprocess.Popen(
+            ["yarn", "build", "--target", system], cwd=cwd, shell=True
+        ).wait()
 
         shutil.move("src/node/index.node", os.path.join(node_bin_dir, f"{win[i]}.node"))
