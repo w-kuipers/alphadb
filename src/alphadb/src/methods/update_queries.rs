@@ -19,7 +19,7 @@ use crate::query::table::createtable::createtable;
 use crate::utils::errors::{AlphaDBError, Get};
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::json::{get_object_keys, object_iter};
-use crate::utils::version_number::{get_latest_version, get_version_number_int, verify_version_number};
+use crate::utils::version_number::{get_latest_version, get_version_number_int, validate_version_number};
 use mysql::*;
 use thiserror::Error;
 
@@ -124,7 +124,7 @@ pub fn update_queries(
         Some(v) => v,
         None => {
             return Err(AlphaDBError {
-                message: format!("No rootlevel name was specified"),
+                message: "No rootlevel name was specified".to_string(),
                 ..Default::default()
             }
             .into());
@@ -146,11 +146,17 @@ pub fn update_queries(
 
     // Get the latest version
     let latest_version = match update_to_version {
-        Some(version) => {
-            if verify_version_number(&String::from(version)) {
-                version.to_string()
-            } else {
-                panic!("Invalid version number");
+        Some(v) => {
+            match validate_version_number(v) {
+                Ok(v) => v.to_string(),
+                Err(_) => {
+                    return Err(AlphaDBError {
+                        message: format!("'{}' is not a valid version number", v),
+                        error: "invalid-version-number".to_string(),
+                        ..Default::default()
+                    }
+                    .into())
+                }
             }
         }
         None => get_latest_version(versions),

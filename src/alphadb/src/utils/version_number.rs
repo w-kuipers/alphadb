@@ -14,12 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-/// Verify if a string can be used as a version number.
+/// Validate if a string can be used as a version number.
 /// This will return true when the string can be converted to an integer. Any dots will be
 /// stripped.
 ///
-/// version_number: The version number to verify
-pub fn verify_version_number(version_number: &String) -> Result<bool, std::num::ParseIntError> {
+/// version_number: The version number to validate
+pub fn validate_version_number(version_number: &str) -> Result<bool, std::num::ParseIntError> {
     let version_number = version_number.replace(".", "");
     version_number.parse::<i32>()?;
 
