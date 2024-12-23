@@ -17,11 +17,22 @@ jobs:
       id-token: write
 
     steps:
-      - name: Download Node binaries
+      - name: Download Linux Node binaries
         uses: actions/download-artifact@v4
-        if: matrix.os == 'macos-latest'
         with:
-          name: node-bin-${{ matrix.os }}
+          name: node-bin-ubuntu-latest
+          path: node-bin/
+
+      - name: Download MacOS Node binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: node-bin-macos-latest
+          path: node-bin/
+
+      - name: Download Windows Node binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: node-bin-windows-latest
           path: node-bin/
 
       - name: Download CLI binaries

@@ -37,6 +37,7 @@ def mvd(directory):
 
 
 mv("package.json")
+mv("postinstall.mjs")
 mv("LICENSE")
 mv("README.md")
 mv("Cargo.toml")

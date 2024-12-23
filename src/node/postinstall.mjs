@@ -18,9 +18,11 @@ function getBinaryURL() {
 	if (platform === 'linux' && arch === 'x64') {
 		fileName = "linux-x64.node";
 	} else if (platform === 'darwin' && arch === 'arm64') {
-		fileName = "darwin-x64.node";
-	} else if (platform === 'darwin' && arch === 'x64') {
 		fileName = "darwin-arm64.node";
+	} else if (platform === 'darwin' && arch === 'x64') {
+		fileName = "darwin-x64.node";
+	} else if (platform === 'win32' && arch === 'x64') {
+		fileName = "win32-x64.node";
 	} else {
 		return null;
 	}
