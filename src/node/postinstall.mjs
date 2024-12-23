@@ -2,7 +2,6 @@
 import os from "os";
 import fs from "fs";
 import path from "path";
-import * as tar from "tar";
 import { execSync } from "child_process";
 import fetch from "node-fetch";
 
@@ -15,8 +14,7 @@ function getBinaryURL() {
 	let fileName;
 
 	if (platform === 'linux' && arch === 'x64') {
-		// filename = ".node"; 
-		return null;
+		fileName = "linux-x64.node";
 	} else if (platform === 'darwin' && arch === 'arm64') {
 		fileName = "darwin-x64.node";
 	} else if (platform === 'darwin' && arch === 'x64') {
@@ -28,15 +26,16 @@ function getBinaryURL() {
 	return `${BASE_URL}/${fileName}`;
 }
 
-async function downloadAndExtract(url: string, outputPath: string) {
-	console.log(`Downloading binary from: ${url}`);
+async function getBinary(url) {
+	console.log(`Downloading AlphaDB binary from: ${url}`);
 	const response = await fetch(url);
+	const binaryPath = "./index.node";
 
 	if (!response.ok) {
 		throw new Error(`Failed to download binary: ${response.statusText}`);
 	}
 
-	const tempFile = path.resolve(outputPath, 'downloaded-binary.tar.gz');
+	const tempFile = path.resolve(binaryPath);
 	const fileStream = fs.createWriteStream(tempFile);
 
 	await new Promise((resolve, reject) => {
@@ -45,12 +44,10 @@ async function downloadAndExtract(url: string, outputPath: string) {
 		fileStream.on('finish', resolve);
 	});
 
-	console.log(`Extracting binary to: ${outputPath}`);
-	await tar.x({ file: tempFile, cwd: outputPath });
 	fs.unlinkSync(tempFile);
 }
 
-function isRustInstalled() {
+function hasRustInstalled() {
 	try {
 		execSync('rustc --version', { stdio: 'ignore' });
 		return true;
@@ -58,6 +55,28 @@ function isRustInstalled() {
 		return false;
 	}
 }
+
+async function main() {
+	try {
+		const binaryURL = getBinaryURL();
+
+		if (binaryURL) {
+			await getBinary(binaryURL);
+		} else {
+			console.warn('Unsupported platform/architecture.');
+			if (hasRustInstalled()) {
+				// buildFromSource();
+			} else {
+				console.error('Rust is not installed. Install Rust to build the binary from source.');
+				process.exit(1);
+			}
+		}
+	} catch (error) {
+		console.error(`Postinstall script failed: ${error.message}`);
+		process.exit(1);
+	}
+}
+
 
 // function buildFromSource() {
 // 	console.log('Building from source...');
@@ -77,27 +96,5 @@ function isRustInstalled() {
 // 		process.exit(1);
 // 	}
 // }
-
-async function main() {
-	try {
-		const binaryURL = getBinaryURL();
-		const outputPath = path.resolve(__dirname, 'bin');
-
-		if (binaryURL) {
-			await downloadAndExtract(binaryURL, outputPath);
-		} else {
-			console.warn('Unsupported platform/architecture.');
-			if (isRustInstalled()) {
-				// buildFromSource();
-			} else {
-				console.error('Rust is not installed. Install Rust to build the binary from source.');
-				process.exit(1);
-			}
-		}
-	} catch (error: any) {
-		console.error(`Postinstall script failed: ${error.message}`);
-		process.exit(1);
-	}
-}
 
 main();

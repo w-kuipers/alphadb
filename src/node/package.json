@@ -12,7 +12,7 @@
     "debug": "npm run cargo-build --",
     "build": "npm run cargo-build -- --release",
     "cross": "npm run cross-build -- --release",
-	"postinstall": "node ./lib/postinstall.js"
+	"postinstall": "node ./postinstall.mjs"
   },
   "author": "Wibo Kuipers",
   "license": "GPL-3.0",
@@ -46,8 +46,7 @@
   },
   "dependencies": {
     "@neon-rs/load": "^0.1.82",
-    "node-fetch": "^3.3.2",
-    "tar": "^7.4.3"
+    "node-fetch": "^3.3.2"
   },
   "repository": {
     "type": "git",
