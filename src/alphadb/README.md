@@ -14,7 +14,7 @@ AlphaDB is a powerful and flexible tool for managing MySQL database versions. It
 
 ---
 
-## Still in alpha stage
+## Beta
 
 AlphaDB is currently in `beta` stage. Breaking changes should be expected.
 
