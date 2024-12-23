@@ -1,15 +1,17 @@
-
+import { fileURLToPath } from 'url';
 import os from "os";
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
 import fetch from "node-fetch";
 
-const BASE_URL = "https://github.com/w-kuipers/alphadb/releases/download/v1.0.0-beta.20";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const platform = os.platform();
+const arch = os.arch();
 
 function getBinaryURL() {
-	const platform = os.platform();
-	const arch = os.arch();
+	const BASE_URL = "https://github.com/w-kuipers/alphadb/releases/download/v1.0.0-beta.20";
 
 	let fileName;
 
@@ -29,22 +31,25 @@ function getBinaryURL() {
 async function getBinary(url) {
 	console.log(`Downloading AlphaDB binary from: ${url}`);
 	const response = await fetch(url);
-	const binaryPath = "./index.node";
+
+	const binaryPath = path.resolve(__dirname, "./index.node");
 
 	if (!response.ok) {
 		throw new Error(`Failed to download binary: ${response.statusText}`);
 	}
 
-	const tempFile = path.resolve(binaryPath);
-	const fileStream = fs.createWriteStream(tempFile);
+	const fileStream = fs.createWriteStream(binaryPath);
 
-	await new Promise((resolve, reject) => {
-		response.body?.pipe(fileStream);
-		response.body?.on('error', reject);
-		fileStream.on('finish', resolve);
-	});
-
-	fs.unlinkSync(tempFile);
+	try {
+		await new Promise((resolve, reject) => {
+			response.body?.pipe(fileStream);
+			response.body?.on('error', reject);
+			fileStream.on('finish', resolve);
+		});
+		console.log("AlphaDB binary successfully downloaded");
+	} catch (error) {
+		console.error('Error while download AlphaDB binary:', error);
+	}
 }
 
 function hasRustInstalled() {
@@ -63,38 +68,28 @@ async function main() {
 		if (binaryURL) {
 			await getBinary(binaryURL);
 		} else {
-			console.warn('Unsupported platform/architecture.');
+			console.warn(`There are no prebuilt binaries for platform ${platform}-${arch}. Attempting to build from source.`);
 			if (hasRustInstalled()) {
-				// buildFromSource();
+				buildFromSource();
 			} else {
-				console.error('Rust is not installed. Install Rust to build the binary from source.');
+				console.error('Rust is not installed. Install Rust to build AlphaDB from source.');
 				process.exit(1);
 			}
 		}
 	} catch (error) {
-		console.error(`Postinstall script failed: ${error.message}`);
+		console.error(`AlphaDB postinstall script failed: ${error.message}`);
 		process.exit(1);
 	}
 }
 
 
-// function buildFromSource() {
-// 	console.log('Building from source...');
-// 	try {
-// 		execSync('cargo build --release', { stdio: 'inherit' });
-// 		console.log('Build completed. Copying binary...');
-// 		const sourcePath = path.resolve('target', 'release', BINARY_NAME);
-// 		const destPath = path.resolve(__dirname, 'bin', BINARY_NAME);
-// 		fs.mkdirSync(path.dirname(destPath), { recursive: true });
-// 		fs.copyFileSync(sourcePath, destPath);
-// 		if (os.platform() !== 'win32') {
-// 			fs.chmodSync(destPath, '755');
-// 		}
-// 		console.log(`Binary built and placed at: ${destPath}`);
-// 	} catch (error) {
-// 		console.error('Failed to build from source:', error.message);
-// 		process.exit(1);
-// 	}
-// }
+function buildFromSource() {
+	try {
+		execSync("yarn build", { stdio: "inherit" });
+	} catch (error) {
+		console.error('Failed to build from source:', error.message);
+		process.exit(1);
+	}
+}
 
 main();

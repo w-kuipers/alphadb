@@ -1,6 +1,6 @@
 {
   "name": "@w-kuipers/alphadb",
-  "version": "2.23.0",
+"version": "12.2.13",
   "description": "",
   "main": "./lib/index.cjs",
   "scripts": {
@@ -39,12 +39,12 @@
     "load": "./src/load.cts"
   },
   "devDependencies": {
-    "@neon-rs/cli": "^0.1.82",
     "@tsconfig/node20": "^20.1.4",
     "@types/node": "^20.11.16",
     "typescript": "^5.3.3"
   },
   "dependencies": {
+	  "@neon-rs/cli": "^0.1.82",
     "@neon-rs/load": "^0.1.82",
     "node-fetch": "^3.3.2"
   },
