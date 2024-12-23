@@ -3,144 +3,143 @@ name: Release for production
 on:
   push:
     tags:
-      v1.0.0-dev.*
-      # v1.0.0-beta.*
+      # v1.0.0-dev.*
+      v1.0.0-beta.*
 
 jobs:
-  # build-py:
-  #   uses: ./.github/workflows/build-py.yml
+  build-py:
+    uses: ./.github/workflows/build-py.yml
 
-  # publish-py:
-  #   name: Publish to PyPI
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #   needs:
-  #     - build-py
-  #   runs-on: ubuntu-latest
-  #   environment:
-  #     name: release
-  #     url: https://pypi.org/p/alphadb
-  #   permissions:
-  #     id-token: write
-  #   steps:
-  #     - name: Download all the dists
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: python-api
-  #         path: dist/
-  #     - name: Publish to PyPI
-  #       uses: pypa/gh-action-pypi-publish@release/v1
+  publish-py:
+    name: Publish to PyPI
+    if: startsWith(github.ref, 'refs/tags/')
+    needs:
+      - build-py
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/alphadb
+    permissions:
+      id-token: write
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v3
+        with:
+          name: python-api
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 
-  # publish-cargo:
-  #   name: Publish to Crates.io
-  #   runs-on: ubuntu-latest
-  #   environment:
-  #     name: release
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Install Rust
-  #       uses: actions-rs/toolchain@v1
-  #       with:
-  #         profile: minimal
-  #         toolchain: stable
-  #         override: true
-  #
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: "3.12"
-  #
-  #     - name: Build binaries
-  #       run: |
-  #         python scripts/build-scripts/cargo.py ${{ github.ref_name }}
-  #
-  #     - name: Publish API to Cargo
-  #       env:
-  #         CARGO_AUTH_TOKEN: ${{ secrets.CARGO_AUTH_TOKEN }}
-  #       run: |
-  #         cd src/alphadb
-  #         cargo login $CARGO_AUTH_TOKEN
-  #         cargo publish --allow-dirty
-  #
-  #     - name: Publish CLI to Cargo
-  #       env:
-  #         CARGO_AUTH_TOKEN: ${{ secrets.CARGO_AUTH_TOKEN }}
-  #       run: |
-  #         cd src/cli
-  #         cargo login $CARGO_AUTH_TOKEN
-  #         cargo publish --allow-dirty
+  publish-cargo:
+    name: Publish to Crates.io
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Build binaries
+        run: |
+          python scripts/build-scripts/cargo.py ${{ github.ref_name }}
+
+      - name: Publish API to Cargo
+        env:
+          CARGO_AUTH_TOKEN: ${{ secrets.CARGO_AUTH_TOKEN }}
+        run: |
+          cd src/alphadb
+          cargo login $CARGO_AUTH_TOKEN
+          cargo publish --allow-dirty
+
+      - name: Publish CLI to Cargo
+        env:
+          CARGO_AUTH_TOKEN: ${{ secrets.CARGO_AUTH_TOKEN }}
+        run: |
+          cd src/cli
+          cargo login $CARGO_AUTH_TOKEN
+          cargo publish --allow-dirty
 
   build-node:
     uses: ./.github/workflows/build-node.yml
 
-  # publish-node:
-  #   name: Create NPM package
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #   runs-on: ubuntu-latest
-  #
-  #   needs:
-  #     - build-node
-  #
-  #   environment:
-  #     name: release
-  #
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: "lts/*"
-  #         # cache: 'npm'
-  #         registry-url: "https://registry.npmjs.org"
-  #
-  #     - name: Build node package
-  #       run: |
-  #         npm install --global typescript
-  #         python scripts/package-scripts/node.py ${{ github.ref_name }}
-  #
-  #     - name: Publish to NPM
-  #       env:
-  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-  #       run: |
-  #         cd node-dist
-  #         npm publish --access public
+  publish-node:
+    name: Create NPM package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
 
-  # package-cli:
-  #   name: Package CLI binaries
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #
-  #   strategy:
-  #     matrix:
-  #       # os: [ubuntu-latest, macos-latest]
-  #       # os: [windows-latest]
-  #       os: [macos-latest, windows-latest, ubuntu-latest]
-  #
-  #   runs-on: ${{ matrix.os }}
-  #
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: Install Rust
-  #       uses: actions-rs/toolchain@v1
-  #       with:
-  #         profile: minimal
-  #         toolchain: stable
-  #         override: true
-  #
-  #     - name: Build and package binaries
-  #       run: |
-  #         python scripts/build-scripts/cli.py ${{ github.ref_name }}
-  #
-  #     - name: Store binary
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: cli-bin-${{ matrix.os }}
-  #         path: ./dist/
+    needs:
+      - build-node
 
-  # publish-github-release:
-  #   needs:
-  #     # - publish-py
-  #     - build-node
-  #     - package-cli
-  #   uses: ./.github/workflows/publish-github-release.yml
+    environment:
+      name: release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          # cache: 'npm'
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Build node package
+        run: |
+          npm install --global typescript
+          python scripts/package-scripts/node.py ${{ github.ref_name }}
+
+      - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd node-dist
+          npm publish --access public
+
+  package-cli:
+    name: Package CLI binaries
+    if: startsWith(github.ref, 'refs/tags/')
+
+    strategy:
+      matrix:
+        # os: [ubuntu-latest, macos-latest]
+        # os: [windows-latest]
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Build and package binaries
+        run: |
+          python scripts/build-scripts/cli.py ${{ github.ref_name }}
+
+      - name: Store binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-bin-${{ matrix.os }}
+          path: ./dist/
+
+  publish-github-release:
+    needs:
+      - build-node
+      - package-cli
+    uses: ./.github/workflows/publish-github-release.yml

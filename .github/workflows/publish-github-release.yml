@@ -34,8 +34,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view '${{ github.ref_name }}' --repo '${{ github.repository }}' >/dev/null 2>&1; then
-            gh release create -p '${{ github.ref_name }}' --repo '${{ github.repository }}' --generate-notes;
+          if ! gh release view "${{ github.ref_name }}" --repo "${{ github.repository}}" >/dev/null 2>&1; then
+            gh release create -p "${{ github.ref_name }}" --repo "${{ github.repository }}" --generate-notes
+          else
+            echo "Release '${{ github.ref_name }}' already exists."
           fi
 
       - name: Upload CLI binaries
@@ -45,7 +47,6 @@ jobs:
           gh release upload '${{ github.ref_name }}' cli-bin/** --repo '${{ github.repository }}'
 
       - name: Upload Node binaries
-        if: matrix.os == 'macos-latest'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
