@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::utils::errors::AlphaDBError;
+use serde_json::Value;
 
 /// Get object keys from a serde_json::Value as a vector with strings
 pub fn get_object_keys(object: &serde_json::Value) -> Result<Vec<&String>, AlphaDBError> {
@@ -39,6 +40,18 @@ pub fn object_iter(object: &serde_json::Value) -> Result<serde_json::map::Keys<'
     }
 }
 
+/// Get JSON string value from serde_json::Value
+pub fn get_json_string(value: &Value) -> Result<&str, AlphaDBError> {
+    match value.as_str() {
+        Some(v) => Ok(v),
+        None => Err(AlphaDBError {
+            message: "The value could not be parsed as a string".to_string(),
+            error: "invalid-json-string".to_string(),
+            ..Default::default()
+        }),
+    }
+}
+
 #[cfg(test)]
 mod json_tests {
     use super::*;
@@ -55,9 +68,7 @@ mod json_tests {
         });
 
         // Array should not be able to be converted to object (obviously...)
-        let arrayvalue = json!([
-            "test", "test", "tes"
-        ]);
+        let arrayvalue = json!(["test", "test", "tes"]);
 
         let objectkeys = get_object_keys(&value);
         let arraykeys = get_object_keys(&arrayvalue);
@@ -78,9 +89,7 @@ mod json_tests {
         });
 
         // Array should not be able to be converted to object (obviously...)
-        let arrayvalue = json!([
-            "test", "test", "tes"
-        ]);
+        let arrayvalue = json!(["test", "test", "tes"]);
 
         let objectkeys = object_iter(&value);
         let arraykeys = object_iter(&arrayvalue);

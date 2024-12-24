@@ -14,7 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::utils::error_messages::error;
-use crate::utils::version_number::get_version_number_int;
+use crate::utils::errors::AlphaDBError;
+use crate::utils::version_number::parse_version_number;
+use crate::utils::json::get_json_string;
 use serde_json::{json, Value};
 
 #[derive(Debug, PartialEq)]
@@ -31,18 +33,18 @@ pub struct RenameData {
 /// - version_list: List with versions from version_source
 /// - column_name: Name of the column to be handled
 /// - table_name: Name of the table the column is in
-pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &str) -> Value {
+pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &str) -> Result<Value, AlphaDBError> {
     let mut column = json!({});
     let mut version_column_name = column_name;
     let rename_data = get_column_renames(version_list, column_name, table_name, "DESC");
     let version_list_cloned = version_list.clone();
 
     for version in version_list_cloned.as_array().unwrap() {
-        let _v = get_version_number_int(&version["_id"].as_str().unwrap().to_string());
+        let _v =  parse_version_number(get_json_string(&version["_id"])?)?;
 
         // If the column is renamed, get hystorical column name for current version
         for rename in rename_data.iter().rev() {
-            if get_version_number_int(&version["_id"].as_str().unwrap().to_string()) <= rename.rename_version {
+            if parse_version_number(get_json_string(&version["_id"])?)? <= rename.rename_version {
                 version_column_name = &rename.old_name;
                 break;
             } else {
@@ -106,7 +108,7 @@ pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &
         }
     }
 
-    return column;
+    return Ok(column);
 }
 
 /// **Get column renames**
@@ -129,7 +131,7 @@ pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &
     let mut version_loop = |version: &Value| {
         if version.as_object().unwrap().keys().any(|i| i == "altertable") {
             if version["altertable"].as_object().unwrap().keys().any(|t| t == table_name) {
-                let v = get_version_number_int(&version["_id"].as_str().unwrap().to_string());
+                let v = parse_version_number(get_json_string(&version["_id"]).unwrap()).unwrap();
 
                 // Skip version that are already processed
                 if order == "DESC" {
@@ -224,7 +226,7 @@ mod consolidate_column_tests {
         ]);
 
         let result = json!({"type": "VARCHAR", "length": 200, "unique": true});
-        assert_eq!(consolidate_column(&versions, "col", "table"), result);
+        assert_eq!(consolidate_column(&versions, "col", "table").unwrap(), result);
     }
 
     #[test]
@@ -236,7 +238,7 @@ mod consolidate_column_tests {
         ]);
 
         let result = json!({"type": "VARCHAR", "length": 240, "unique": true, "null": true});
-        assert_eq!(consolidate_column(&versions, "col", "table"), result);
+        assert_eq!(consolidate_column(&versions, "col", "table").unwrap(), result);
     }
 
     #[test]
@@ -249,11 +251,11 @@ mod consolidate_column_tests {
         ]);
 
         let result = json!({"type": "VARCHAR", "length": 200, "null": true});
-        assert_eq!(consolidate_column(&versions, "renamed", "table"), result);
+        assert_eq!(consolidate_column(&versions, "renamed", "table").unwrap(), result);
 
         // Don't break on column that has not been renamed
         let result_col2 = json!({"type": "TEXT", "length": 935});
-        assert_eq!(consolidate_column(&versions, "col2", "table"), result_col2);
+        assert_eq!(consolidate_column(&versions, "col2", "table").unwrap(), result_col2);
     }
 
     #[test]
@@ -270,7 +272,7 @@ mod consolidate_column_tests {
         ]);
 
         let result = json!({"type": "VARCHAR", "length": 2300, "null": true, "unique": false});
-        assert_eq!(consolidate_column(&versions, "multiplerenamed", "table"), result);
+        assert_eq!(consolidate_column(&versions, "multiplerenamed", "table").unwrap(), result);
     }
 
     #[test]
@@ -281,7 +283,7 @@ mod consolidate_column_tests {
         ]);
 
         let result_recreate = json!({"length": 300});
-        assert_eq!(consolidate_column(&versions, "col", "table"), result_recreate);
+        assert_eq!(consolidate_column(&versions, "col", "table").unwrap(), result_recreate);
 
         let versions_no_recreate = json!([
             {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
@@ -301,7 +303,7 @@ mod consolidate_column_tests {
         ]);
 
         let result_no_recreate = json!({"type": "VARCHAR", "length": 300});
-        assert_eq!(consolidate_column(&versions_no_recreate, "col", "table"), result_no_recreate);
+        assert_eq!(consolidate_column(&versions_no_recreate, "col", "table").unwrap(), result_no_recreate);
     }
 }
 

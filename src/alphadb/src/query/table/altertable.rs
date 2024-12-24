@@ -18,7 +18,7 @@ use crate::query::column::modifycolumn::modifycolumn;
 use crate::utils::consolidate::column::{consolidate_column, get_column_renames};
 use crate::utils::consolidate::primary_key::get_primary_key;
 use crate::utils::error_messages::error;
-use crate::utils::version_number::get_version_number_int;
+use crate::utils::version_number::parse_version_number;
 use serde_json::{json, Value};
 
 /// **Altertable**

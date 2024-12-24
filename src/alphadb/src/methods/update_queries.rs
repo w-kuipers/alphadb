@@ -19,7 +19,7 @@ use crate::query::table::createtable::createtable;
 use crate::utils::errors::{AlphaDBError, Get};
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::json::{get_object_keys, object_iter};
-use crate::utils::version_number::{get_latest_version, get_version_number_int, validate_version_number};
+use crate::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
 use mysql::*;
 use thiserror::Error;
 
@@ -146,24 +146,25 @@ pub fn update_queries(
 
     // Get the latest version
     let latest_version = match update_to_version {
-        Some(v) => {
-            match validate_version_number(v) {
-                Ok(v) => v.to_string(),
-                Err(_) => {
-                    return Err(AlphaDBError {
-                        message: format!("'{}' is not a valid version number", v),
-                        error: "invalid-version-number".to_string(),
-                        ..Default::default()
-                    }
-                    .into())
+        Some(v) => match validate_version_number(v) {
+            Ok(v) => v.to_string(),
+            Err(_) => {
+                return Err(AlphaDBError {
+                    message: format!("'{}' is not a valid version number", v),
+                    error: "invalid-version-number".to_string(),
+                    ..Default::default()
                 }
+                .into())
             }
-        }
-        None => get_latest_version(versions),
+        },
+        None => get_latest_version(versions)?,
     };
 
+    let latest_version_int = parse_version_number(latest_version.as_str())?;
+    let database_version_int = parse_version_number(&database_version.as_str())?;
+
     // Check if database is up to date
-    if get_version_number_int(&latest_version) <= get_version_number_int(&database_version) {
+    if latest_version_int <= database_version_int {
         return Err(AlphaDBError {
             message: "The database is already up-to-date".to_string(),
             error: "up-to-date".to_string(),
@@ -185,15 +186,15 @@ pub fn update_queries(
             }
         };
 
-        let version_int = get_version_number_int(&version_number.to_string());
+        let version_int = parse_version_number(version_number)?;
 
         // Skip any previous versions
-        if version_int <= get_version_number_int(&database_version) {
+        if version_int <= database_version_int {
             continue;
         }
 
         // Continue if latest version is current
-        if version_int > get_version_number_int(&latest_version) {
+        if version_int > latest_version_int {
             continue;
         }
 
