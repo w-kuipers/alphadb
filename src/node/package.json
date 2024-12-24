@@ -1,6 +1,6 @@
 {
   "name": "@w-kuipers/alphadb",
-"version": "12.2.13",
+  "version": "3.2.1",
   "description": "",
   "main": "./lib/index.cjs",
   "scripts": {
@@ -12,7 +12,7 @@
     "debug": "npm run cargo-build --",
     "build": "npm run cargo-build -- --release",
     "cross": "npm run cross-build -- --release",
-	"postinstall": "node ./postinstall.mjs"
+    "postinstall": "node ./postinstall.mjs"
   },
   "author": "Wibo Kuipers",
   "license": "GPL-3.0",
@@ -30,7 +30,10 @@
   },
   "types": "./lib/index.d.cts",
   "files": [
-    "lib/**/*.?({c,m}){t,j}s"
+    "lib/**/*.?({c,m}){t,j}s",
+	"crates/**/*",
+	"postinstall.mjs",
+	"Cargo.toml"
   ],
   "neon": {
     "type": "library",
@@ -44,7 +47,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-	  "@neon-rs/cli": "^0.1.82",
+    "@neon-rs/cli": "^0.1.82",
     "@neon-rs/load": "^0.1.82",
     "node-fetch": "^3.3.2"
   },
