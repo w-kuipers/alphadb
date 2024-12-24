@@ -3,8 +3,8 @@ name: Release for production
 on:
   push:
     tags:
-      # v1.0.0-dev.*
-      v1.0.0-beta.*
+      v1.0.0-dev.*
+      # v1.0.0-beta.*
 
 jobs:
   # build-py:
