@@ -19,7 +19,7 @@ use crate::query::table::createtable::createtable;
 use crate::utils::errors::{AlphaDBError, Get};
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::json::{get_object_keys, object_iter};
-use crate::utils::version_number::{get_latest_version, get_version_number_int, verify_version_number};
+use crate::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
 use mysql::*;
 use thiserror::Error;
 
@@ -124,7 +124,7 @@ pub fn update_queries(
         Some(v) => v,
         None => {
             return Err(AlphaDBError {
-                message: format!("No rootlevel name was specified"),
+                message: "No rootlevel name was specified".to_string(),
                 ..Default::default()
             }
             .into());
@@ -134,30 +134,35 @@ pub fn update_queries(
     // Check if templates match
     if let Some(template) = status.template {
         if template != template_name {
-            panic!("This database uses a different database version source. The template name does not match the one previously used to update this database.");
+            return Err(AlphaDBError {
+                message: "This database uses a different database version source. The template name does not match the one previously used to update this database.".to_string(),
+                ..Default::default()
+            }
+            .into());
         }
-    } else {
-        // TODO move this to the end of the function. The same table is updated there
-        queries.push(Query {
-            query: format!("UPDATE {} SET template = ? WHERE db = ?", CONFIG_TABLE_NAME),
-            data: Some(Vec::from([template_name.to_string(), db_name.to_string()])),
-        });
     }
 
     // Get the latest version
     let latest_version = match update_to_version {
-        Some(version) => {
-            if verify_version_number(&String::from(version)) {
-                version.to_string()
-            } else {
-                panic!("Invalid version number");
+        Some(v) => match validate_version_number(v) {
+            Ok(v) => v.to_string(),
+            Err(_) => {
+                return Err(AlphaDBError {
+                    message: format!("'{}' is not a valid version number", v),
+                    error: "invalid-version-number".to_string(),
+                    ..Default::default()
+                }
+                .into())
             }
-        }
-        None => get_latest_version(versions),
+        },
+        None => get_latest_version(versions)?,
     };
 
+    let latest_version_int = parse_version_number(latest_version.as_str())?;
+    let database_version_int = parse_version_number(&database_version.as_str())?;
+
     // Check if database is up to date
-    if get_version_number_int(&latest_version) <= get_version_number_int(&database_version) {
+    if latest_version_int <= database_version_int {
         return Err(AlphaDBError {
             message: "The database is already up-to-date".to_string(),
             error: "up-to-date".to_string(),
@@ -179,15 +184,15 @@ pub fn update_queries(
             }
         };
 
-        let version_int = get_version_number_int(&version_number.to_string());
+        let version_int = parse_version_number(version_number)?;
 
         // Skip any previous versions
-        if version_int <= get_version_number_int(&database_version) {
+        if version_int <= database_version_int {
             continue;
         }
 
         // Continue if latest version is current
-        if version_int > get_version_number_int(&latest_version) {
+        if version_int > latest_version_int {
             continue;
         }
 
@@ -196,7 +201,7 @@ pub fn update_queries(
         // Createtable
         if version_keys.contains(&&"createtable".to_string()) {
             for table in object_iter(&version["createtable"])? {
-                let q = createtable(version, table, version_number);
+                let q = createtable(version, table, version_number)?;
                 queries.push(Query { query: q, data: None });
             }
         }
@@ -204,15 +209,18 @@ pub fn update_queries(
         // Altertable
         if version_keys.contains(&&"altertable".to_string()) {
             for table in object_iter(&version["altertable"])? {
-                let q = altertable(&version_source, table, version_number);
-                queries.push(Query { query: q, data: None });
+                queries.push(Query {
+                    query: altertable(&version_source, table, version_number)?,
+                    data: None,
+                });
             }
         }
     }
 
+    // Add query to update the config table
     queries.push(Query {
-        query: format!("UPDATE `{CONFIG_TABLE_NAME}` SET version=? WHERE `db` = ?;"),
-        data: Some(Vec::from([latest_version, db_name.to_string()])),
+        query: format!("UPDATE `{CONFIG_TABLE_NAME}` SET `version`=?, `template`=? WHERE `db` = ?;"),
+        data: Some(Vec::from([latest_version, template_name.to_string(), db_name.to_string()])),
     });
 
     Ok(queries)

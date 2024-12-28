@@ -13,12 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::prelude::AlphaDBError;
 use crate::query::column::definecolumn::definecolumn;
 use crate::query::column::modifycolumn::modifycolumn;
 use crate::utils::consolidate::column::{consolidate_column, get_column_renames};
 use crate::utils::consolidate::primary_key::get_primary_key;
-use crate::utils::error_messages::error;
-use crate::utils::version_number::get_version_number_int;
+use crate::utils::json::{array_iter, exists_in_object, get_json_string, object_iter};
+use crate::utils::version_number::parse_version_number;
 use serde_json::{json, Value};
 
 /// **Altertable**
@@ -28,20 +29,23 @@ use serde_json::{json, Value};
 /// - version_source: Complete JSON version source
 /// - table_name: Name of the table to be created
 /// - version: Current version in version source loop
-pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> String {
+pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Result<String, AlphaDBError> {
     let mut query = String::new();
     let mut table_data: Option<&Value> = None;
     let mut version_index: Option<usize> = None;
 
     let mut c = 0;
-    for table in version_source["version"].as_array().unwrap() {
-        if table.as_object().unwrap().keys().any(|i| i == "_id") {
+    for table in array_iter(&version_source["version"])? {
+        if exists_in_object(&table, "_id")? {
             if version == table["_id"] {
                 version_index = Some(c);
                 table_data = Some(table);
             }
         } else {
-            error("Version does not contain a version number".to_string());
+            return Err(AlphaDBError {
+                message: "Version does not contain a version number".to_string(),
+                ..Default::default()
+            });
         }
         c += 1;
     }
@@ -51,19 +55,19 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
             let mut cloned_version_source = version_source.clone();
             let mutable_table_data = &mut cloned_version_source["version"][version_index];
 
-            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "primary_key") {
+            let table_block = &table_data["altertable"][table_name];
+
+            if exists_in_object(table_block, "primary_key")? {
                 // The query for the primary key is created after all column modification
                 // There is a chance that the old primary_key has the AUTO_INCREMENT attribute
                 // which must be removed first.
-                let old_primary_key = get_primary_key(&version_source["version"], table_name, Some(version));
-
-                if let Some(old_primary_key) = old_primary_key {
-                    let column_renames = get_column_renames(&version_source["version"], old_primary_key, table_name, "ASC");
+                if let Some(old_primary_key) = get_primary_key(&version_source["version"], table_name, Some(version))? {
+                    let column_renames = get_column_renames(&version_source["version"], old_primary_key, table_name, "ASC")?;
 
                     // If the column is renamed, get hystorical column name for current version
                     let mut version_column_name = old_primary_key;
                     for rename in column_renames.iter().rev() {
-                        if get_version_number_int(&version.to_string()) >= rename.rename_version {
+                        if parse_version_number(version)? >= rename.rename_version {
                             version_column_name = &rename.new_name;
                             break;
                         } else {
@@ -71,13 +75,8 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
                         }
                     }
 
-                    if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "modifycolumn") {
-                        if table_data["altertable"][table_name]["modifycolumn"]
-                            .as_object()
-                            .unwrap()
-                            .keys()
-                            .any(|m| m == version_column_name)
-                        {
+                    if exists_in_object(table_block, "modifycolumn")? {
+                        if exists_in_object(&table_block["modifycolumn"], version_column_name)? {
                             mutable_table_data["altertable"][table_name]["modifycolumn"][version_column_name]["a_i"] = Value::Bool(true);
                         } else {
                             mutable_table_data["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
@@ -96,9 +95,9 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
 
             // Drop column
             let table_data = mutable_table_data.clone(); // Get up-to-date table data
-            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "dropcolumn") {
-                for column in table_data["altertable"][table_name]["dropcolumn"].as_array().unwrap() {
-                    let partial = format!("DROP COLUMN {}", column.as_str().unwrap());
+            if exists_in_object(&table_data["altertable"][table_name], "dropcolumn")? {
+                for column in array_iter(&table_data["altertable"][table_name]["dropcolumn"])? {
+                    let partial = format!("DROP COLUMN {}", get_json_string(column)?);
                     if query == "" {
                         query = partial;
                     } else {
@@ -109,9 +108,9 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
 
             // Add column
             let table_data = mutable_table_data.clone(); // Get up-to-date table data
-            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "addcolumn") {
-                for column in table_data["altertable"][table_name]["addcolumn"].as_object().unwrap().keys() {
-                    let partial = definecolumn(&mutable_table_data["altertable"][table_name]["addcolumn"][column], table_name, &column.to_string(), version);
+            if exists_in_object(&table_data["altertable"][table_name], "addcolumn")? {
+                for column in object_iter(&table_data["altertable"][table_name]["addcolumn"])? {
+                    let partial = definecolumn(&mutable_table_data["altertable"][table_name]["addcolumn"][column], table_name, &column.to_string(), version)?;
                     if let Some(partial) = partial {
                         if query == "" {
                             query = format!("ADD {partial}");
@@ -124,19 +123,15 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
 
             // Modify column
             let table_data = mutable_table_data.clone(); // Get up-to-date table data
-            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "modifycolumn") {
-                for column in table_data["altertable"][table_name]["modifycolumn"].as_object().unwrap().keys() {
-                    if table_data["altertable"][table_name]["modifycolumn"][column]
-                        .as_object()
-                        .unwrap()
-                        .keys()
-                        .any(|k| k == "recreate")
+            if exists_in_object(&table_data["altertable"][table_name], "modifycolumn")? {
+                for column in object_iter(&table_data["altertable"][table_name]["modifycolumn"])? {
+                    if exists_in_object(&table_data["altertable"][table_name]["modifycolumn"][column], "recreate")?
                         && table_data["altertable"][table_name]["modifycolumn"][column]["recreate"] == false
                     {
-                        mutable_table_data["altertable"][table_name]["modifycolumn"][column] = consolidate_column(&version_source["version"], column, table_name);
+                        mutable_table_data["altertable"][table_name]["modifycolumn"][column] = consolidate_column(&version_source["version"], column, table_name)?;
                     }
 
-                    let partial = modifycolumn(&mutable_table_data["altertable"][table_name], table_name, column, version);
+                    let partial = modifycolumn(&mutable_table_data["altertable"][table_name], table_name, column, version)?;
 
                     if let Some(partial) = partial {
                         if query == "" {
@@ -150,20 +145,20 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
 
             // Rename column
             let table_data = mutable_table_data.clone(); // Get up-to-date table data
-            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "renamecolumn") {
-                for column in table_data["altertable"][table_name]["renamecolumn"].as_object().unwrap().keys() {
+            if exists_in_object(&table_data["altertable"][table_name], "renamecolumn")? {
+                for column in object_iter(&table_data["altertable"][table_name]["renamecolumn"])? {
                     if query == "" {
                         query = format!(
                             "RENAME COLUMN {} TO {}",
                             column,
-                            table_data["altertable"][table_name]["renamecolumn"][column].as_str().unwrap()
+                            get_json_string(&table_data["altertable"][table_name]["renamecolumn"][column])?
                         );
                     } else {
                         query = format!(
                             "{}, RENAME COLUMN {} TO {}",
                             query,
                             column,
-                            table_data["altertable"][table_name]["renamecolumn"][column].as_str().unwrap()
+                            get_json_string(&table_data["altertable"][table_name]["renamecolumn"][column])?
                         );
                     }
                 }
@@ -171,7 +166,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
 
             // Primary key
             let table_data = mutable_table_data.clone(); // Get up-to-date table data
-            if table_data["altertable"][table_name].as_object().unwrap().keys().any(|k| k == "primary_key") {
+            if exists_in_object(&table_data["altertable"][table_name], "primary_key")? {
                 // Drop primary key
                 if Value::is_null(&table_data["altertable"][table_name]["primary_key"]) {
                     if query == "" {
@@ -185,13 +180,15 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> St
             }
         }
     } else {
-        // Panic with message if table data is not defined, should not be possible though
-        error("An unexpected error occured. No table data seems to be returned".to_string());
+        return Err(AlphaDBError {
+            message: "An unexpected error occured. No table data seems to be returned".to_string(),
+            ..Default::default()
+        });
     }
 
     query = format!("ALTER TABLE {table_name} {query};");
 
-    return query;
+    return Ok(query);
 }
 
 #[cfg(test)]
@@ -213,7 +210,7 @@ mod altertable_tests {
             }]
         });
         assert_eq!(
-            altertable(column, "table", "0.0.1"),
+            altertable(column, "table", "0.0.1").unwrap(),
             "ALTER TABLE table DROP COLUMN col1, DROP COLUMN col2, DROP COLUMN col3;"
         );
     }
@@ -228,7 +225,7 @@ mod altertable_tests {
             ]
         });
         assert_eq!(
-            altertable(column, "table", "0.0.2"),
+            altertable(column, "table", "0.0.2").unwrap(),
             "ALTER TABLE table MODIFY COLUMN col INT NOT NULL AUTO_INCREMENT, DROP PRIMARY KEY;"
         );
     }

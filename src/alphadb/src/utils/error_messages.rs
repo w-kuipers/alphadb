@@ -13,22 +13,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub const DB_CONFIG_NO_VERSION: &str = "There seems to be an issue with the database config. It is initialized, but does not return a valid version. Please manually check the configuration table in your database.";
+use super::errors::AlphaDBError;
 
-/// *Error*
-///
-/// Panics with error message
-/// - msg: Error message to print
-pub fn error(msg: String) {
-    panic!("{msg}");
-}
+pub const DB_CONFIG_NO_VERSION: &str =
+    "There seems to be an issue with the database config. It is initialized, but does not return a valid version. Please manually check the configuration table in your database.";
 
 /// *Incomplete version object*
 ///
 /// - key: Missing object key
 /// - version: Location in version source (Version 1.0.0->table_name->column_name)
 pub fn incomplete_version_object(key: String, version: String) {
-    error(format!("Database version is incomplete or broken. {version} is missing key '{key}'.")); 
+    panic!("Database version is incomplete or broken. {version} is missing key '{key}'.");
+}
+
+pub fn incomplete_version_object_err(key: &str, version: String) -> AlphaDBError {
+    return AlphaDBError {
+        message: format!("Database version is incomplete or broken. {version} is missing key '{key}'."),
+        error: "incomplete-version-object".to_string(),
+        ..Default::default()
+    };
 }
 
 /// *Incompatible column attributes*
@@ -37,5 +40,13 @@ pub fn incomplete_version_object(key: String, version: String) {
 /// - attribute2: The incompatible MySQL column attribute
 /// - version: Location in version source (Version 1.0.0->table_name->column_name)
 pub fn incompatible_column_attributes(attribute1: String, attribute2: String, version: String) {
-    error(format!("{version}: Column attributes '{attribute1}' and '{attribute2}' are not compatible.")); 
+    panic!("{version}: Column attributes '{attribute1}' and '{attribute2}' are not compatible.");
+}
+
+pub fn incompatible_column_attributes_err(attribute1: &str, attribute2: &str, version: String) -> AlphaDBError {
+    return AlphaDBError {
+        message: format!("{version}: Column attributes '{attribute1}' and '{attribute2}' are not compatible."),
+        error: "incompatible-version-attributes".to_string(),
+        ..Default::default()
+    };
 }

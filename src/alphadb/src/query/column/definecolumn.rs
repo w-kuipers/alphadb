@@ -1,5 +1,4 @@
 // Copyright (C) 2024 Wibo Kuipers
-//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -13,7 +12,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::error_messages::{error, incompatible_column_attributes, incomplete_version_object};
+use crate::prelude::AlphaDBError;
+use crate::utils::error_messages::{incompatible_column_attributes, incomplete_version_object};
+use crate::utils::json::{get_json_int, get_json_string, get_object_keys};
 use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES};
 use serde_json::Value;
 
@@ -25,24 +26,23 @@ use serde_json::Value;
 /// - table_name: Name of the table to be created
 /// - column_name: Name of the column to be defined
 /// - version: Current version in version source loop
-pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String, version: &str) -> Option<String> {
+pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String, version: &str) -> Result<Option<String>, AlphaDBError> {
     let mut query = String::new();
+    let column_keys = get_object_keys(column_data);
 
     // If iteration is not an object, it is not a column, so it should be processed later
-    if let Some(column_keys) = column_data.as_object() {
-        if column_name == "foreign_key" {
-            return None;
-        }
-        
+    if let Ok(column_keys) = column_keys {
         // Foreign keys, as well, have to be handled later
-        let column_keys = column_keys.keys().into_iter().collect::<Vec<&String>>();
+        if column_name == "foreign_key" {
+            return Ok(None);
+        }
 
         // Must know the type to create a column
         if !column_keys.contains(&&"type".to_string()) {
             incomplete_version_object("type".to_string(), format!("Version {version}->{table_name}->{column_name}"));
         }
 
-        let column_type = column_data["type"].as_str().to_owned().unwrap();
+        let column_type = get_json_string(&column_data["type"])?;
 
         let mut null = false;
         if column_keys.iter().any(|&i| i == "null") {
@@ -87,16 +87,19 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
 
         let mut length: i64 = -1;
         if column_keys.iter().any(|&i| i == "length") {
-            length = column_data["length"].as_i64().to_owned().unwrap();
+            length = get_json_int(&column_data["length"])?;
         }
 
-        let mut default: Option<Value> = None;
+        let mut default: Option<&str> = None;
         if column_keys.iter().any(|&i| i == "default") {
-            default = Some(column_data["default"].to_owned());
+            default = Some(get_json_string(&column_data["default"])?);
         }
 
         if !SUPPORTED_COLUMN_TYPES.iter().any(|&i| i == column_type) {
-            error(format!("Column type '{}' is not (yet) supported", column_type));
+            return Err(AlphaDBError {
+                message: format!("Column type '{}' is not (yet) supported", column_type),
+                ..Default::default()
+            });
         }
 
         query = format!("{column_name} {column_type}");
@@ -116,18 +119,17 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         }
 
         if let Some(d) = default {
-            query = format!("{query} DEFAULT {:?}", d.as_str().unwrap());
+            query = format!("{query} DEFAULT {:?}", d);
         }
 
         if auto_increment {
             query = format!("{query} AUTO_INCREMENT");
         }
-    }
-    else {
-        return None;
+    } else {
+        return Ok(None);
     }
 
-    return Some(query);
+    return Ok(Some(query));
 }
 
 #[cfg(test)]
@@ -139,7 +141,7 @@ mod definecolumn_tests {
     #[test]
     fn foreign_key() {
         let column = &json!({});
-        assert_eq!(definecolumn(column, "table", &"foreign_key".to_string(), "0.0.1"), None);
+        assert_eq!(definecolumn(column, "table", &"foreign_key".to_string(), "0.0.1").unwrap(), None);
     }
 
     // A column type must always be defined
@@ -149,7 +151,7 @@ mod definecolumn_tests {
         let column = &json!({
             "a_i": true
         });
-        definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        let _ = definecolumn(column, "table", &"col".to_string(), "0.0.1");
     }
 
     // AUTO_INCREMENT on incompatible type
@@ -160,7 +162,7 @@ mod definecolumn_tests {
             "type": "VARCHAR",
             "a_i": true
         });
-        definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        let _ = definecolumn(column, "table", &"col".to_string(), "0.0.1");
     }
 
     // UNIQUE on incompatible type
@@ -171,7 +173,7 @@ mod definecolumn_tests {
             "type": "json",
             "unique": true
         });
-        definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        let _ = definecolumn(column, "table", &"col".to_string(), "0.0.1");
     }
 
     // AUTO_INCREMENT with NULL
@@ -183,16 +185,18 @@ mod definecolumn_tests {
             "null": true,
             "a_i": true
         });
-        definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        let _ = definecolumn(column, "table", &"col".to_string(), "0.0.1");
     }
 
     // Unsupported column type
     #[test]
-    #[should_panic(expected = "Column type 'not-working' is not (yet) supported")]
     fn unsupported_type() {
         let column = &json!({
             "type": "not-working",
         });
-        definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
+
+        assert!(q.is_err());
+        assert_eq!(q.unwrap_err().message, "Column type 'not-working' is not (yet) supported");
     }
 }

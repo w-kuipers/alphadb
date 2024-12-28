@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::prelude::{AlphaDBError, Get};
 use crate::utils::consolidate::primary_key::get_primary_key;
 use crate::utils::types::VerificationIssueLevel;
 use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
@@ -81,7 +82,13 @@ impl VersionSourceVerification {
                     match method.as_str() {
                         "_id" => continue,
                         "createtable" => self.createtable(version["createtable"].clone(), version_output.clone()),
-                        "altertable" => self.altertable(version["altertable"].clone(), i, version_output.clone()),
+                        "altertable" => match self.altertable(version["altertable"].clone(), i, version_output.clone()) {
+                            Ok(v) => v,
+                            Err(e) => self.issues.push(VerificationIssue {
+                                message: e.message(),
+                                level: VerificationIssueLevel::Critical,
+                            })
+                        },
                         _ => {
                             self.issues.push(VerificationIssue {
                                 level: VerificationIssueLevel::High,
@@ -137,13 +144,14 @@ impl VersionSourceVerification {
     /// **Altertable**
     ///
     /// Verify a single altertable block
-    pub fn altertable(&mut self, altertable: Value, version_index: usize, version_output: String) {
+    pub fn altertable(&mut self, altertable: Value, version_index: usize, version_output: String) -> Result<(), AlphaDBError> {
         if altertable.as_object().unwrap().is_empty() {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Low,
                 message: format!("{version_output} -> altertable: Does not contain any data"),
             });
-            return;
+
+            return Ok(());
         }
 
         for table in altertable.as_object().unwrap().keys() {
@@ -160,7 +168,7 @@ impl VersionSourceVerification {
                     &self.version_source["version"],
                     table,
                     Some(self.version_source["version"][version_index]["_id"].as_str().unwrap()),
-                );
+                )?;
 
                 for dropcol in altertable[table]["dropcolumn"].as_array().unwrap() {
                     if let Some(dropcol) = dropcol.as_str() {
@@ -178,6 +186,8 @@ impl VersionSourceVerification {
                 // Do primary key checks
             }
         }
+
+        Ok(())
     }
 
     /// **Column compatibility**

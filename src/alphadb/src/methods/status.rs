@@ -60,15 +60,13 @@ pub fn status(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> 
     let mut version: Option<String> = None;
     let mut template: Option<String> = None;
 
-    if db_name.is_none() {
-        return Err(AlphaDBError {
+    let db_name = match db_name {
+        Some(n) => n,
+        None => return Err(AlphaDBError {
             message: "The database name was None".to_string(),
             ..Default::default()
-        }
-        .into());
-    }
-
-    let db_name = db_name.as_ref().unwrap();
+        }.into())
+    };
 
     if let Some(conn) = connection.as_mut() {
         // Check if the configuration table exists

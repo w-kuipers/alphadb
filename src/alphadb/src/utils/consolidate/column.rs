@@ -13,8 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::error_messages::error;
-use crate::utils::version_number::get_version_number_int;
+use crate::utils::errors::AlphaDBError;
+use crate::utils::json::get_json_string;
+use crate::utils::version_number::parse_version_number;
 use serde_json::{json, Value};
 
 #[derive(Debug, PartialEq)]
@@ -31,18 +32,18 @@ pub struct RenameData {
 /// - version_list: List with versions from version_source
 /// - column_name: Name of the column to be handled
 /// - table_name: Name of the table the column is in
-pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &str) -> Value {
+pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &str) -> Result<Value, AlphaDBError> {
     let mut column = json!({});
     let mut version_column_name = column_name;
-    let rename_data = get_column_renames(version_list, column_name, table_name, "DESC");
+    let rename_data = get_column_renames(version_list, column_name, table_name, "DESC")?;
     let version_list_cloned = version_list.clone();
 
     for version in version_list_cloned.as_array().unwrap() {
-        let _v = get_version_number_int(&version["_id"].as_str().unwrap().to_string());
+        let _v = parse_version_number(get_json_string(&version["_id"])?)?;
 
         // If the column is renamed, get hystorical column name for current version
         for rename in rename_data.iter().rev() {
-            if get_version_number_int(&version["_id"].as_str().unwrap().to_string()) <= rename.rename_version {
+            if parse_version_number(get_json_string(&version["_id"])?)? <= rename.rename_version {
                 version_column_name = &rename.old_name;
                 break;
             } else {
@@ -106,7 +107,7 @@ pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &
         }
     }
 
-    return column;
+    return Ok(column);
 }
 
 /// **Get column renames**
@@ -123,23 +124,23 @@ pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &
 /// - column_name: Name of the column to be handled
 /// - table_name: Name of the table the column is in
 /// - order: The order in which to walk over the version source. Either "ASC" or "DESC".
-pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &str, order: &str) -> Vec<RenameData> {
+pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &str, order: &str) -> Result<Vec<RenameData>, AlphaDBError> {
     let mut rename_data: Vec<RenameData> = Vec::new();
 
-    let mut version_loop = |version: &Value| {
+    let mut version_loop = |version: &Value| -> Result<bool, AlphaDBError> {
         if version.as_object().unwrap().keys().any(|i| i == "altertable") {
             if version["altertable"].as_object().unwrap().keys().any(|t| t == table_name) {
-                let v = get_version_number_int(&version["_id"].as_str().unwrap().to_string());
+                let v = parse_version_number(get_json_string(&version["_id"]).unwrap()).unwrap();
 
                 // Skip version that are already processed
                 if order == "DESC" {
                     if rename_data.iter().any(|r| r.rename_version <= v) {
-                        return false;
+                        return Ok(false);
                     }
                 }
                 if order == "ASC" {
                     if rename_data.iter().any(|r| r.rename_version >= v) {
-                        return false;
+                        return Ok(false);
                     }
                 }
 
@@ -148,14 +149,14 @@ pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &
 
                     // If the current column is not the one being renamed, continue
                     if order == "DESC" && !renamecolumn_values.iter().any(|&k| k == column_name) {
-                        return false;
+                        return Ok(false);
                     }
 
                     let renamecolumn_keys = version["altertable"][table_name]["renamecolumn"].as_object().unwrap().keys().collect::<Vec<&String>>();
 
                     // If the current column is not the one being renamed, continue
                     if order == "ASC" && !renamecolumn_keys.iter().any(|&k| k == column_name) {
-                        return false;
+                        return Ok(false);
                     }
 
                     // Get old or new name based on order
@@ -183,32 +184,35 @@ pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &
                     }
 
                     // Recursively call it again with new column name
-                    rename_data.append(&mut get_column_renames(version_list, name, table_name, order));
-                    return true; // Return true to break the loop as the current column name does not exist
+                    rename_data.append(&mut get_column_renames(version_list, name, table_name, order)?);
+                    return Ok(true); // Return true to break the loop as the current column name does not exist
                 }
             }
         }
 
-        return false;
+        return Ok(false);
     };
 
     if order == "ASC" {
         for version in version_list.as_array().unwrap().into_iter() {
-            if version_loop(version) {
+            if version_loop(version)? {
                 break;
             }
         }
     } else if order == "DESC" {
         for version in version_list.as_array().unwrap().into_iter().rev() {
-            if version_loop(version) {
+            if version_loop(version)? {
                 break;
             }
         }
     } else {
-        error("Order in function 'get_column_renames' must be either 'ASC' or 'DESC'.".to_string());
+        return Err(AlphaDBError {
+            message: "Order in function 'get_column_renames' must be either 'ASC' or 'DESC'.".to_string(),
+            ..Default::default()
+        });
     }
 
-    return rename_data;
+    return Ok(rename_data);
 }
 
 #[cfg(test)]
@@ -224,7 +228,7 @@ mod consolidate_column_tests {
         ]);
 
         let result = json!({"type": "VARCHAR", "length": 200, "unique": true});
-        assert_eq!(consolidate_column(&versions, "col", "table"), result);
+        assert_eq!(consolidate_column(&versions, "col", "table").unwrap(), result);
     }
 
     #[test]
@@ -236,7 +240,7 @@ mod consolidate_column_tests {
         ]);
 
         let result = json!({"type": "VARCHAR", "length": 240, "unique": true, "null": true});
-        assert_eq!(consolidate_column(&versions, "col", "table"), result);
+        assert_eq!(consolidate_column(&versions, "col", "table").unwrap(), result);
     }
 
     #[test]
@@ -249,11 +253,11 @@ mod consolidate_column_tests {
         ]);
 
         let result = json!({"type": "VARCHAR", "length": 200, "null": true});
-        assert_eq!(consolidate_column(&versions, "renamed", "table"), result);
+        assert_eq!(consolidate_column(&versions, "renamed", "table").unwrap(), result);
 
         // Don't break on column that has not been renamed
         let result_col2 = json!({"type": "TEXT", "length": 935});
-        assert_eq!(consolidate_column(&versions, "col2", "table"), result_col2);
+        assert_eq!(consolidate_column(&versions, "col2", "table").unwrap(), result_col2);
     }
 
     #[test]
@@ -270,7 +274,7 @@ mod consolidate_column_tests {
         ]);
 
         let result = json!({"type": "VARCHAR", "length": 2300, "null": true, "unique": false});
-        assert_eq!(consolidate_column(&versions, "multiplerenamed", "table"), result);
+        assert_eq!(consolidate_column(&versions, "multiplerenamed", "table").unwrap(), result);
     }
 
     #[test]
@@ -281,7 +285,7 @@ mod consolidate_column_tests {
         ]);
 
         let result_recreate = json!({"length": 300});
-        assert_eq!(consolidate_column(&versions, "col", "table"), result_recreate);
+        assert_eq!(consolidate_column(&versions, "col", "table").unwrap(), result_recreate);
 
         let versions_no_recreate = json!([
             {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
@@ -301,7 +305,7 @@ mod consolidate_column_tests {
         ]);
 
         let result_no_recreate = json!({"type": "VARCHAR", "length": 300});
-        assert_eq!(consolidate_column(&versions_no_recreate, "col", "table"), result_no_recreate);
+        assert_eq!(consolidate_column(&versions_no_recreate, "col", "table").unwrap(), result_no_recreate);
     }
 }
 
@@ -325,7 +329,7 @@ mod get_column_renames_tests {
         ]);
 
         assert_eq!(
-            get_column_renames(&versions, "multiplerenamed", "table", "DESC"),
+            get_column_renames(&versions, "multiplerenamed", "table", "DESC").unwrap(),
             [
                 RenameData {
                     new_name: "multiplerenamed".to_string(),
@@ -360,7 +364,7 @@ mod get_column_renames_tests {
         ]);
 
         assert_eq!(
-            get_column_renames(&versions, "col", "table", "ASC"),
+            get_column_renames(&versions, "col", "table", "ASC").unwrap(),
             [
                 RenameData {
                     new_name: "renamed".to_string(),
