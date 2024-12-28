@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use serde_json::Value;
-use crate::query::column::definecolumn::definecolumn;
+use crate::{prelude::AlphaDBError, query::column::definecolumn::definecolumn};
 
 /// **Modify column**
 ///
@@ -24,9 +24,9 @@ use crate::query::column::definecolumn::definecolumn;
 /// - table_name: Name of the table to be created
 /// - column_name: Name of the column to be defined
 /// - version: Current version in version source loop
-pub fn modifycolumn(table_data: &Value, table_name: &str, column_name: &str, version: &str) -> Option<String> {
+pub fn modifycolumn(table_data: &Value, table_name: &str, column_name: &str, version: &str) -> Result<Option<String>, AlphaDBError> {
     let mut query = String::from("MODIFY COLUMN");
-    let defined_column = definecolumn(&table_data["modifycolumn"][column_name], table_name, &column_name.to_string(), version);
+    let defined_column = definecolumn(&table_data["modifycolumn"][column_name], table_name, &column_name.to_string(), version)?;
 
     // If defined column is None, it's some attribute that should be handled later (foreign_key,
     // primary_key, etc...)
@@ -34,8 +34,8 @@ pub fn modifycolumn(table_data: &Value, table_name: &str, column_name: &str, ver
         query = format!("{query} {defined_column}");
     }
     else {
-        return None
+        return Ok(None)
     }
       
-    return Some(query);
+    return Ok(Some(query));
 }

@@ -13,10 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::error_messages::error;
 use crate::utils::errors::AlphaDBError;
-use crate::utils::version_number::parse_version_number;
 use crate::utils::json::get_json_string;
+use crate::utils::version_number::parse_version_number;
 use serde_json::{json, Value};
 
 #[derive(Debug, PartialEq)]
@@ -40,7 +39,7 @@ pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &
     let version_list_cloned = version_list.clone();
 
     for version in version_list_cloned.as_array().unwrap() {
-        let _v =  parse_version_number(get_json_string(&version["_id"])?)?;
+        let _v = parse_version_number(get_json_string(&version["_id"])?)?;
 
         // If the column is renamed, get hystorical column name for current version
         for rename in rename_data.iter().rev() {
@@ -207,7 +206,10 @@ pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &
             }
         }
     } else {
-        error("Order in function 'get_column_renames' must be either 'ASC' or 'DESC'.".to_string());
+        return Err(AlphaDBError {
+            message: "Order in function 'get_column_renames' must be either 'ASC' or 'DESC'.".to_string(),
+            ..Default::default()
+        });
     }
 
     return Ok(rename_data);

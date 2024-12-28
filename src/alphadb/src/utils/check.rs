@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::errors::AlphaDBError;
+use crate::utils::globals::CONFIG_TABLE_NAME;
 use mysql::{prelude::*, PooledConn};
 use thiserror::Error;
 
@@ -28,6 +28,9 @@ pub struct Check {
 pub enum CheckError {
     #[error(transparent)]
     AlphaDbError(#[from] AlphaDBError),
+
+    #[error(transparent)]
+    MySqlError(#[from] mysql::Error),
 }
 
 /// **Check**
@@ -37,30 +40,26 @@ pub fn check(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> R
     let mut check = false;
     let mut version: Option<String> = None;
 
-    if db_name.is_none() {
-        return Err(AlphaDBError {
-            message: "The database name was None".to_string(),
-            ..Default::default()
-        }.into());
-    }
-
-    let db_name = db_name.as_ref().unwrap();
+    let db_name = match db_name {
+        Some(n) => n,
+        None => {
+            return Err(AlphaDBError {
+                message: "The database name was None".to_string(),
+                ..Default::default()
+            }
+            .into())
+        }
+    };
 
     if let Some(conn) = connection.as_mut() {
-        
-        
         // Check if the configuration table exists
-        let table_check: Option<String> = conn
-            .exec_first(
-                "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
-                (&db_name, CONFIG_TABLE_NAME),
-            )
-            .unwrap();
+        let table_check: Option<String> = conn.exec_first(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
+            (&db_name, CONFIG_TABLE_NAME),
+        )?;
 
         if !table_check.is_none() {
-            let fetched: Option<String> = conn
-                .exec_first(format!("SELECT version FROM {} where db = ?", CONFIG_TABLE_NAME), (db_name,))
-                .unwrap();
+            let fetched: Option<String> = conn.exec_first(format!("SELECT version FROM {} where db = ?", CONFIG_TABLE_NAME), (db_name,))?;
 
             if fetched.is_some() {
                 version = fetched;
@@ -71,14 +70,13 @@ pub fn check(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> R
         if table_check.is_some() && version.is_some() {
             check = true;
         }
-    }
-    else {
+    } else {
         return Err(AlphaDBError {
             message: "The database connection was None".to_string(),
             ..Default::default()
-        }.into());
+        }
+        .into());
     }
-
 
     Ok(Check { check, version })
 }

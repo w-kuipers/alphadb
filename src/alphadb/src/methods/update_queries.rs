@@ -134,14 +134,12 @@ pub fn update_queries(
     // Check if templates match
     if let Some(template) = status.template {
         if template != template_name {
-            panic!("This database uses a different database version source. The template name does not match the one previously used to update this database.");
+            return Err(AlphaDBError {
+                message: "This database uses a different database version source. The template name does not match the one previously used to update this database.".to_string(),
+                ..Default::default()
+            }
+            .into());
         }
-    } else {
-        // TODO move this to the end of the function. The same table is updated there
-        queries.push(Query {
-            query: format!("UPDATE {} SET template = ? WHERE db = ?", CONFIG_TABLE_NAME),
-            data: Some(Vec::from([template_name.to_string(), db_name.to_string()])),
-        });
     }
 
     // Get the latest version
@@ -203,7 +201,7 @@ pub fn update_queries(
         // Createtable
         if version_keys.contains(&&"createtable".to_string()) {
             for table in object_iter(&version["createtable"])? {
-                let q = createtable(version, table, version_number);
+                let q = createtable(version, table, version_number)?;
                 queries.push(Query { query: q, data: None });
             }
         }
@@ -211,15 +209,18 @@ pub fn update_queries(
         // Altertable
         if version_keys.contains(&&"altertable".to_string()) {
             for table in object_iter(&version["altertable"])? {
-                let q = altertable(&version_source, table, version_number);
-                queries.push(Query { query: q, data: None });
+                queries.push(Query {
+                    query: altertable(&version_source, table, version_number)?,
+                    data: None,
+                });
             }
         }
     }
 
+    // Add query to update the config table
     queries.push(Query {
-        query: format!("UPDATE `{CONFIG_TABLE_NAME}` SET version=? WHERE `db` = ?;"),
-        data: Some(Vec::from([latest_version, db_name.to_string()])),
+        query: format!("UPDATE `{CONFIG_TABLE_NAME}` SET `version`=?, `template`=? WHERE `db` = ?;"),
+        data: Some(Vec::from([latest_version, template_name.to_string(), db_name.to_string()])),
     });
 
     Ok(queries)

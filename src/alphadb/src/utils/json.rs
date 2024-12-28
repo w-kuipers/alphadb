@@ -34,7 +34,31 @@ pub fn object_iter(object: &serde_json::Value) -> Result<serde_json::map::Keys<'
         Ok(obj.keys().into_iter())
     } else {
         Err(AlphaDBError {
-            message: "Unable to convert the value to an object".to_string(),
+            message: "Unable to convert the value into an object".to_string(),
+            ..Default::default()
+        })
+    }
+}
+
+/// Get an iterator from a serde_json::Value
+pub fn array_iter(object: &serde_json::Value) -> Result<&Vec<Value>, AlphaDBError> {
+    if let Some(arr) = object.as_array() {
+        Ok(arr)
+    } else {
+        Err(AlphaDBError {
+            message: "Unable to convert the value into an object".to_string(),
+            ..Default::default()
+        })
+    }
+}
+
+/// Verify wether a key exists in serde_json::Value
+pub fn exists_in_object(object: &serde_json::Value, key: &str) -> Result<bool, AlphaDBError> {
+    if let Some(obj) = object.as_object() {
+        return Ok(obj.keys().any(|k| k == key));
+    } else {
+        Err(AlphaDBError {
+            message: "Unable to convert the value into an object".to_string(),
             ..Default::default()
         })
     }
@@ -47,6 +71,30 @@ pub fn get_json_string(value: &Value) -> Result<&str, AlphaDBError> {
         None => Err(AlphaDBError {
             message: "The value could not be parsed as a string".to_string(),
             error: "invalid-json-string".to_string(),
+            ..Default::default()
+        }),
+    }
+}
+
+/// Get JSON object value from serde_json::Value
+pub fn get_json_object(value: &Value) -> Result<&serde_json::Map<String, Value>, AlphaDBError> {
+    match value.as_object() {
+        Some(v) => Ok(v),
+        None => Err(AlphaDBError {
+            message: "The value could not be parsed as a string".to_string(),
+            error: "invalid-json-string".to_string(),
+            ..Default::default()
+        }),
+    }
+}
+
+/// Get JSON int value from serde_json::Value
+pub fn get_json_int(value: &Value) -> Result<i64, AlphaDBError> {
+    match value.as_i64() {
+        Some(v) => Ok(v),
+        None => Err(AlphaDBError {
+            message: "The value could not be parsed as an integer".to_string(),
+            error: "invalid-json-number".to_string(),
             ..Default::default()
         }),
     }

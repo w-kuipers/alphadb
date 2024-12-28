@@ -50,7 +50,7 @@ pub fn vacate(connection: &mut Option<PooledConn>) -> Result<(), VacateError> {
         conn.query_drop("SET FOREIGN_KEY_CHECKS = 0")?;
 
         // Get all tables
-        let tables: Vec<String> = conn.query_map("SHOW TABLES", |table: String| table).unwrap();
+        let tables: Vec<String> = conn.query_map("SHOW TABLES", |table: String| table)?;
 
         // Drop all tables
         for table in tables {
