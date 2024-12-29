@@ -6,12 +6,27 @@ build-backend = "maturin"
 name = "alphadb"
 version = "indev"
 author = "Wibo Kuipers"
+author-email = "wkuipersoss@gmail.com"
+description = "AlphaDB is a versatile tool for managing MySQL database versions, using JSON to define structures and simplify migrations across environments."
+long-description = {file = "README.md"}
+long-description-content-type = "text/markdown"
+license = "GPL-3.0"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "License :: OSI Approved :: GNU General Public License v3 (GPL-3.0)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only"
 ]
-dynamic = ["version"]
+keywords = ["database", "rust", "extension", "mysql database management", "mysql version management", "database migration tool", "database version management"]
+
+urls = {
+    "Homepage": "https://github.com/w-kuipers/alphadb",
+    "Documentation": "https://alphadb.w-kuipers.com",
+    "Bug Tracker": "https://github.com/w-kuipers/alphadb/issues",
+}
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
