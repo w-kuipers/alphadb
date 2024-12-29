@@ -90,9 +90,9 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             length = get_json_int(&column_data["length"])?;
         }
 
-        let mut default: Option<&str> = None;
+        let mut default: Option<Value> = None;
         if column_keys.iter().any(|&i| i == "default") {
-            default = Some(get_json_string(&column_data["default"])?);
+            default = Some(column_data["default"].clone())
         }
 
         if !SUPPORTED_COLUMN_TYPES.iter().any(|&i| i == column_type) {
@@ -119,7 +119,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         }
 
         if let Some(d) = default {
-            query = format!("{query} DEFAULT {:?}", d);
+            query = format!("{query} DEFAULT {:?}", d.to_string());
         }
 
         if auto_increment {
