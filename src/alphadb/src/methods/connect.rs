@@ -48,7 +48,7 @@ impl Get for ConnectError {
 /// - password: User password for the database
 /// - database: Database name
 /// - port: MySQL port
-pub fn connect(host: &String, user: &String, password: &String, database: &String, port: &u16) -> Result<PooledConn, ConnectError> {
+pub fn connect(host: &str, user: &str, password: &str, database: &str, port: u16) -> Result<PooledConn, ConnectError> {
     let url = format!("mysql://{}:{}@{}:{}/{}", user, password, host, port, database);
 
     let pool = Pool::new(&url[..])?;
@@ -67,7 +67,7 @@ mod connect_tests {
 
     #[test]
     fn test_connect() {
-        let conn = connect(&HOST.to_string(), &USER.to_string(), &PASSWORD.to_string(), &DATABASE.to_string(), &PORT);
+        let conn = connect(HOST, USER, PASSWORD, DATABASE, PORT);
         assert!(conn.is_ok());
     }
 }

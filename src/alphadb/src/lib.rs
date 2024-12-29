@@ -47,7 +47,7 @@ impl AlphaDB {
     /// - password: User password for the database
     /// - database: Database name
     /// - port: MySQL port
-    pub fn connect(&mut self, host: &String, user: &String, password: &String, database: &String, port: &u16) -> Result<(), ConnectError> {
+    pub fn connect(&mut self, host: &str, user: &str, password: &str, database: &str, port: u16) -> Result<(), ConnectError> {
         // Establish connection to database
         self.connection = Some(connect(host, user, password, database, port)?);
 
@@ -141,7 +141,7 @@ mod alphadb_tests {
         assert!(db.connection.is_none());
 
         // Test connect
-        let _ = db.connect(&HOST.to_string(), &USER.to_string(), &PASSWORD.to_string(), &DATABASE.to_string(), &PORT);
+        let _ = db.connect(HOST, USER, PASSWORD, DATABASE, PORT);
         println!("{:?}", db.connection);
         assert!(db.connection.is_some());
 

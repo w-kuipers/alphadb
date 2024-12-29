@@ -100,7 +100,7 @@ pub fn new_connection(activate: bool, config: &Config) -> String {
         &connection.user,
         &connection.password,
         &connection.database,
-        &connection.port,
+        connection.port,
     );
 
     if testconn.is_err() {

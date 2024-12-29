@@ -103,7 +103,7 @@ fn main() {
                 &conn.connection.user,
                 &password,
                 &conn.connection.database,
-                &conn.connection.port,
+                conn.connection.port,
             ) {
                 Ok(_) => (),
                 Err(e) => {
