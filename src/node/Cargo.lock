@@ -36,9 +36,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "alphadb"
-version = "1.0.0-beta.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cd18032a803287d49f21df96f07cd930858f67aae25441d17db4add407aadff"
+version = "1.0.0-dev16"
 dependencies = [
  "mysql",
  "serde",
@@ -50,7 +48,7 @@ dependencies = [
 name = "alphadb"
 version = "23.0.22-dev.238-node"
 dependencies = [
- "alphadb 1.0.0-beta.20",
+ "alphadb 1.0.0-dev16",
  "mysql",
  "neon",
 ]

@@ -87,7 +87,7 @@ impl AlphaDB {
         database: String,
         port: u16,
     ) -> PyResult<()> {
-        match connect(&host, &user, &password, &database, &port) {
+        match connect(&host, &user, &password, &database, port) {
             Ok(c) => {
                 self.connection = Some(c);
                 self.db_name = Some(database);

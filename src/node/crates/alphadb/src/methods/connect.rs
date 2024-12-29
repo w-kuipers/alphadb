@@ -33,7 +33,7 @@ pub fn connect_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let database = cx.argument::<JsString>(5)?.value(&mut cx);
     let port = cx.argument::<JsNumber>(6)?.value(&mut cx) as u16;
 
-    let c = match connect(&host, &user, &password, &database, &port) {
+    let c = match connect(&host, &user, &password, &database, port) {
         Ok(c) => c,
         Err(e) => cx.throw_error(e.message())?,
     };
