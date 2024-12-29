@@ -12,10 +12,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::AlphaDBError;
-use crate::utils::error_messages::{incompatible_column_attributes, incomplete_version_object};
-use crate::utils::json::{get_json_int, get_json_string, get_object_keys};
-use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES};
+use core::f64;
+
+use crate::prelude::{AlphaDBError, Get};
+use crate::utils::error_messages::{incompatible_column_attributes, incomplete_version_object, simple_err};
+use crate::utils::json::{get_json_int, get_json_float, get_json_string, get_object_keys};
+use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES, ALLOW_DECIMAL_LENGTH};
 use serde_json::Value;
 
 /// **Define column**
@@ -29,6 +31,7 @@ use serde_json::Value;
 pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String, version: &str) -> Result<Option<String>, AlphaDBError> {
     let mut query = String::new();
     let column_keys = get_object_keys(column_data);
+    let version_trace = Vec::from([version, table_name, column_name]);
 
     // If iteration is not an object, it is not a column, so it should be processed later
     if let Ok(column_keys) = column_keys {
@@ -85,10 +88,23 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             }
         }
 
-        let mut length: i64 = -1;
+        let mut length: f64 = -1.0;
         if column_keys.iter().any(|&i| i == "length") {
-            length = get_json_int(&column_data["length"])?;
+             
+            if ALLOW_DECIMAL_LENGTH.contains(&column_type.to_lowercase().as_str()) {
+                length = match get_json_float(&column_data["length"]) {
+                    Ok(l) => l,
+                    Err(e) => return Err(simple_err(&e.message(), version_trace))
+                };
+            } 
+            else {
+                length = match get_json_int(&column_data["length"]) {
+                    Ok(l) => l as f64,
+                    Err(e) => return Err(simple_err(&e.message(), version_trace))
+                };
+            }
         }
+
 
         let mut default: Option<Value> = None;
         if column_keys.iter().any(|&i| i == "default") {
@@ -104,7 +120,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
 
         query = format!("{column_name} {column_type}");
 
-        if length != -1 {
+        if length != -1.0 {
             query = format!("{query}({length})");
         }
 

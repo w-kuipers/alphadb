@@ -22,3 +22,7 @@ pub const INCOMPATIBLE_W_AI: [&str; 6] =
     ["varchar", "text", "longtext", "datetime", "decimal", "json"];
 
 pub const INCOMPATIBLE_W_UNIQUE: [&str; 1] = ["json"];
+
+/// All the MySQL column types that allow a decimal length value
+pub const ALLOW_DECIMAL_LENGTH: [&str; 3] = ["decimal", "float", "double"];
+

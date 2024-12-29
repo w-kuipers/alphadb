@@ -19,6 +19,7 @@ use thiserror::Error;
 pub struct AlphaDBError {
     pub message: String,
     pub error: String,
+    pub version_trace: Vec<String>,
 }
 
 pub trait Get {
@@ -34,6 +35,20 @@ impl std::fmt::Display for AlphaDBError {
 
 impl Get for AlphaDBError {
     fn message(&self) -> String {
+        let mut version_trace_string = String::new();
+
+        // Format the version trace as a readable string
+        if self.version_trace.len() > 0 {
+            for (i, item) in self.version_trace.iter().enumerate() {
+                if i == 0 {
+                    version_trace_string = item.to_string();
+                } else {
+                    version_trace_string = format!("{version_trace_string}->{item}");
+                }
+            }
+            return format!("Version {version_trace_string}: {}", self.message);
+        }
+
         return self.message.clone();
     }
 
@@ -47,6 +62,7 @@ impl Default for AlphaDBError {
         AlphaDBError {
             message: String::new(),
             error: String::new(),
+            version_trace: Vec::new(),
         }
     }
 }

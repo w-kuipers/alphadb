@@ -18,6 +18,20 @@ use super::errors::AlphaDBError;
 pub const DB_CONFIG_NO_VERSION: &str =
     "There seems to be an issue with the database config. It is initialized, but does not return a valid version. Please manually check the configuration table in your database.";
 
+/// Format an AlphaDBError with version trace
+///
+/// A version trace is a Vec<&str> that records each step, helping to trace the source of errors by displaying the sequence of items in the database structure.
+///
+/// - message: The error message
+/// - version_trace: Version trace
+pub fn simple_err(message: &str, version_trace: Vec<&str>) -> AlphaDBError {
+    return AlphaDBError {
+        message: message.to_string(),
+        version_trace: version_trace.iter().map(|&s| s.to_string()).collect(),
+        ..Default::default()
+    };
+}
+
 /// *Incomplete version object*
 ///
 /// - key: Missing object key

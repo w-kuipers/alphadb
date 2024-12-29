@@ -112,6 +112,29 @@ pub fn get_json_int(value: &Value) -> Result<i64, AlphaDBError> {
     }
 }
 
+pub fn get_json_float(value: &Value) -> Result<f64, AlphaDBError> {
+    match value.as_f64() {
+        Some(v) => Ok(v),
+
+        // Parse string in case it's a numerical value
+        None => match value.as_str() {
+            Some(v) => match v.replace(",", ".").parse::<f64>() {
+                Ok(v) => Ok(v),
+                Err(_) => Err(AlphaDBError {
+                    message: format!("The value {} could not be parsed as a float", value.to_string()),
+                    error: "invalid-json-number".to_string(),
+                    ..Default::default()
+                }),
+            },
+            None => Err(AlphaDBError {
+                message: format!("The value {} could not be parsed as a float", value.to_string()),
+                error: "invalid-json-number".to_string(),
+                ..Default::default()
+            }),
+        },
+    }
+}
+
 #[cfg(test)]
 mod json_tests {
     use super::*;
