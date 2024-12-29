@@ -107,7 +107,8 @@ pub fn update(
             "no-version-number" => error(
                 "The database configuration is broken, no version number present.".to_string(),
             ),
-            _ => error("An unexpected error occured.".to_string()),
+            _ => error(e.message()),
+            // _ => error("An unexpected error occured.".to_string()),
         },
     };
 }
