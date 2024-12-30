@@ -91,7 +91,7 @@ mod createtable_tests {
         let q = createtable(column, "table", "0.0.1");
 
         assert!(q.is_err());
-        assert_eq!(q.unwrap_err().message, "Database version is incomplete or broken. Version 0.0.1->table->foreign_key is missing key 'key'.");
+        assert_eq!(q.unwrap_err().message, "Missing required key 'key'.");
     }
 
     // Foreign key missing references
@@ -108,7 +108,7 @@ mod createtable_tests {
         });
         let q = createtable(column, "table", "0.0.1");
         assert!(q.is_err());
-        assert_eq!(q.unwrap_err().message, "Database version is incomplete or broken. Version 0.0.1->table->foreign_key is missing key 'references'.");
+        assert_eq!(q.unwrap_err().message, "Missing required key 'references'.");
     }
 
     #[test]

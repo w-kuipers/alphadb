@@ -159,46 +159,50 @@ mod definecolumn_tests {
 
     // A column type must always be defined
     #[test]
-    #[should_panic(expected = "Database version is incomplete or broken. Version 0.0.1->table->col is missing key 'type'.")]
     fn no_type() {
         let column = &json!({
             "a_i": true
         });
-        let _ = definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        assert!(q.is_err());
+        assert_eq!(q.unwrap_err().message, "Missing required key 'type'.");
     }
 
     // AUTO_INCREMENT on incompatible type
     #[test]
-    #[should_panic(expected = "Version 0.0.1->table->col: Column attributes 'AUTO_INCREMENT' and 'type==VARCHAR' are not compatible.")]
     fn ai_and_type() {
         let column = &json!({
             "type": "VARCHAR",
             "a_i": true
         });
-        let _ = definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        assert!(q.is_err());
+        assert_eq!(q.unwrap_err().message, "Column attributes 'AUTO_INCREMENT' and 'type==VARCHAR' are not compatible.");
     }
 
     // UNIQUE on incompatible type
     #[test]
-    #[should_panic(expected = "Version 0.0.1->table->col: Column attributes 'UNIQUE' and 'type==json' are not compatible.")]
     fn unique_and_type() {
         let column = &json!({
             "type": "json",
             "unique": true
         });
-        let _ = definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        assert!(q.is_err());
+        assert_eq!(q.unwrap_err().message, "Column attributes 'UNIQUE' and 'type==json' are not compatible.");
     }
 
     // AUTO_INCREMENT with NULL
     #[test]
-    #[should_panic(expected = "Version 0.0.1->table->col: Column attributes 'AUTO_INCREMENT' and 'NULL' are not compatible.")]
     fn ai_and_null() {
         let column = &json!({
             "type": "INT",
             "null": true,
             "a_i": true
         });
-        let _ = definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        assert!(q.is_err());
+        assert_eq!(q.unwrap_err().message, "Column attributes 'AUTO_INCREMENT' and 'NULL' are not compatible.");
     }
 
     // Unsupported column type
