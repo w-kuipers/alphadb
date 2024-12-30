@@ -15,9 +15,9 @@
 use core::f64;
 
 use crate::prelude::{AlphaDBError, Get};
-use crate::utils::error_messages::{incompatible_column_attributes, incomplete_version_object, simple_err};
-use crate::utils::json::{get_json_int, get_json_float, get_json_string, get_object_keys};
-use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES, ALLOW_DECIMAL_LENGTH};
+use crate::utils::error_messages::{incompatible_column_attributes_err, incomplete_version_object_err, simple_err};
+use crate::utils::json::{get_json_float, get_json_int, get_json_string, get_object_keys};
+use crate::verification::compatibility::{ALLOW_DECIMAL_LENGTH, INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES};
 use serde_json::Value;
 
 /// **Define column**
@@ -42,7 +42,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
 
         // Must know the type to create a column
         if !column_keys.contains(&&"type".to_string()) {
-            incomplete_version_object("type".to_string(), format!("Version {version}->{table_name}->{column_name}"));
+            return Err(incomplete_version_object_err("type", version_trace.clone()));
         }
 
         let column_type = get_json_string(&column_data["type"])?;
@@ -58,15 +58,15 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         let mut auto_increment = false;
         if column_keys.iter().any(|&i| i == "a_i") {
             if INCOMPATIBLE_W_AI.iter().any(|&i| i == column_type.to_lowercase()) {
-                incompatible_column_attributes(
-                    "AUTO_INCREMENT".to_string(),
-                    format!("type=={column_type}"),
-                    format!("Version {version}->{table_name}->{column_name}"),
-                )
+                return Err(incompatible_column_attributes_err(
+                    "AUTO_INCREMENT",
+                    format!("type=={column_type}").as_str(),
+                    Vec::from([version, table_name, column_name])
+                ));
             }
 
             if null {
-                incompatible_column_attributes("AUTO_INCREMENT".to_string(), "NULL".to_string(), format!("Version {version}->{table_name}->{column_name}"))
+                return Err(incompatible_column_attributes_err("AUTO_INCREMENT", "NULL", Vec::from([version, table_name, column_name])));
             }
 
             auto_increment = true;
@@ -76,11 +76,11 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         let mut unique = false;
         if column_keys.iter().any(|&i| i == "unique") {
             if INCOMPATIBLE_W_UNIQUE.iter().any(|&i| i == column_type.to_lowercase()) {
-                incompatible_column_attributes(
-                    "UNIQUE".to_string(),
-                    format!("type=={column_type}"),
-                    format!("Version {version}->{table_name}->{column_name}"),
-                )
+                return Err(incompatible_column_attributes_err(
+                    "UNIQUE",
+                    format!("type=={column_type}").as_str(),
+                    Vec::from([version, table_name, column_name])
+                ));
             }
 
             if column_data["unique"] == true {
@@ -90,21 +90,18 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
 
         let mut length: f64 = -1.0;
         if column_keys.iter().any(|&i| i == "length") {
-             
             if ALLOW_DECIMAL_LENGTH.contains(&column_type.to_lowercase().as_str()) {
                 length = match get_json_float(&column_data["length"]) {
                     Ok(l) => l,
-                    Err(e) => return Err(simple_err(&e.message(), version_trace))
+                    Err(e) => return Err(simple_err(&e.message(), version_trace)),
                 };
-            } 
-            else {
+            } else {
                 length = match get_json_int(&column_data["length"]) {
                     Ok(l) => l as f64,
-                    Err(e) => return Err(simple_err(&e.message(), version_trace))
+                    Err(e) => return Err(simple_err(&e.message(), version_trace)),
                 };
             }
         }
-
 
         let mut default: Option<Value> = None;
         if column_keys.iter().any(|&i| i == "default") {

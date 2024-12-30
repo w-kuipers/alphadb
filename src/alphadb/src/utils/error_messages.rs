@@ -40,10 +40,11 @@ pub fn incomplete_version_object(key: String, version: String) {
     panic!("Database version is incomplete or broken. {version} is missing key '{key}'.");
 }
 
-pub fn incomplete_version_object_err(key: &str, version: String) -> AlphaDBError {
+pub fn incomplete_version_object_err(key: &str, version_trace: Vec<&str>) -> AlphaDBError {
     return AlphaDBError {
-        message: format!("Database version is incomplete or broken. {version} is missing key '{key}'."),
+        message: format!("Missing required key '{key}'."),
         error: "incomplete-version-object".to_string(),
+        version_trace: version_trace.iter().map(|&s| s.to_string()).collect(),
         ..Default::default()
     };
 }
@@ -57,10 +58,11 @@ pub fn incompatible_column_attributes(attribute1: String, attribute2: String, ve
     panic!("{version}: Column attributes '{attribute1}' and '{attribute2}' are not compatible.");
 }
 
-pub fn incompatible_column_attributes_err(attribute1: &str, attribute2: &str, version: String) -> AlphaDBError {
+pub fn incompatible_column_attributes_err(attribute1: &str, attribute2: &str, version_trace: Vec<&str>) -> AlphaDBError {
     return AlphaDBError {
-        message: format!("{version}: Column attributes '{attribute1}' and '{attribute2}' are not compatible."),
+        message: format!("Column attributes '{attribute1}' and '{attribute2}' are not compatible."),
         error: "incompatible-version-attributes".to_string(),
+        version_trace: version_trace.iter().map(|&s| s.to_string()).collect(),
         ..Default::default()
     };
 }

@@ -51,11 +51,11 @@ pub fn createtable(version_source: &serde_json::Value, table_name: &str, version
         let foreign_key_keys = foreign_key.keys().collect::<Vec<&String>>();
 
         if !foreign_key_keys.iter().any(|&i| i == "key") {
-            return Err(incomplete_version_object_err("key", format!("Version {version}->{table_name}->foreign_key")));
+            return Err(incomplete_version_object_err("key", Vec::from([version, table_name, "foreign_key"])));
         }
 
         if !foreign_key_keys.iter().any(|&i| i == "references") {
-            return Err(incomplete_version_object_err("references", format!("Version {version}->{table_name}->foreign_key")));
+            return Err(incomplete_version_object_err("references", Vec::from([version, table_name, "foreign_key"])));
         }
 
         if foreign_key_keys.iter().any(|&i| i == "on_delete") {
