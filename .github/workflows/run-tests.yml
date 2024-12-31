@@ -5,13 +5,13 @@ on:
     branches: "main"
 
 jobs:
-  build:
+  rust-tests:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
       - uses: adambirds/docker-compose-action@v1.5.0
-      
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
