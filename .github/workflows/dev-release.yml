@@ -1,0 +1,31 @@
+name: Development release
+
+on:
+  push:
+    tags:
+      - "v1.0.0-dev.*"
+
+jobs:
+  build-py:
+    uses: ./.github/workflows/build-py.yml
+
+  publish-py:
+    name: Publish to Test PyPI
+    needs:
+      - build-py
+    runs-on: ubuntu-latest
+    environment:
+      name: test
+      url: https://test.pypi.org/project/alphadb/
+    permissions:
+      id-token: write
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v3
+        with:
+          name: python-api
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
