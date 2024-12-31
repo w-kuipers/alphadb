@@ -61,7 +61,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
                 return Err(incompatible_column_attributes_err(
                     "AUTO_INCREMENT",
                     format!("type=={column_type}").as_str(),
-                    Vec::from([version, table_name, column_name])
+                    version_trace
                 ));
             }
 
@@ -79,7 +79,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
                 return Err(incompatible_column_attributes_err(
                     "UNIQUE",
                     format!("type=={column_type}").as_str(),
-                    Vec::from([version, table_name, column_name])
+                    version_trace
                 ));
             }
 
@@ -109,10 +109,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         }
 
         if !SUPPORTED_COLUMN_TYPES.iter().any(|&i| i == column_type) {
-            return Err(AlphaDBError {
-                message: format!("Column type '{}' is not (yet) supported", column_type),
-                ..Default::default()
-            });
+            return Err(simple_err(format!("Column type '{}' is not (yet) supported", column_type).as_str(), version_trace));
         }
 
         query = format!("{column_name} {column_type}");

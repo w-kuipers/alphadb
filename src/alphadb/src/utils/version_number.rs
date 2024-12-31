@@ -52,9 +52,11 @@ pub fn parse_version_number(version_number: &str) -> Result<u32, AlphaDBError> {
 /// versions: Vector of versions from version source
 pub fn get_latest_version(versions: &Vec<serde_json::Value>) -> Result<String, AlphaDBError> {
     let mut latest_version = "0.0.0";
-    for version in versions {
+    for (i, version) in versions.iter().enumerate() {
         let version = version["_id"].as_str().ok_or(AlphaDBError {
             message: format!("No version number specified"),
+            version_trace: Vec::from([format!("index {}", i)]),
+            error: "missing-version-number".to_string(),
             ..Default::default()
         })?;
 

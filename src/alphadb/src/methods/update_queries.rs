@@ -167,7 +167,8 @@ pub fn update_queries(
             Some(v) => v,
             None => {
                 return Err(AlphaDBError {
-                    message: format!("Version index {i}: Missing a version number"),
+                    message: format!("Missing a version number"),
+                    version_trace: Vec::from([format!(" index {i}")]),
                     ..Default::default()
                 }
                 .into());
