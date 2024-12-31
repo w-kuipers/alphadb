@@ -1,4 +1,4 @@
-name: Release for production
+name: Development release
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
     uses: ./.github/workflows/build-py.yml
 
   publish-py:
-    name: Publish to PyPI
+    name: Publish to Test PyPI
     needs:
       - build-py
     runs-on: ubuntu-latest
