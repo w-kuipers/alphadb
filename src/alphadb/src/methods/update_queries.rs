@@ -78,7 +78,7 @@ pub fn update_queries(
         None => {
             return Err(AlphaDBError {
                 message: "Version information data not complete. Must contain 'latest', 'version' and 'name'. Latest is the latest version number, version is a JSON object containing the database structure and name is the database template name.".to_string(),
-            ..Default::default()
+                ..Default::default()
             }.into());
         }
     };
@@ -150,6 +150,7 @@ pub fn update_queries(
                 return Err(AlphaDBError {
                     message: format!("'{}' is not a valid version number", v),
                     error: "invalid-version-number".to_string(),
+                    version_trace: Vec::from([v.to_string()]),
                     ..Default::default()
                 }
                 .into())

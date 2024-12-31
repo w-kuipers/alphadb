@@ -21,13 +21,12 @@ use crate::utils::errors::AlphaDBError;
 ///
 /// version_number: The version number to validate
 pub fn validate_version_number(version_number: &str) -> Result<bool, AlphaDBError> {
-    let version_number = version_number.replace(".", "");
-
-    match version_number.parse::<u32>() {
+    match version_number.replace(".", ",").parse::<u32>() {
         Ok(_) => Ok(true),
         Err(_) => Err(AlphaDBError {
             message: format!("'{}' is not a valid version number", version_number),
             error: "invalid-version-number".to_string(),
+            version_trace: Vec::from([version_number.to_string()]),
             ..Default::default()
         }
         .into()),
@@ -36,13 +35,12 @@ pub fn validate_version_number(version_number: &str) -> Result<bool, AlphaDBErro
 
 /// Parse the version number to an integer
 pub fn parse_version_number(version_number: &str) -> Result<u32, AlphaDBError> {
-    let version_number = version_number.replace(".", "");
-
-    match version_number.parse::<u32>() {
+    match version_number.replace(".", "").parse::<u32>() {
         Ok(v) => Ok(v),
         Err(_) => Err(AlphaDBError {
             message: format!("'{}' is not a valid version number", version_number),
             error: "invalid-version-number".to_string(),
+            version_trace: Vec::from([version_number.to_string()]),
             ..Default::default()
         }
         .into()),
