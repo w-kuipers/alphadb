@@ -26,17 +26,18 @@ use crate::methods::status::{status, Status, StatusError};
 pub use crate::methods::update::{update, UpdateError};
 use crate::methods::update_queries::{update_queries, Query, UpdateQueriesError};
 use crate::utils::types::ToleratedVerificationIssueLevel;
+use crate::utils::helpers::get_connection;
 use mysql::prelude::*;
 use mysql::*;
 
 #[derive(Debug)]
-pub struct AlphaDB {
+pub struct AlphaDB<'a> {
     pub connection: Option<PooledConn>,
-    pub db_name: Option<String>,
+    pub db_name: Option<&'a str>,
 }
 
-impl AlphaDB {
-    pub fn new() -> AlphaDB {
+impl<'a> AlphaDB<'a> {
+    pub fn new() -> AlphaDB<'a> {
         AlphaDB { connection: None, db_name: None }
     }
 
@@ -47,19 +48,20 @@ impl AlphaDB {
     /// - password: User password for the database
     /// - database: Database name
     /// - port: MySQL port
-    pub fn connect(&mut self, host: &str, user: &str, password: &str, database: &str, port: u16) -> Result<(), ConnectError> {
+    pub fn connect(&mut self, host: &str, user: &str, password: &str, database: &'a str, port: u16) -> Result<(), ConnectError> {
         // Establish connection to database
         self.connection = Some(connect(host, user, password, database, port)?);
 
         // Set the database name
-        self.db_name = Some(database.to_string());
+        self.db_name = Some(database);
 
         Ok(())
     }
 
     /// Initialize the database
     pub fn init(&mut self) -> Result<Init, InitError> {
-        return init(&self.db_name, &mut self.connection);
+        let (db_name, connection) = get_connection(self.db_name, &mut self.connection)?;
+        return init(db_name, connection);
     }
 
     /// Get database status.
@@ -70,7 +72,8 @@ impl AlphaDB {
     /// - The datbase name
     /// - The name name of the used version source (template)
     pub fn status(&mut self) -> Result<Status, StatusError> {
-        return status(&self.db_name, &mut self.connection);
+        let (db_name, connection) = get_connection(self.db_name, &mut self.connection)?;
+        return status(db_name, connection);
     }
 
     /// Generate MySQL queries to update the tables. Return Vec<Query>
@@ -78,7 +81,8 @@ impl AlphaDB {
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
     pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>) -> Result<Vec<Query>, UpdateQueriesError> {
-        return update_queries(&self.db_name, &mut self.connection, version_source, update_to_version);
+        let (db_name, connection) = get_connection(self.db_name, &mut self.connection)?;
+        return update_queries(db_name, connection, version_source, update_to_version);
     }
 
     /// **Update**
@@ -95,9 +99,10 @@ impl AlphaDB {
         verify: bool,
         allowed_error_priority: ToleratedVerificationIssueLevel,
     ) -> Result<(), UpdateError> {
+        let (db_name, connection) = get_connection(self.db_name, &mut self.connection)?;
         return update(
-            &self.db_name,
-            &mut self.connection,
+            db_name,
+            connection,
             version_source,
             update_to_version,
             no_data,
@@ -138,16 +143,21 @@ mod alphadb_tests {
     #[test]
     fn test_alphadb() {
         let mut db = AlphaDB::new();
+        let mut db2 = AlphaDB::new();
         assert!(db.connection.is_none());
 
         // Test connect
         let _ = db.connect(HOST, USER, PASSWORD, DATABASE, PORT);
+        let _ = db2.connect(HOST, USER, PASSWORD, DATABASE, PORT);
         println!("{:?}", db.connection);
         assert!(db.connection.is_some());
 
+        let db2_name = db2.db_name.unwrap();
+        let mut db2_conn = db2.connection.unwrap();
+
         // Test init
         let _ = db.init();
-        let checked = check(&db.db_name, &mut db.connection).unwrap();
+        let checked = check(db2_name, &mut db2_conn).unwrap();
         assert_eq!(checked.check, true);
         assert_eq!(checked.version, Some("0.0.0".to_string()));
 
@@ -160,13 +170,14 @@ mod alphadb_tests {
 
         // Test update (maybe update later)
         let data = fs::read_to_string("../../tests/assets/test-db-structure.json").expect("Unable to read file");
-        let _ = db.update(data, None, false, true, ToleratedVerificationIssueLevel::Low);
+        let update = db.update(data, None, false, true, ToleratedVerificationIssueLevel::Low);
+        assert!(update.is_ok());
         let status = db.status().unwrap();
         assert_ne!(status.version, Some("0.0.0".to_string()));
 
         // Test vacate
         db.vacate();
-        let checked = check(&db.db_name, &mut db.connection).unwrap();
+        let checked = check(db2_name, &mut db2_conn).unwrap();
         assert_eq!(checked.check, false);
         assert_eq!(checked.version, None);
 

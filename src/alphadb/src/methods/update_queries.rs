@@ -65,8 +65,8 @@ impl Get for UpdateQueriesError {
 /// - version_source: Complete JSON version source
 /// - update_to_version (optional): Version number to update to
 pub fn update_queries(
-    db_name: &Option<String>,
-    connection: &mut Option<PooledConn>,
+    db_name: &str,
+    connection: &mut PooledConn,
     version_source: String,
     update_to_version: Option<&str>,
 ) -> Result<Vec<Query>, UpdateQueriesError> {
@@ -78,24 +78,13 @@ pub fn update_queries(
         None => {
             return Err(AlphaDBError {
                 message: "Version information data not complete. Must contain 'latest', 'version' and 'name'. Latest is the latest version number, version is a JSON object containing the database structure and name is the database template name.".to_string(),
-            ..Default::default()
+                ..Default::default()
             }.into());
         }
     };
 
     // Check if database is initialized
     let status = status(db_name, connection)?;
-
-    let db_name = match db_name {
-        Some(v) => v,
-        None => {
-            return Err(AlphaDBError {
-                message: "The database name was None".to_string(),
-                ..Default::default()
-            }
-            .into());
-        }
-    };
 
     // Verify if the database is initialized
     if !status.init {
@@ -150,6 +139,7 @@ pub fn update_queries(
                 return Err(AlphaDBError {
                     message: format!("'{}' is not a valid version number", v),
                     error: "invalid-version-number".to_string(),
+                    version_trace: Vec::from([v.to_string()]),
                     ..Default::default()
                 }
                 .into())
@@ -177,7 +167,8 @@ pub fn update_queries(
             Some(v) => v,
             None => {
                 return Err(AlphaDBError {
-                    message: format!("Version index {i}: Missing a version number"),
+                    message: format!("Missing a version number"),
+                    version_trace: Vec::from([format!(" index {i}")]),
                     ..Default::default()
                 }
                 .into());
@@ -222,6 +213,8 @@ pub fn update_queries(
         query: format!("UPDATE `{CONFIG_TABLE_NAME}` SET `version`=?, `template`=? WHERE `db` = ?;"),
         data: Some(Vec::from([latest_version, template_name.to_string(), db_name.to_string()])),
     });
+
+    println!("\n{:?}\n", queries);
 
     Ok(queries)
 }

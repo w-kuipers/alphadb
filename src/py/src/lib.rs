@@ -21,6 +21,7 @@ use alphadb::methods::update_queries::update_queries;
 use alphadb::methods::update_queries::Query as AdbQuery;
 use alphadb::methods::vacate::vacate;
 use alphadb::prelude::*;
+use alphadb::utils::helpers::get_connection;
 use alphadb::utils::types::ToleratedVerificationIssueLevel;
 use mysql::PooledConn;
 use pyo3::exceptions::PyRuntimeError;
@@ -81,16 +82,16 @@ impl AlphaDB {
     #[pyo3(signature = (host, user, password, database, port=3306))]
     fn connect(
         &mut self,
-        host: String,
-        user: String,
-        password: String,
-        database: String,
+        host: &str,
+        user: &str,
+        password: &str,
+        database: &str,
         port: u16,
     ) -> PyResult<()> {
-        match connect(&host, &user, &password, &database, port) {
+        match connect(host, user, password, database, port) {
             Ok(c) => {
                 self.connection = Some(c);
-                self.db_name = Some(database);
+                self.db_name = Some(database.to_string());
                 Ok(())
             }
             Err(e) => Err(PyRuntimeError::new_err(e.message())),
@@ -98,7 +99,13 @@ impl AlphaDB {
     }
 
     fn init(&mut self) -> PyResult<()> {
-        match init(&self.db_name, &mut self.connection) {
+        let (db_name, connection) =
+            match get_connection(self.db_name.as_deref(), &mut self.connection) {
+                Ok(c) => c,
+                Err(e) => return Err(PyRuntimeError::new_err(e.message())),
+            };
+
+        match init(db_name, connection) {
             Ok(i) => match i {
                 alphadb::Init::AlreadyInitialized => Err(PyRuntimeError::new_err(
                     "The database is already initialized",
@@ -110,7 +117,13 @@ impl AlphaDB {
     }
 
     fn status(&mut self) -> PyResult<Py<PyAny>> {
-        Python::with_gil(|py| match status(&self.db_name, &mut self.connection) {
+        let (db_name, connection) =
+            match get_connection(self.db_name.as_deref(), &mut self.connection) {
+                Ok(c) => c,
+                Err(e) => return Err(PyRuntimeError::new_err(e.message())),
+            };
+
+        Python::with_gil(|py| match status(db_name, connection) {
             Ok(s) => {
                 let status = Status {
                     init: s.init,
@@ -135,10 +148,16 @@ impl AlphaDB {
         version_source: String,
         update_to_version: Option<&str>,
     ) -> PyResult<Vec<Query>> {
+        let (db_name, connection) =
+            match get_connection(self.db_name.as_deref(), &mut self.connection) {
+                Ok(c) => c,
+                Err(e) => return Err(PyRuntimeError::new_err(e.message())),
+            };
+
         Python::with_gil(|_py| {
             match update_queries(
-                &self.db_name,
-                &mut self.connection,
+                db_name,
+                connection,
                 version_source,
                 update_to_version,
             ) {
@@ -165,6 +184,12 @@ impl AlphaDB {
         verify: Option<bool>,
         allowed_error_priority: PyToleratedVerificationIssueLevel,
     ) -> PyResult<()> {
+        let (db_name, connection) =
+            match get_connection(self.db_name.as_deref(), &mut self.connection) {
+                Ok(c) => c,
+                Err(e) => return Err(PyRuntimeError::new_err(e.message())),
+            };
+
         let allowed_error_priority = match allowed_error_priority {
             PyToleratedVerificationIssueLevel::Low => ToleratedVerificationIssueLevel::Low,
             PyToleratedVerificationIssueLevel::High => ToleratedVerificationIssueLevel::High,
@@ -185,8 +210,8 @@ impl AlphaDB {
         };
 
         match update(
-            &self.db_name,
-            &mut self.connection,
+            db_name,
+            connection,
             version_source,
             update_to_version.as_deref(),
             verify,

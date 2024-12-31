@@ -35,11 +35,7 @@ pub fn simple_err(message: &str, version_trace: Vec<&str>) -> AlphaDBError {
 /// *Incomplete version object*
 ///
 /// - key: Missing object key
-/// - version: Location in version source (Version 1.0.0->table_name->column_name)
-pub fn incomplete_version_object(key: String, version: String) {
-    panic!("Database version is incomplete or broken. {version} is missing key '{key}'.");
-}
-
+/// - version_trace: Version trace
 pub fn incomplete_version_object_err(key: &str, version_trace: Vec<&str>) -> AlphaDBError {
     return AlphaDBError {
         message: format!("Missing required key '{key}'."),
@@ -49,15 +45,9 @@ pub fn incomplete_version_object_err(key: &str, version_trace: Vec<&str>) -> Alp
     };
 }
 
-/// *Incompatible column attributes*
-///
 /// - attribute1: The incompatible MySQL column attribute
 /// - attribute2: The incompatible MySQL column attribute
-/// - version: Location in version source (Version 1.0.0->table_name->column_name)
-pub fn incompatible_column_attributes(attribute1: String, attribute2: String, version: String) {
-    panic!("{version}: Column attributes '{attribute1}' and '{attribute2}' are not compatible.");
-}
-
+/// - version_trace: Version trace
 pub fn incompatible_column_attributes_err(attribute1: &str, attribute2: &str, version_trace: Vec<&str>) -> AlphaDBError {
     return AlphaDBError {
         message: format!("Column attributes '{attribute1}' and '{attribute2}' are not compatible."),

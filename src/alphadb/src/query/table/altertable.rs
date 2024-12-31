@@ -44,6 +44,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
         } else {
             return Err(AlphaDBError {
                 message: "Version does not contain a version number".to_string(),
+                version_trace: Vec::from([format!("index {}", c)]),
                 ..Default::default()
             });
         }
