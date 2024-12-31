@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::utils::get_connection;
 use crate::types::PooledConnWrap;
 use alphadb::methods::status::status;
 use alphadb::prelude::*;
@@ -22,13 +23,18 @@ use std::rc::Rc;
 
 pub fn status_wrap(mut cx: FunctionContext) -> JsResult<JsObject> {
     let conn_rc = cx.argument::<JsBox<Rc<RefCell<Option<PooledConnWrap>>>>>(0)?;
-    let mut conn_ref = conn_rc.borrow_mut();
+    let mut conn_ref = conn_rc.borrow_mut().take();
 
-    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(1)?;
-    let db_name_ref = db_name_rc.borrow_mut();
+    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<&str>>>>>(1)?;
+    let db_name_ref = db_name_rc.borrow_mut().take();
 
-    if let Some(conn) = conn_ref.as_mut() {
-        match status(&db_name_ref.clone(), &mut conn.inner) {
+    let (db_name, connection) = match get_connection(db_name_ref, &mut conn_ref) {
+        Ok(v) => v,
+        Err(e) => return cx.throw_error(e.message()),
+    };
+
+    if let Some(connection) = connection.inner.as_mut() {
+        match status(db_name, connection) {
             Ok(s) => {
                 let status_obj = cx.empty_object();
 

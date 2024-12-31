@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::types::PooledConnWrap;
+use crate::utils::get_connection;
 use alphadb::methods::update::update;
 use alphadb::prelude::*;
 use alphadb::utils::types::ToleratedVerificationIssueLevel;
@@ -23,10 +24,15 @@ use std::rc::Rc;
 
 pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let conn_rc = cx.argument::<JsBox<Rc<RefCell<Option<PooledConnWrap>>>>>(0)?;
-    let mut conn = conn_rc.borrow_mut();
+    let mut conn_ref = conn_rc.borrow_mut().take();
 
-    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(1)?;
-    let db_name = db_name_rc.borrow_mut();
+    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<&str>>>>>(1)?;
+    let db_name_ref = db_name_rc.borrow_mut().take();
+
+    let (db_name, connection) = match get_connection(db_name_ref, &mut conn_ref) {
+        Ok(v) => v,
+        Err(e) => return cx.throw_error(e.message()),
+    };
 
     let version_source = cx.argument::<JsString>(2)?.value(&mut cx);
     let update_to_version = cx.argument::<JsString>(3)?.value(&mut cx);
@@ -51,10 +57,10 @@ pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
         _ => ToleratedVerificationIssueLevel::Low
     };
 
-    if let Some(conn) = conn.as_mut() {
+    if let Some(connection) = connection.inner.as_mut() {
         match update(
-            &db_name.clone(),
-            &mut conn.inner,
+            db_name,
+            connection,
             version_source,
             update_to_version_processed,
             no_data,

@@ -15,6 +15,7 @@
 
 mod methods;
 mod types;
+mod utils;
 
 use crate::methods::connect::connect_wrap;
 use crate::methods::init::init_wrap;
