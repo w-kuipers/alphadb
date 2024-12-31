@@ -10,7 +10,6 @@ jobs:
 
   publish-py:
     name: Publish to PyPI
-    if: startsWith(github.ref, 'refs/tags/')
     needs:
       - build-py
     runs-on: ubuntu-latest

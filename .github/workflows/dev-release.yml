@@ -11,13 +11,12 @@ jobs:
 
   publish-py:
     name: Publish to PyPI
-    if: startsWith(github.ref, 'refs/tags/')
     needs:
       - build-py
     runs-on: ubuntu-latest
     environment:
       name: test
-      url: https://test.pypi.org/project/alphadb/
+      url: https://test.pypi.org/p/alphadb
     permissions:
       id-token: write
     steps:
