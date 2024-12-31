@@ -15,6 +15,7 @@ name = "alphadb"
 crate-type = ["cdylib"]
 
 [dependencies]
+mysql = "25.0.1"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 alphadb = { path = "../alphadb" }

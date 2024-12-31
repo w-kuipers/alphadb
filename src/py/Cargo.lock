@@ -61,6 +61,7 @@ name = "alphadb-python-wrapper"
 version = "1.0.0"
 dependencies = [
  "alphadb",
+ "mysql",
  "pyo3",
  "serde",
  "serde_json",
