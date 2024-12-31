@@ -65,8 +65,8 @@ impl Get for UpdateQueriesError {
 /// - version_source: Complete JSON version source
 /// - update_to_version (optional): Version number to update to
 pub fn update_queries(
-    db_name: &Option<String>,
-    connection: &mut Option<PooledConn>,
+    db_name: &str,
+    connection: &mut PooledConn,
     version_source: String,
     update_to_version: Option<&str>,
 ) -> Result<Vec<Query>, UpdateQueriesError> {
@@ -85,17 +85,6 @@ pub fn update_queries(
 
     // Check if database is initialized
     let status = status(db_name, connection)?;
-
-    let db_name = match db_name {
-        Some(v) => v,
-        None => {
-            return Err(AlphaDBError {
-                message: "The database name was None".to_string(),
-                ..Default::default()
-            }
-            .into());
-        }
-    };
 
     // Verify if the database is initialized
     if !status.init {
@@ -223,6 +212,8 @@ pub fn update_queries(
         query: format!("UPDATE `{CONFIG_TABLE_NAME}` SET `version`=?, `template`=? WHERE `db` = ?;"),
         data: Some(Vec::from([latest_version, template_name.to_string(), db_name.to_string()])),
     });
+
+    println!("\n{:?}\n", queries);
 
     Ok(queries)
 }

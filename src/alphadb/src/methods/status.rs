@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::errors::{Get, AlphaDBError};
+use crate::utils::errors::{AlphaDBError, Get};
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use mysql::prelude::*;
 use mysql::*;
@@ -55,52 +55,34 @@ impl Get for StatusError {
 ///
 /// - db_name: The database name
 /// - connection: Active connection pool to the database
-pub fn status(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> Result<Status, StatusError> {
+pub fn status(db_name: &str, connection: &mut PooledConn) -> Result<Status, StatusError> {
     let mut init = false;
     let mut version: Option<String> = None;
     let mut template: Option<String> = None;
 
-    let db_name = match db_name {
-        Some(n) => n,
-        None => return Err(AlphaDBError {
-            message: "The database name was None".to_string(),
-            ..Default::default()
-        }.into())
-    };
+    // Check if the configuration table exists
+    let table_check: Option<String> = connection.exec_first(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
+        (db_name, CONFIG_TABLE_NAME),
+    )?;
 
-    if let Some(conn) = connection.as_mut() {
-        // Check if the configuration table exists
-        let table_check: Option<String> = conn
-            .exec_first(
-                "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
-                (db_name, CONFIG_TABLE_NAME),
-            )?;
+    if table_check.is_some() {
+        let fetched: Option<Row> = connection.exec_first(format!("SELECT version, template FROM {} where db = ?", CONFIG_TABLE_NAME), (db_name,))?;
 
-        if table_check.is_some() {
-            let fetched: Option<Row> = conn
-                .exec_first(format!("SELECT version, template FROM {} where db = ?", CONFIG_TABLE_NAME), (db_name,))?;
-
-            if fetched.is_some() {
-                let c = from_row::<(String, Option<String>)>(fetched.unwrap());
-                version = Some(c.0);
-                template = c.1;
-            }
-
-            // Check true means database is initialized
-            init = true;
+        if fetched.is_some() {
+            let c = from_row::<(String, Option<String>)>(fetched.unwrap());
+            version = Some(c.0);
+            template = c.1;
         }
 
-        Ok(Status {
-            init,
-            version,
-            name: db_name.to_string(),
-            template,
-        })
+        // Check true means database is initialized
+        init = true;
     }
-    else {
-        return Err(AlphaDBError {
-            message: "The database connection was None".to_string(),
-            ..Default::default()
-        }.into());
-    }
+
+    Ok(Status {
+        init,
+        version,
+        name: db_name.to_string(),
+        template,
+    })
 }

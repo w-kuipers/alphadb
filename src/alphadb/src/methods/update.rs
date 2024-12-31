@@ -62,8 +62,8 @@ impl Get for UpdateError {
 /// - verify: If true, the version source will be verified before running the updates
 /// - allowed_error_priority: The issuelevel that will be ignored after verification
 pub fn update(
-    db_name: &Option<String>,
-    connection: &mut Option<PooledConn>,
+    db_name: &str,
+    connection: &mut PooledConn,
     version_source: String,
     update_to_version: Option<&str>,
     _no_data: bool,
@@ -76,34 +76,30 @@ pub fn update(
 
     let queries = update_queries(db_name, connection, version_source, update_to_version)?;
 
-    if let Some(conn) = connection.as_mut() {
-        for query in queries {
-            if let Some(data) = query.data {
-                match conn.exec_drop(query.query, data) {
-                    Ok(result) => result,
-                    Err(error) => {
-                        return Err(AlphaDBError { message: error.to_string(), ..Default::default() }.into());
+    for query in queries {
+        if let Some(data) = query.data {
+            match connection.exec_drop(query.query, data) {
+                Ok(result) => result,
+                Err(error) => {
+                    return Err(AlphaDBError {
+                        message: error.to_string(),
+                        ..Default::default()
                     }
-                };
-            } else {
-                match conn.exec_drop(query.query, ()) {
-                    Ok(result) => result,
-                    Err(error) => {
-                        return Err(AlphaDBError {
-                            message: error.to_string(),
-                            ..Default::default()
-                        }
-                        .into());
+                    .into());
+                }
+            };
+        } else {
+            match connection.exec_drop(query.query, ()) {
+                Ok(result) => result,
+                Err(error) => {
+                    return Err(AlphaDBError {
+                        message: error.to_string(),
+                        ..Default::default()
                     }
-                };
-            }
+                    .into());
+                }
+            };
         }
-    } else {
-        return Err(AlphaDBError {
-            message: "The database connection was None".to_string(),
-            ..Default::default()
-        }
-        .into());
     }
 
     Ok(())

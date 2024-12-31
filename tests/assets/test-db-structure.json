@@ -2,7 +2,7 @@
 	"name": "test",
 	"version": [
 		{
-			"_id": "a0.0.1",
+			"_id": "0.0.1",
 			"createtable": {
 				"table1": {
 					"primary_key": "col1",

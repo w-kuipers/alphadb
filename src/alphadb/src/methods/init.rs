@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::check::check;
-use crate::utils::errors::{Get, AlphaDBError};
-use mysql::*;
+use crate::utils::errors::{AlphaDBError, Get};
+use crate::utils::globals::CONFIG_TABLE_NAME;
 use mysql::prelude::*;
+use mysql::*;
 use thiserror::Error;
 
 pub enum Init {
@@ -53,7 +53,7 @@ impl Get for InitError {
 ///
 /// - db_name: The database name
 /// - connection: Active connection pool to the database
-pub fn init(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> Result<Init, InitError> {
+pub fn init(db_name: &str, connection: &mut PooledConn) -> Result<Init, InitError> {
     // Check if the table is already initialized
     let checked = check(db_name, connection);
 
@@ -61,39 +61,19 @@ pub fn init(db_name: &Option<String>, connection: &mut Option<PooledConn>) -> Re
         return Ok(Init::AlreadyInitialized);
     }
 
-    let db_name = match db_name {
-        Some(n) => n,
-        None => return Err(AlphaDBError {
-            message: "The database name was None".to_string(),
-            ..Default::default()
-        }.into())
-    };
-
-    if let Some(conn) = connection.as_mut() {
-        // Create the configuration table
-        conn.query_drop(format!(
-            "CREATE TABLE {} (
+    // Create the configuration table
+    connection.query_drop(format!(
+        "CREATE TABLE {} (
                 db VARCHAR(100) NOT NULL,
                 version VARCHAR(50) NOT NULL,
                 template VARCHAR(50) NULL,
                 PRIMARY KEY (db) 
             )",
-            CONFIG_TABLE_NAME
-        ))?;
+        CONFIG_TABLE_NAME
+    ))?;
 
-        // Insert db version
-        conn.exec_drop(
-            format!("INSERT INTO {} (db, version) VALUES (?, ?)", CONFIG_TABLE_NAME),
-            (db_name, "0.0.0"),
-        )?;
+    // Insert db version
+    connection.exec_drop(format!("INSERT INTO {} (db, version) VALUES (?, ?)", CONFIG_TABLE_NAME), (db_name, "0.0.0"))?;
 
-
-        return Ok(Init::Success);
-    }
-    else {
-        return Err(AlphaDBError {
-            message: "The database connection was None".to_string(),
-            ..Default::default()
-        }.into());
-    }
+    return Ok(Init::Success);
 }
