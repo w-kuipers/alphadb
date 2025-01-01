@@ -8,6 +8,7 @@ use crate::commands::init::*;
 use crate::commands::status::*;
 use crate::commands::update::*;
 use crate::commands::vacate::*;
+use crate::commands::verify::*;
 use crate::config::connection::{get_active_connection, remove_connection};
 use crate::config::setup::{config_read, init_config, Config};
 use crate::utils::{abort, decrypt_password, error};
@@ -94,6 +95,13 @@ fn main() {
             ]),
         )
         .subcommand(Command::new("vacate").about("Completely empty the database"))
+        .subcommand(Command::new("verify").about("Check the version source for errors").args([
+            Arg::new("source")
+                .short('s')
+                .long("source")
+                .help("Version source to verify")
+                .action(ArgAction::Set)
+        ]))
         .get_matches();
 
     if let Some(m) = matches.subcommand() {
@@ -158,6 +166,13 @@ fn main() {
             );
         }
         Some(("vacate", _query_matches)) => vacate(&mut db),
+        Some(("verify", query_matches)) => {
+            let mut version_source: Option<PathBuf> = None;
+            if let Some(vs) = query_matches.get_one::<String>("source") {
+                version_source = Some(vs.into());
+            }
+            verify(&config, version_source);
+        }
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable
     }
 }

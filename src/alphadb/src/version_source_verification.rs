@@ -32,11 +32,22 @@ pub struct VersionSourceVerification {
 }
 
 impl VersionSourceVerification {
-    pub fn new(version_source: Value) -> VersionSourceVerification {
-        VersionSourceVerification {
+    pub fn new(version_source: String) -> Result<VersionSourceVerification, AlphaDBError> {
+        let version_source: serde_json::Value = match serde_json::from_str(&version_source) {
+            Ok(vs) => vs,
+            Err(_) => {
+                return Err(AlphaDBError {
+                    message: "The provided version source can not be deserialized. Not valid JSON.".to_string(),
+                    ..Default::default()
+                }
+                .into())
+            }
+        };
+
+        Ok(VersionSourceVerification {
             version_source,
             issues: Vec::new(),
-        }
+        })
     }
 
     /// **Verify**
@@ -44,8 +55,8 @@ impl VersionSourceVerification {
     /// Loop over entire version source and verify if it will
     /// convert to MySQL queries without errors.
     /// Will Return true if no issues are found, else it will return a
-    /// list with all issues and their priorities.
-    pub fn verify(&mut self) -> Result<bool, Vec<VerificationIssue>> {
+    /// list with all issues and their levels.
+    pub fn verify(&mut self) -> Result<(), Vec<VerificationIssue>> {
         if !self.version_source.as_object().unwrap().keys().any(|k| k == "name") {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Critical,
@@ -87,7 +98,7 @@ impl VersionSourceVerification {
                             Err(e) => self.issues.push(VerificationIssue {
                                 message: e.message(),
                                 level: VerificationIssueLevel::Critical,
-                            })
+                            }),
                         },
                         _ => {
                             self.issues.push(VerificationIssue {
@@ -101,7 +112,7 @@ impl VersionSourceVerification {
         }
 
         if self.issues.is_empty() {
-            return Ok(true);
+            return Ok(());
         } else {
             return Err(self.issues.clone());
         }
