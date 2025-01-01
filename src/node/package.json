@@ -5,9 +5,8 @@
   "author": "Wibo Kuipers",
   "main": "./lib/index.cjs",
   "license": "GPL-3.0",
-
   "scripts": {
-    "test": "tsc &&cargo test",
+    "test": "tsc && vitest",
     "cargo-build": "tsc &&cargo build --message-format=json-render-diagnostics > cargo.log",
     "cross-build": "tsc &&cross build --message-format=json-render-diagnostics > cross.log",
     "postcargo-build": "neon dist < cargo.log",
@@ -32,9 +31,9 @@
   "types": "./lib/index.d.cts",
   "files": [
     "lib/**/*.?({c,m}){t,j}s",
-	"crates/**/*",
-	"postinstall.mjs",
-	"Cargo.toml"
+    "crates/**/*",
+    "postinstall.mjs",
+    "Cargo.toml"
   ],
   "neon": {
     "type": "library",
@@ -45,7 +44,8 @@
   "devDependencies": {
     "@tsconfig/node20": "^20.1.4",
     "@types/node": "^20.11.16",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.8"
   },
   "dependencies": {
     "@neon-rs/cli": "^0.1.82",
@@ -56,7 +56,15 @@
     "type": "git",
     "url": "git+https://github.com/w-kuipers/alphadb.git"
   },
-  "keywords": ["database", "rust", "extension", "mysql database management", "mysql version management", "database migration tool", "database version management"],
+  "keywords": [
+    "database",
+    "rust",
+    "extension",
+    "mysql database management",
+    "mysql version management",
+    "database migration tool",
+    "database version management"
+  ],
   "bugs": {
     "url": "https://github.com/w-kuipers/alphadb/issues"
   },
