@@ -15,9 +15,10 @@
 
 use alphadb::prelude::AlphaDBError;
 use crate::types::PooledConnWrap;
+use std::cell::Ref;
 
 
-pub fn get_connection<'a>(db_name: Option<&'a str>, connection: &'a mut Option<PooledConnWrap>) -> Result<(&'a str, &'a mut PooledConnWrap), AlphaDBError> {
+pub fn get_connection<'a>(db_name: Ref<Option<String>>, connection: &'a mut Option<PooledConnWrap>) -> Result<(String, &'a mut PooledConnWrap), AlphaDBError> {
     let connection = match connection {
         Some(c) => c,
         None => return Err(AlphaDBError {
@@ -26,8 +27,8 @@ pub fn get_connection<'a>(db_name: Option<&'a str>, connection: &'a mut Option<P
         })
     };
 
-    let db_name = match db_name {
-        Some(db) => db,
+    let db_name = match &*db_name {
+        Some(db) => db.clone(),
         None => return Err(AlphaDBError {
             message: "No connection seems to be active. db_name does not have a value".to_string(),
             ..Default::default()

@@ -23,10 +23,10 @@ use std::rc::Rc;
 
 pub fn status_wrap(mut cx: FunctionContext) -> JsResult<JsObject> {
     let conn_rc = cx.argument::<JsBox<Rc<RefCell<Option<PooledConnWrap>>>>>(0)?;
-    let mut conn_ref = conn_rc.borrow_mut().take();
+    let mut conn_ref = conn_rc.borrow_mut();
 
-    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<&str>>>>>(1)?;
-    let db_name_ref = db_name_rc.borrow_mut().take();
+    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(1)?;
+    let db_name_ref = db_name_rc.borrow();
 
     let (db_name, connection) = match get_connection(db_name_ref, &mut conn_ref) {
         Ok(v) => v,
@@ -34,7 +34,7 @@ pub fn status_wrap(mut cx: FunctionContext) -> JsResult<JsObject> {
     };
 
     if let Some(connection) = connection.inner.as_mut() {
-        match status(db_name, connection) {
+        match status(&db_name, connection) {
             Ok(s) => {
                 let status_obj = cx.empty_object();
 

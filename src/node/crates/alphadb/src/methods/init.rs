@@ -23,10 +23,10 @@ use std::rc::Rc;
 
 pub fn init_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let conn_rc = cx.argument::<JsBox<Rc<RefCell<Option<PooledConnWrap>>>>>(0)?;
-    let mut conn_ref = conn_rc.borrow_mut().take();
+    let mut conn_ref = conn_rc.borrow_mut();
 
-    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<&str>>>>>(1)?;
-    let db_name_ref = db_name_rc.borrow_mut().take();
+    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(1)?;
+    let db_name_ref = db_name_rc.borrow();
 
     let (db_name, connection) = match get_connection(db_name_ref, &mut conn_ref) {
         Ok(v) => v,
@@ -34,7 +34,7 @@ pub fn init_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     };
 
     if let Some(connection) = connection.inner.as_mut() {
-        match init(db_name, connection) {
+        match init(&db_name, connection) {
             Ok(i) => match i {
                 alphadb::Init::AlreadyInitialized => {
                     cx.throw_error("The database is already initialized.")

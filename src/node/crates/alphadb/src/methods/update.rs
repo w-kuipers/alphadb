@@ -24,10 +24,10 @@ use std::rc::Rc;
 
 pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let conn_rc = cx.argument::<JsBox<Rc<RefCell<Option<PooledConnWrap>>>>>(0)?;
-    let mut conn_ref = conn_rc.borrow_mut().take();
+    let mut conn_ref = conn_rc.borrow_mut();
 
-    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<&str>>>>>(1)?;
-    let db_name_ref = db_name_rc.borrow_mut().take();
+    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(1)?;
+    let db_name_ref = db_name_rc.borrow();
 
     let (db_name, connection) = match get_connection(db_name_ref, &mut conn_ref) {
         Ok(v) => v,
@@ -59,7 +59,7 @@ pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
 
     if let Some(connection) = connection.inner.as_mut() {
         match update(
-            db_name,
+            &db_name,
             connection,
             version_source,
             update_to_version_processed,
