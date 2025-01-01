@@ -20,12 +20,20 @@ interface VersionSource {
 	version: Array<Version>;
 }
 
+interface ConnectProps {
+	host: string;
+	user: string;
+	password: string;
+	database: string;
+	port?: number;
+}
+
 type ToleratedVerificationIssueLevel = "LOW" | "HIGH" | "CRITICAL" | "ALL";
 
 interface AlphaDB {
 	conn: any;
 	internaldbname: any;
-	connect(host: string, user: string, password: string, database: string, port: number): void;
+	connect(props: ConnectProps): void;
 	init(): void;
 	status(): Status;
 	updateQueries(version_source: VersionSource, update_to_version?: string): Array<Query>;
@@ -53,8 +61,9 @@ class AlphaDB {
 		this.internaldbname = addon.internaldbname;
 	}
 
-	public connect(host: string, user: string, password: string, database: string, port: number) {
-		addon.connect(this.conn, this.internaldbname, host, user, password, database, port);
+	public connect(props: ConnectProps) {
+		if (typeof props.port === "undefined") props.port = 3306;
+		addon.connect(this.conn, this.internaldbname, props.host, props.user, props.password, props.database, props.port);
 	}
 
 	public init() {

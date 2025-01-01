@@ -169,7 +169,7 @@ mod alphadb_tests {
         assert_eq!(status.template, None);
 
         // Test update (maybe update later)
-        let data = fs::read_to_string("../../tests/assets/test-db-structure.json").expect("Unable to read file");
+        let data = fs::read_to_string("../../assets/test-db-structure.json").expect("Unable to read file");
         let update = db.update(data, None, false, true, ToleratedVerificationIssueLevel::Low);
         assert!(update.is_ok());
         let status = db.status().unwrap();
