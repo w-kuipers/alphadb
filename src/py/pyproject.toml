@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "alphadb"
-version = "indev"
+version = "1.0.0"
 author = "Wibo Kuipers"
 author-email = "wkuipersoss@gmail.com"
 description = "AlphaDB is a versatile tool for managing MySQL database versions, using JSON to define structures and simplify migrations across environments."
