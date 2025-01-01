@@ -28,6 +28,22 @@ def test_update():
 
     db.update(version_source=structure)
 
+    status = db.status()
+    assert status == {
+        "init": True,
+        "version": "0.2.6",
+        "name": "test",
+        "template": "test",
+    }
+
 
 def test_vacate():
     db.vacate()
+
+    status = db.status()
+    assert status == {
+        "init": False,
+        "version": None,
+        "name": "test",
+        "template": None,
+    }
