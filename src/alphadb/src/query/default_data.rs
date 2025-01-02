@@ -56,3 +56,30 @@ pub fn default_data(table_name: &str, item: &Value) -> Result<Query, AlphaDBErro
 
     return Ok(Query { query: q, data: Some(values) });
 }
+
+#[cfg(test)]
+mod default_data_tests {
+    use super::default_data;
+    use serde_json::json;
+
+    #[test]
+    fn data() {
+        
+        let sub = json!({
+            "json": "test"
+        });
+
+        let test_item = json!({
+            "col1": "value1",
+            "col2": 1,
+            "col3": null,
+            "col4": true,
+            "col5": false,
+            "col6": sub.to_string(),
+        });
+
+        let q = default_data("test", &test_item).unwrap();
+        assert_eq!(q.query, "INSERT INTO `test` (col1,col2,col4,col5,col6) VALUES (?,?,?,?,?);");
+        assert_eq!(q.data.unwrap(), Vec::from(["value1", "1", "true", "false", &sub.to_string()]));
+    }
+}
