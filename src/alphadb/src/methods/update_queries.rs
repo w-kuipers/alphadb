@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::methods::status::{status, StatusError};
+use crate::query::default_data::default_data;
 use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
 use crate::utils::errors::{AlphaDBError, Get};
@@ -212,42 +213,8 @@ pub fn update_queries(
         if no_data == false {
             if version_keys.contains(&&"default_data".to_string()) {
                 for table in object_iter(&version["default_data"])? {
-                    // for item in version["default_data"][table].as_array() {
                     for item in array_iter(&version["default_data"][table])? {
-                        let mut keys = String::new();
-                        let mut values: Vec<String> = Vec::new();
-
-                        for key in object_iter(item)? {
-                            if item[key].is_null() {
-                                continue;
-                            }
-
-                            keys = format!("{},{}", keys, key);
-
-                            if item[key].is_boolean() {
-                                if get_json_boolean(&item[key])? {
-                                    values.push("true".to_string());
-                                } else {
-                                    values.push("false".to_string());
-                                }
-                            } else if item[key].is_number() {
-                                values.push(get_json_int(&item[key])?.to_string());
-                            } else {
-                                values.push(get_json_string(&item[key])?.to_string());
-                            }
-                        }
-
-                        // Remove leading comma
-                        let mut keys = keys.chars();
-                        keys.next();
-
-                        let q = format!(
-                            "INSERT INTO `{table}` ({}) VALUES ({});",
-                            keys.as_str(),
-                            values.iter().map(|_| "?").collect::<Vec<_>>().join(",")
-                        );
-
-                        queries.push(Query { query: q, data: Some(values) });
+                        queries.push(default_data(table, item)?);
                     }
                 }
             }
