@@ -76,6 +76,18 @@ pub fn get_json_string(value: &Value) -> Result<&str, AlphaDBError> {
     }
 }
 
+/// Get JSON boolean value from serde_json::Value
+pub fn get_json_boolean(value: &Value) -> Result<bool, AlphaDBError> {
+    match value.as_bool() {
+        Some(v) => Ok(v),
+        None => Err(AlphaDBError {
+            message: format!("The value {} could not be parsed as a boolean", value.to_string()),
+            error: "invalid-json-boolean".to_string(),
+            ..Default::default()
+        }),
+    }
+}
+
 /// Get JSON object value from serde_json::Value
 pub fn get_json_object(value: &Value) -> Result<&serde_json::Map<String, Value>, AlphaDBError> {
     match value.as_object() {
