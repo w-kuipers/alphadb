@@ -35,6 +35,7 @@ pub fn update_queries_wrap(mut cx: FunctionContext) -> JsResult<JsArray> {
 
     let version_source = cx.argument::<JsString>(2)?.value(&mut cx);
     let update_to_version = cx.argument::<JsString>(3)?.value(&mut cx);
+    let no_data = cx.argument::<JsBoolean>(4)?.value(&mut cx);
     
     // The TypeScript wrapper allows for update_to_version to be undefined
     // so it's set to NOVERSION if that is the case
@@ -50,7 +51,8 @@ pub fn update_queries_wrap(mut cx: FunctionContext) -> JsResult<JsArray> {
             &db_name,
             connection,
             version_source,
-            update_to_version_processed
+            update_to_version_processed,
+            no_data
         ) {
             Ok(c) => {
                 // Convert to JS array
