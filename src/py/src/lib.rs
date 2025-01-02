@@ -142,11 +142,12 @@ impl AlphaDB {
         })
     }
 
-    #[pyo3(signature = (version_source, update_to_version=None))]
+    #[pyo3(signature = (version_source, update_to_version=None, no_data=false))]
     fn update_queries(
         &mut self,
         version_source: String,
         update_to_version: Option<&str>,
+        no_data: bool, 
     ) -> PyResult<Vec<Query>> {
         let (db_name, connection) =
             match get_connection(self.db_name.as_deref(), &mut self.connection) {
@@ -160,6 +161,7 @@ impl AlphaDB {
                 connection,
                 version_source,
                 update_to_version,
+                no_data
             ) {
                 Ok(queries) => {
                     let mut queries_converted: Vec<Query> = Vec::new();

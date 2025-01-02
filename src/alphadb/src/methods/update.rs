@@ -50,8 +50,6 @@ impl Get for UpdateError {
     }
 }
 
-/// **Update**
-///
 /// Generate MySQL queries to update the tables. Run the updates on the database
 ///
 /// - db_name: The database name
@@ -66,7 +64,7 @@ pub fn update(
     connection: &mut PooledConn,
     version_source: String,
     update_to_version: Option<&str>,
-    _no_data: bool,
+    no_data: bool,
     verify: bool,
     _allowed_error_priority: ToleratedVerificationIssueLevel,
 ) -> Result<(), UpdateError> {
@@ -74,7 +72,7 @@ pub fn update(
         // TODO
     }
 
-    let queries = update_queries(db_name, connection, version_source, update_to_version)?;
+    let queries = update_queries(db_name, connection, version_source, update_to_version, no_data)?;
 
     for query in queries {
         if let Some(data) = query.data {

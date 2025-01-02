@@ -36,7 +36,7 @@ interface AlphaDB {
 	connect(props: ConnectProps): void;
 	init(): void;
 	status(): Status;
-	updateQueries(version_source: VersionSource, update_to_version?: string): Array<Query>;
+	updateQueries(version_source: VersionSource, update_to_version?: string, no_data?: boolean): Array<Query>;
 	update(version_source: VersionSource, update_to_version?: string, no_data?: boolean, verify?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel): void;
 	vacate(): void;
 }
@@ -50,7 +50,7 @@ declare module "./load.cjs" {
 	function connect(conn: any, internaldbname: any, host: string, user: string, password: string, database: string, port: number): void;
 	function init(conn: any, internaldbname: any): void;
 	function status(conn: any, internaldbname: any): Status;
-	function update_queries(conn: any, internaldbname: any, version_source: string, update_to_version: string): Array<Query>;
+	function update_queries(conn: any, internaldbname: any, version_source: string, update_to_version: string, no_data: boolean): Array<Query>;
 	function update(conn: any, internaldbname: any, version_source: string, update_to_version: string, no_data: boolean, verify: boolean, tolerated_verification_issue_level: string): Array<Query>;
 	function vacate(conn: any): void;
 }
@@ -74,9 +74,10 @@ class AlphaDB {
 		return addon.status(this.conn, this.internaldbname);
 	}
 
-	public updateQueries(version_source: VersionSource, update_to_version?: string) {
+	public updateQueries(version_source: VersionSource, update_to_version?: string, no_data?: boolean) {
 		if (typeof update_to_version === "undefined") update_to_version = "NOVERSION";
-		return addon.update_queries(this.conn, this.internaldbname, JSON.stringify(version_source), update_to_version);
+		if (typeof no_data === "undefined") no_data = false;
+		return addon.update_queries(this.conn, this.internaldbname, JSON.stringify(version_source), update_to_version, no_data);
 	}
 
 	public async update(version_source: VersionSource, update_to_version?: string, no_data?: boolean, verify?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel) {

@@ -80,9 +80,9 @@ impl<'a> AlphaDB<'a> {
     ///
     /// - version_source: Complete JSON version source
     /// - update_to_version (optional): Version number to update to
-    pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>) -> Result<Vec<Query>, UpdateQueriesError> {
+    pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, UpdateQueriesError> {
         let (db_name, connection) = get_connection(self.db_name, &mut self.connection)?;
-        return update_queries(db_name, connection, version_source, update_to_version);
+        return update_queries(db_name, connection, version_source, update_to_version, no_data);
     }
 
     /// **Update**

@@ -19,7 +19,6 @@ use crate::utils::error_messages::{incompatible_column_attributes_err, incomplet
 use crate::utils::json::{get_json_float, get_json_int, get_json_string, get_object_keys};
 use crate::verification::compatibility::{ALLOW_DECIMAL_LENGTH, INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES};
 use serde_json::Value;
-
 /// **Define column**
 ///
 /// Generate a MySQL query part that defines a single column
