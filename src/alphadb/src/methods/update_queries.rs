@@ -18,7 +18,7 @@ use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
 use crate::utils::errors::{AlphaDBError, Get};
 use crate::utils::globals::CONFIG_TABLE_NAME;
-use crate::utils::json::{get_object_keys, object_iter};
+use crate::utils::json::{array_iter, get_json_boolean, get_json_int, get_json_string, get_object_keys, object_iter};
 use crate::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
 use mysql::*;
 use thiserror::Error;
@@ -69,6 +69,7 @@ pub fn update_queries(
     connection: &mut PooledConn,
     version_source: String,
     update_to_version: Option<&str>,
+    no_data: bool,
 ) -> Result<Vec<Query>, UpdateQueriesError> {
     let mut queries: Vec<Query> = Vec::new();
     let version_source: serde_json::Value = serde_json::from_str(&version_source).expect("JSON was not well-formatted");
@@ -206,6 +207,51 @@ pub fn update_queries(
                 });
             }
         }
+
+        // Add queries to insert default data
+        if no_data == false {
+            if version_keys.contains(&&"default_data".to_string()) {
+                for table in object_iter(&version["default_data"])? {
+                    // for item in version["default_data"][table].as_array() {
+                    for item in array_iter(&version["default_data"][table])? {
+                        let mut keys = String::new();
+                        let mut values: Vec<String> = Vec::new();
+
+                        for key in object_iter(item)? {
+                            if item[key].is_null() {
+                                continue;
+                            }
+
+                            keys = format!("{},{}", keys, key);
+
+                            if item[key].is_boolean() {
+                                if get_json_boolean(&item[key])? {
+                                    values.push("true".to_string());
+                                } else {
+                                    values.push("false".to_string());
+                                }
+                            } else if item[key].is_number() {
+                                values.push(get_json_int(&item[key])?.to_string());
+                            } else {
+                                values.push(get_json_string(&item[key])?.to_string());
+                            }
+                        }
+
+                        // Remove leading comma
+                        let mut keys = keys.chars();
+                        keys.next();
+
+                        let q = format!(
+                            "INSERT INTO `{table}` ({}) VALUES ({});",
+                            keys.as_str(),
+                            values.iter().map(|_| "?").collect::<Vec<_>>().join(",")
+                        );
+
+                        queries.push(Query { query: q, data: Some(values) });
+                    }
+                }
+            }
+        }
     }
 
     // Add query to update the config table
@@ -213,8 +259,6 @@ pub fn update_queries(
         query: format!("UPDATE `{CONFIG_TABLE_NAME}` SET `version`=?, `template`=? WHERE `db` = ?;"),
         data: Some(Vec::from([latest_version, template_name.to_string(), db_name.to_string()])),
     });
-
-    println!("\n{:?}\n", queries);
 
     Ok(queries)
 }
