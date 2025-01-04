@@ -13,10 +13,17 @@ else:
 src_path = "src/py"
 setup_path = os.path.join(os.getcwd(), src_path, "pyproject.toml")
 
-with open(setup_path, "r") as i:
-    c = i.read()
-    with open(setup_path, "w") as i2:
-        i2.write(c.replace('"indev"', f'"{version}"'))
+new_version_line = f'version = "{version[1:]}"\n'
+
+with open(setup_path, "r") as file:
+    lines = file.readlines()
+
+for i, line in enumerate(lines):
+    if "version = " in line:
+        lines[i] = new_version_line
+
+with open(setup_path, "w") as file:
+    file.writelines(lines)
 
 # os.system("maturin build --release")
 
