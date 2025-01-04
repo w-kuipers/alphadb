@@ -62,7 +62,7 @@ fn main() {
 
     let matches = Command::new("alphadb")
         .about("MySQL database version management")
-        .version("1.0.0")
+        .version(env!("CARGO_PKG_VERSION"))
         .subcommand_required(true)
         .arg_required_else_help(true)
         .subcommand(Command::new("connect").about("Connect to a database"))
