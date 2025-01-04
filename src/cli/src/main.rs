@@ -1,5 +1,6 @@
 use clap::{Arg, ArgAction, Command};
 use colored::Colorize;
+use config::connection::ActiveConnection;
 mod commands;
 mod config;
 mod utils;
@@ -31,38 +32,13 @@ fn main() {
     })
     .expect("Error setting user exit handler");
 
-    // Initialize an an AlphaDB instance, but only
-    // connect if a connection has been marked as active.
-    // Some functions do not require a database connection
     let mut db = AlphaDB::new();
-    let conn = match get_active_connection() {
-        Some(c) => c,
-        None => {
-            println!("{}", "No active database connection.".yellow());
-            return;
-        }
-    };
-
-    let password = match decrypt_password(
-        conn.connection.password,
-        config.main.secret.clone().unwrap(),
-    ) {
-        Ok(p) => p,
-        Err(_) => {
-            remove_connection(conn.label);
-
-            error(format!(
-                "Unable to connect to database {}@{}:{} using saved credentials. The connection has been removed.",
-                conn.connection.database.cyan(),
-                conn.connection.host.cyan(),
-                conn.connection.port.to_string().cyan(),
-            ));
-        }
-    };
 
     let matches = Command::new("alphadb")
         .about("MySQL database version management")
         .version(env!("CARGO_PKG_VERSION"))
+        .name("AlphaDB - Command Line Interface")
+        .bin_name("alphadb")
         .subcommand_required(true)
         .arg_required_else_help(true)
         .subcommand(Command::new("connect").about("Connect to a database"))
@@ -96,25 +72,60 @@ fn main() {
         .subcommand(Command::new("vacate").about("Completely empty the database"))
         .get_matches();
 
-    if let Some(m) = matches.subcommand() {
-        if m.0 != "connect" {
-            match db.connect(
-                &conn.connection.host,
-                &conn.connection.user,
-                &password,
-                &conn.connection.database,
-                conn.connection.port,
-            ) {
-                Ok(_) => (),
-                Err(e) => {
-                    error(e.to_string());
-                }
-            };
 
-            if db.connection.is_none() {
+    // Check if the current command should have an active database connection
+    let mut should_connect = true;
+    if let Some(m) = matches.subcommand() {
+        if m.0 == "connect" {
+            should_connect = false;
+        }
+    }
+
+    // Establish a connection to the database
+    let conn_option = get_active_connection();
+    let conn: ActiveConnection; 
+    if should_connect {
+        conn = match conn_option {
+            Some(c) => c,
+            None => {
                 println!("{}", "No active database connection.".yellow());
                 return;
             }
+        };
+
+        let password = match decrypt_password(
+            conn.connection.password,
+            config.main.secret.clone().unwrap(),
+        ) {
+            Ok(p) => p,
+            Err(_) => {
+                remove_connection(conn.label);
+
+                error(format!(
+                "Unable to connect to database {}@{}:{} using saved credentials. The connection has been removed.",
+                conn.connection.database.cyan(),
+                conn.connection.host.cyan(),
+                conn.connection.port.to_string().cyan(),
+            ));
+            }
+        };
+
+        match db.connect(
+            &conn.connection.host,
+            &conn.connection.user,
+            &password,
+            &conn.connection.database,
+            conn.connection.port,
+        ) {
+            Ok(_) => (),
+            Err(e) => {
+                error(e.to_string());
+            }
+        };
+
+        if db.connection.is_none() {
+            println!("{}", "No active database connection.".yellow());
+            return;
         }
     }
 
