@@ -65,8 +65,8 @@ pub fn verify(config: &Config, version_source: Option<PathBuf>) {
 
                 match issue.level {
                     VerificationIssueLevel::Low => println!("{} {} {}", "LOW VULNERABILITY:".on_white().black(), issue_path.cyan(), issue_text),
-                    VerificationIssueLevel::High => println!("{} {} {}", "HIGH VULNERABILITY".on_yellow().white(), issue_path.cyan(), issue_text.yellow()),
-                    VerificationIssueLevel::Critical => println!("{} {} {}", "CRITICAL".on_red().white(), issue_path.cyan(), issue_text.red())
+                    VerificationIssueLevel::High => println!("{} {} {}", "HIGH VULNERABILITY:".on_yellow().white(), issue_path.cyan(), issue_text.yellow()),
+                    VerificationIssueLevel::Critical => println!("{} {} {}", "CRITICAL:".on_red().white(), issue_path.cyan(), issue_text.red())
                 }
             }
             println!("   ");
