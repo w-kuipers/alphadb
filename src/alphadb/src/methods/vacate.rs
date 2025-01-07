@@ -40,6 +40,12 @@ impl Get for VacateError {
             VacateError::MySqlError(_) => String::new(),
         }
     }
+    fn set_version_trace(&mut self, version_trace: Vec<String>) {
+        match self {
+            VacateError::AlphaDbError(e) => e.set_version_trace(version_trace),
+            VacateError::MySqlError(_) => (),
+        }
+    }
 }
 
 /// **Vacate**

@@ -32,8 +32,6 @@ pub fn simple_err(message: &str, version_trace: Vec<&str>) -> AlphaDBError {
     };
 }
 
-/// *Incomplete version object*
-///
 /// - key: Missing object key
 /// - version_trace: Version trace
 pub fn incomplete_version_object_err(key: &str, version_trace: Vec<&str>) -> AlphaDBError {

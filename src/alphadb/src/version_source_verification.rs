@@ -13,8 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::{AlphaDBError, Get};
+use crate::utils::errors::{AlphaDBError, ToVerificationIssue, Get};
 use crate::utils::consolidate::primary_key::get_primary_key;
+use crate::utils::json::{array_iter as adb_array_iter, exists_in_object};
 use crate::utils::types::VerificationIssueLevel;
 use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
 use serde_json::Value;
@@ -29,6 +30,30 @@ pub struct VerificationIssue {
 pub struct VersionSourceVerification {
     version_source: Value,
     issues: Vec<VerificationIssue>,
+}
+
+/// Verify wether a key exists in serde_json::Value and catch potential errors as Verification
+/// issue
+fn object_key_exists(object: &serde_json::Value, key: &str, issues: &mut Vec<VerificationIssue>) -> bool {
+    match exists_in_object(object, key) {
+        Ok(v) => v,
+        Err(e) => {
+            e.to_verification_issue(issues);
+            return false;
+        }
+    }
+}
+
+fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> Vec<serde_json::Value> {
+    match adb_array_iter(array) {
+        Ok(v) => v.to_vec(),
+        Err(mut e) => {
+            e.set_version_trace(version_trace);
+            e.to_verification_issue(issues);
+            return Vec::new();
+        }
+
+    }
 }
 
 impl VersionSourceVerification {
@@ -50,27 +75,25 @@ impl VersionSourceVerification {
         })
     }
 
-    /// **Verify**
-    ///
     /// Loop over entire version source and verify if it will
     /// convert to MySQL queries without errors.
     /// Will Return true if no issues are found, else it will return a
     /// list with all issues and their levels.
     pub fn verify(&mut self) -> Result<(), Vec<VerificationIssue>> {
-        if !self.version_source.as_object().unwrap().keys().any(|k| k == "name") {
+        if !object_key_exists(&self.version_source, "name", &mut self.issues) {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Critical,
-                message: String::from("No rootlevel name was specified"),
+                message: String::from("No rootlevel name specified"),
             });
         }
 
-        if !self.version_source.as_object().unwrap().keys().any(|k| k == "version") {
+        if !object_key_exists(&self.version_source, "version", &mut self.issues) {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Low,
                 message: String::from("This version source does not contain any versions"),
             });
         } else {
-            for (i, version) in self.version_source["version"].clone().as_array().unwrap().iter().enumerate() {
+            for (i, version) in array_iter(&self.version_source["version"], &mut self.issues, Vec::from(["versions".to_string()])).iter().enumerate() {
                 let mut version_output = format!("Version index {i}");
 
                 if !version.as_object().unwrap().keys().any(|k| k == "_id") {
