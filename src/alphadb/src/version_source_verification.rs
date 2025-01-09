@@ -13,11 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::errors::{AlphaDBError, ToVerificationIssue, Get};
 use crate::utils::consolidate::primary_key::get_primary_key;
-use crate::utils::json::{array_iter as adb_array_iter, exists_in_object};
+use crate::utils::errors::{AlphaDBError, Get, ToVerificationIssue};
+use crate::utils::json::{get_json_object, get_json_string};
 use crate::utils::types::VerificationIssueLevel;
 use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
+use crate::verification::json::{array_iter, exists_in_object, parse_version_number};
 use serde_json::Value;
 
 #[derive(Debug, Clone)]
@@ -30,30 +31,6 @@ pub struct VerificationIssue {
 pub struct VersionSourceVerification {
     version_source: Value,
     issues: Vec<VerificationIssue>,
-}
-
-/// Verify wether a key exists in serde_json::Value and catch potential errors as Verification
-/// issue
-fn object_key_exists(object: &serde_json::Value, key: &str, issues: &mut Vec<VerificationIssue>) -> bool {
-    match exists_in_object(object, key) {
-        Ok(v) => v,
-        Err(e) => {
-            e.to_verification_issue(issues);
-            return false;
-        }
-    }
-}
-
-fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> Vec<serde_json::Value> {
-    match adb_array_iter(array) {
-        Ok(v) => v.to_vec(),
-        Err(mut e) => {
-            e.set_version_trace(version_trace);
-            e.to_verification_issue(issues);
-            return Vec::new();
-        }
-
-    }
 }
 
 impl VersionSourceVerification {
@@ -80,43 +57,52 @@ impl VersionSourceVerification {
     /// Will Return true if no issues are found, else it will return a
     /// list with all issues and their levels.
     pub fn verify(&mut self) -> Result<(), Vec<VerificationIssue>> {
-        if !object_key_exists(&self.version_source, "name", &mut self.issues) {
+        if !exists_in_object(&self.version_source, "name", &mut self.issues, Vec::new()) {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Critical,
                 message: String::from("No rootlevel name specified"),
             });
         }
 
-        if !object_key_exists(&self.version_source, "version", &mut self.issues) {
+        if !exists_in_object(&self.version_source, "version", &mut self.issues, Vec::new()) {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Low,
                 message: String::from("This version source does not contain any versions"),
             });
         } else {
-            for (i, version) in array_iter(&self.version_source["version"], &mut self.issues, Vec::from(["versions".to_string()])).iter().enumerate() {
+            for (i, version) in array_iter(&self.version_source["version"], &mut self.issues, Vec::from(["versions".to_string()]))
+                .iter()
+                .enumerate()
+            {
                 let mut version_output = format!("Version index {i}");
+                let mut version_number: Option<&str> = None;
 
-                if !version.as_object().unwrap().keys().any(|k| k == "_id") {
+                if !exists_in_object(version, "_id", &mut self.issues, Vec::new()) {
                     self.issues.push(VerificationIssue {
                         level: VerificationIssueLevel::Critical,
                         message: format!("Version index {i}: Missing a version number"),
                     });
                 } else {
-                    let version_to_int = version["_id"].as_str().unwrap().replace(".", "").parse::<i32>();
-                    if version_to_int.is_err() {
-                        self.issues.push(VerificationIssue {
-                            level: VerificationIssueLevel::Critical,
-                            message: format!("{}: Version number is not convertable to an integer", version["_id"].as_str().unwrap()),
-                        });
+                    match get_json_string(&version["_id"]) {
+                        Ok(v) => {
+                            if parse_version_number(v, &mut self.issues, Vec::from([version_output.clone()])) > -1 {
+                                version_output = format!("Version {}", v);
+                                version_number = Some(v);
+                            }
+                        }
+
+                        Err(mut e) => {
+                            e.set_version_trace(Vec::from([version_output.clone()]));
+                            e.to_verification_issue(&mut self.issues);
+                        }
                     }
-                    version_output = format!("Version {}", version["_id"].as_str().unwrap());
                 }
 
                 for method in version.as_object().unwrap().keys() {
                     match method.as_str() {
                         "_id" => continue,
-                        "createtable" => self.createtable(version["createtable"].clone(), version_output.clone()),
-                        "altertable" => match self.altertable(version["altertable"].clone(), i, version_output.clone()) {
+                        "createtable" => self.createtable(version["createtable"].clone(), &version_output, version_number),
+                        "altertable" => match self.altertable(version["altertable"].clone(), i, &version_output, version_number) {
                             Ok(v) => v,
                             Err(e) => self.issues.push(VerificationIssue {
                                 message: e.message(),
@@ -141,44 +127,49 @@ impl VersionSourceVerification {
         }
     }
 
-    /// **Createtable**
-    ///
     /// Verify a single createtable block
-    pub fn createtable(&mut self, createtable: Value, version_output: String) {
-        if createtable.as_object().unwrap().is_empty() {
-            self.issues.push(VerificationIssue {
-                level: VerificationIssueLevel::Low,
-                message: format!("{version_output} -> createtable: Does not contain any data"),
-            });
-            return;
-        }
-
-        for table in createtable.as_object().unwrap().keys() {
-            for column in createtable[table].as_object().unwrap().keys() {
-                if column == "primary_key" {
-                    if !createtable[table]
-                        .as_object()
-                        .unwrap()
-                        .keys()
-                        .any(|p| p == createtable[table]["primary_key"].as_str().unwrap())
-                    {
-                        self.issues.push(VerificationIssue {
-                            level: VerificationIssueLevel::Critical,
-                            message: format!("{version_output} -> createtable -> table:{table}: Primary key does not match any column name"),
-                        });
-                    }
-                    continue;
+    pub fn createtable(&mut self, createtable: Value, version_output: &str, version_number: Option<&str>) {
+        let version_trace = Vec::from([version_output.to_string(), "createtable".to_string()]);
+        match get_json_object(&createtable) {
+            Ok(ct) => {
+                if ct.is_empty() {
+                    self.issues.push(VerificationIssue {
+                        level: VerificationIssueLevel::Low,
+                        message: format!("{version_output} -> createtable: Does not contain any data"),
+                    });
+                    return;
                 }
 
-                self.column_compatibility(table, column, createtable[table][column].clone(), "createtable", version_output.clone());
+                for table in ct.keys() {
+                    for column in createtable[table].as_object().unwrap().keys() {
+                        if column == "primary_key" {
+                            if !createtable[table]
+                                .as_object()
+                                .unwrap()
+                                .keys()
+                                .any(|p| p == createtable[table]["primary_key"].as_str().unwrap())
+                            {
+                                self.issues.push(VerificationIssue {
+                                    level: VerificationIssueLevel::Critical,
+                                    message: format!("{version_output} -> createtable -> table:{table}: Primary key does not match any column name"),
+                                });
+                            }
+                            continue;
+                        }
+
+                        self.column_compatibility(table, column, createtable[table][column].clone(), "createtable", version_output);
+                    }
+                }
+            }
+            Err(mut e) => {
+                e.set_version_trace(version_trace);
+                e.to_verification_issue(&mut self.issues);
             }
         }
     }
 
-    /// **Altertable**
-    ///
     /// Verify a single altertable block
-    pub fn altertable(&mut self, altertable: Value, version_index: usize, version_output: String) -> Result<(), AlphaDBError> {
+    pub fn altertable(&mut self, altertable: Value, version_index: usize, version_output: &str, version_number: Option<&str>) -> Result<(), AlphaDBError> {
         if altertable.as_object().unwrap().is_empty() {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Low,
@@ -192,26 +183,30 @@ impl VersionSourceVerification {
             // Modifycolumn
             if altertable[table].as_object().unwrap().keys().any(|a| a == "modifycolumn") {
                 for (column_name, column) in altertable[table]["modifycolumn"].as_object().unwrap() {
-                    self.column_compatibility(table, column_name, column.clone(), "altertable", version_output.clone());
+                    self.column_compatibility(table, column_name, column.clone(), "altertable", version_output);
                 }
             }
 
             // Dropcolumn
             if altertable[table].as_object().unwrap().keys().any(|a| a == "dropcolumn") {
-                let primary_key = get_primary_key(
-                    &self.version_source["version"],
-                    table,
-                    Some(self.version_source["version"][version_index]["_id"].as_str().unwrap()),
-                )?;
+                // Without a valid version number it's not possible to determine the primary key
+                if version_number.is_some() {
+                    let primary_key = get_primary_key(
+                        &self.version_source["version"],
+                        table,
+                        version_number,
+                        // Some(self.version_source["version"][version_index]["_id"].as_str().unwrap()),
+                    )?;
 
-                for dropcol in altertable[table]["dropcolumn"].as_array().unwrap() {
-                    if let Some(dropcol) = dropcol.as_str() {
-                        if let Some(primary_key) = primary_key {
-                            if dropcol == primary_key {
-                                self.issues.push(VerificationIssue {
-                                    level: VerificationIssueLevel::Low,
-                                    message: format!("{version_output} -> altertable -> table:{table} -> dropcolumn: Column {dropcol} is the tables current primary key"),
-                                });
+                    for dropcol in altertable[table]["dropcolumn"].as_array().unwrap() {
+                        if let Some(dropcol) = dropcol.as_str() {
+                            if let Some(primary_key) = primary_key {
+                                if dropcol == primary_key {
+                                    self.issues.push(VerificationIssue {
+                                        level: VerificationIssueLevel::Low,
+                                        message: format!("{version_output} -> altertable -> table:{table} -> dropcolumn: Column {dropcol} is the tables current primary key"),
+                                    });
+                                }
                             }
                         }
                     }
@@ -227,7 +222,7 @@ impl VersionSourceVerification {
     /// **Column compatibility**
     ///
     /// Verify column compatibility
-    pub fn column_compatibility(&mut self, table_name: &str, column_name: &str, data: Value, method: &str, version_output: String) {
+    pub fn column_compatibility(&mut self, table_name: &str, column_name: &str, data: Value, method: &str, version_output: &str) {
         let data_keys = data.as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
 
         // NULL and AUTO_INCREMENT

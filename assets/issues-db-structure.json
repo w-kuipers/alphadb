@@ -80,7 +80,7 @@
       }
     },
     {
-      "_id": "0.1.0",
+      "_id": "abc",
       "altertable": {
         "table1": {
           "dropcolumn": ["col3", "col1"],
@@ -95,10 +95,12 @@
             }
           }
         }
-      }
+      },
+      "createtable": {}
     },
     {
       "_id": "0.2.0",
+      "createtable": "",
       "altetable": {
         "table2": {
           "modifycolumn": {

@@ -69,7 +69,7 @@ pub fn get_json_string(value: &Value) -> Result<&str, AlphaDBError> {
     match value.as_str() {
         Some(v) => Ok(v),
         None => Err(AlphaDBError {
-            message: format!("The value {} could not be parsed as a string", value.to_string()),
+            message: format!("The value '{}' could not be parsed as a string", value.to_string()),
             error: "invalid-json-string".to_string(),
             ..Default::default()
         }),
@@ -81,8 +81,8 @@ pub fn get_json_object(value: &Value) -> Result<&serde_json::Map<String, Value>,
     match value.as_object() {
         Some(v) => Ok(v),
         None => Err(AlphaDBError {
-            message: "The value could not be parsed as a string".to_string(),
-            error: "invalid-json-string".to_string(),
+            message: "The value could not be parsed as an object".to_string(),
+            error: "invalid-json-object".to_string(),
             ..Default::default()
         }),
     }
