@@ -15,10 +15,10 @@
 
 use crate::utils::consolidate::primary_key::get_primary_key;
 use crate::utils::errors::{AlphaDBError, Get, ToVerificationIssue};
-use crate::utils::json::{get_json_object, get_json_string};
+use crate::utils::json::{get_json_object as adb_get_json_object, get_json_string};
 use crate::utils::types::VerificationIssueLevel;
 use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
-use crate::verification::json::{array_iter, exists_in_object, parse_version_number};
+use crate::verification::json::{get_json_object, array_iter, exists_in_object, parse_version_number};
 use serde_json::Value;
 
 #[derive(Debug, Clone)]
@@ -130,7 +130,7 @@ impl VersionSourceVerification {
     /// Verify a single createtable block
     pub fn createtable(&mut self, createtable: Value, version_output: &str, version_number: Option<&str>) {
         let version_trace = Vec::from([version_output.to_string(), "createtable".to_string()]);
-        match get_json_object(&createtable) {
+        match adb_get_json_object(&createtable) {
             Ok(ct) => {
                 if ct.is_empty() {
                     self.issues.push(VerificationIssue {
@@ -141,14 +141,18 @@ impl VersionSourceVerification {
                 }
 
                 for table in ct.keys() {
-                    for column in createtable[table].as_object().unwrap().keys() {
+                    let version_trace = Vec::from([version_output.to_string(), "createtable".to_string(), table.to_string()]);
+                    for column in get_json_object(&ct[table], &mut self.issues, version_trace).keys() {
+                        let version_trace = Vec::from([version_output.to_string(), "createtable".to_string(), table.to_string(), column.to_string()]);
                         if column == "primary_key" {
-                            if !createtable[table]
-                                .as_object()
-                                .unwrap()
-                                .keys()
-                                .any(|p| p == createtable[table]["primary_key"].as_str().unwrap())
-                            {
+                            // First fetch the primary key TODO
+                            if exists_in_object(&ct[table][column], , &mut self.issues, version_trace) {
+                            // if !createtable[table]
+                            //     .as_object()
+                            //     .unwrap()
+                            //     .keys()
+                            //     .any(|p| p == createtable[table]["primary_key"].as_str().unwrap())
+                            // {
                                 self.issues.push(VerificationIssue {
                                     level: VerificationIssueLevel::Critical,
                                     message: format!("{version_output} -> createtable -> table:{table}: Primary key does not match any column name"),
@@ -157,7 +161,7 @@ impl VersionSourceVerification {
                             continue;
                         }
 
-                        self.column_compatibility(table, column, createtable[table][column].clone(), "createtable", version_output);
+                        self.column_compatibility(table.as_str(), column, createtable[table][column].clone(), "createtable", version_output);
                     }
                 }
             }

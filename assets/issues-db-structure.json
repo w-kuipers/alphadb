@@ -41,7 +41,8 @@
             "length": 100,
             "default": "default value"
           }
-        }
+        },
+        "broken_table": "not-an-object"
       }
     },
     {

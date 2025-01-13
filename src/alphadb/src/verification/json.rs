@@ -13,10 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use serde_json::{Value, Map};
+use std::sync::LazyLock;
+
+use serde_json::{Value, Map, json};
 
 use crate::utils::errors::{Get, ToVerificationIssue};
-use crate::utils::json::{array_iter as adb_array_iter, exists_in_object as adb_exists_in_object, get_json_object as adb_get_json_object};
+use crate::utils::json::{object_iter as adb_object_iter, array_iter as adb_array_iter, exists_in_object as adb_exists_in_object, get_json_object as adb_get_json_object};
 use crate::utils::version_number::parse_version_number as adb_parse_version_number;
 use crate::version_source_verification::VerificationIssue;
 
@@ -62,6 +64,19 @@ pub fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
             return Vec::new();
+        }
+    }
+}
+
+pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> serde_json::map::Keys<'a> {
+    static EMPTY_MAP: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock::new(|| serde_json::Map::new());
+
+    match adb_object_iter(object) {
+        Ok(v) => v,
+        Err(mut e) => {
+            e.set_version_trace(version_trace);
+            e.to_verification_issue(issues);
+            return EMPTY_MAP.keys();
         }
     }
 }
