@@ -31,7 +31,7 @@
       "_id": "0.0.2",
       "createtable": {
         "table2": {
-          "primary_key": "col1",
+          "primary_key": "nothing",
           "col1": {
             "type": "INT",
             "a_i": true

@@ -15,10 +15,10 @@
 
 use std::sync::LazyLock;
 
-use serde_json::{Value, Map, json};
+use serde_json::{Value, Map};
 
 use crate::utils::errors::{Get, ToVerificationIssue};
-use crate::utils::json::{object_iter as adb_object_iter, array_iter as adb_array_iter, exists_in_object as adb_exists_in_object, get_json_object as adb_get_json_object};
+use crate::utils::json::{get_json_string as adb_get_json_string, object_iter as adb_object_iter, array_iter as adb_array_iter, exists_in_object as adb_exists_in_object, get_json_object as adb_get_json_object};
 use crate::utils::version_number::parse_version_number as adb_parse_version_number;
 use crate::version_source_verification::VerificationIssue;
 
@@ -42,6 +42,17 @@ pub fn get_json_object(object: &serde_json::Value, issues: &mut Vec<Verification
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
             return Map::new();
+        }
+    }
+}
+
+pub fn get_json_string<'a>(string: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> &'a str {
+    match adb_get_json_string(string) {
+        Ok(v) => v,
+        Err(mut e) => {
+            e.set_version_trace(version_trace);
+            e.to_verification_issue(issues);
+            return "";
         }
     }
 }

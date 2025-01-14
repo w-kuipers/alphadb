@@ -41,7 +41,7 @@ impl std::fmt::Display for AlphaDBError {
     }
 }
 
-fn get_version_trace_string(version_trace: &Vec<String>) -> String {
+pub fn get_version_trace_string(version_trace: &Vec<String>) -> String {
     let mut version_trace_string = String::new();
 
     if version_trace.len() > 0 {
