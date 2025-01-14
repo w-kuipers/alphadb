@@ -97,7 +97,7 @@ impl VersionSourceVerification {
 
                         Err(mut e) => {
                             e.set_version_trace(Vec::from([version_output.clone()]));
-                            e.to_verification_issue(&mut self.issues);
+                            e.to_verification_issue(&mut self.issues, Vec::from([version_output.clone()]));
                         }
                     }
                 }
@@ -111,12 +111,14 @@ impl VersionSourceVerification {
                             Err(e) => self.issues.push(VerificationIssue {
                                 message: e.message(),
                                 level: VerificationIssueLevel::Critical,
+                                version_trace: e.version_trace()
                             }),
                         },
                         _ => {
                             self.issues.push(VerificationIssue {
                                 level: VerificationIssueLevel::High,
-                                message: format!("{version_output}: Method '{method}' does not exist"),
+                                message: format!("Method '{method}' does not exist"),
+                                version_trace: Vec::from([format!("{version_output}")])
                             });
                         }
                     }
@@ -139,7 +141,8 @@ impl VersionSourceVerification {
                 if ct.is_empty() {
                     self.issues.push(VerificationIssue {
                         level: VerificationIssueLevel::Low,
-                        message: format!("{version_output} -> createtable: Does not contain any data"),
+                        message: format!("Does not contain any data"),
+                        version_trace
                     });
                     return;
                 }
@@ -156,7 +159,8 @@ impl VersionSourceVerification {
                             if !exists_in_object(&ct[table], pk, &mut self.issues, version_trace) {
                                 self.issues.push(VerificationIssue {
                                     level: VerificationIssueLevel::Critical,
-                                    message: format!("{version_output} -> createtable -> table:{table}: Primary key '{pk}' does not match any column name"),
+                                    message: format!("Primary key '{pk}' does not match any column name"),
+                                    version_trace: Vec::from([format!("{version_output}"), "createtable".to_string(), format!("table:{table}")])
                                 });
                             }
                             continue;
@@ -178,7 +182,8 @@ impl VersionSourceVerification {
         if altertable.as_object().unwrap().is_empty() {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Low,
-                message: format!("{version_output} -> altertable: Does not contain any data"),
+                message: format!("Does not contain any data"),
+                version_trace: Vec::from([version_output.to_string(), "altertable".to_string()])
             });
 
             return Ok(());

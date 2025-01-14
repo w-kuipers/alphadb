@@ -28,6 +28,7 @@ pub struct AlphaDBError {
 pub trait Get {
     fn message(&self) -> String;
     fn error(&self) -> String;
+    fn version_trace(&self) -> Vec<String>;
     fn set_version_trace(&mut self, version_trace: Vec<String>);
 }
 
@@ -72,6 +73,10 @@ impl Get for AlphaDBError {
     fn error(&self) -> String {
         return self.error.clone();
     }
+    
+    fn version_trace(&self) -> Vec<String> {
+        return self.version_trace.clone();
+    }
 
     fn set_version_trace(&mut self, version_trace: Vec<String>) {
         self.version_trace = version_trace;
@@ -90,6 +95,7 @@ impl ToVerificationIssue for AlphaDBError {
         verification_issues.push(VerificationIssue {
             message,
             level: VerificationIssueLevel::Critical,
+            version_trace: self.version_trace.clone()
         });
     }
 }
