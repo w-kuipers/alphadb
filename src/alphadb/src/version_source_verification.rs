@@ -25,6 +25,7 @@ use serde_json::Value;
 pub struct VerificationIssue {
     pub level: VerificationIssueLevel,
     pub message: String,
+    pub version_trace: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -61,6 +62,7 @@ impl VersionSourceVerification {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Critical,
                 message: String::from("No rootlevel name specified"),
+                version_trace: Vec::new()
             });
         }
 
@@ -68,6 +70,7 @@ impl VersionSourceVerification {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Low,
                 message: String::from("This version source does not contain any versions"),
+                version_trace: Vec::new()
             });
         } else {
             for (i, version) in array_iter(&self.version_source["version"], &mut self.issues, Vec::from(["versions".to_string()]))
@@ -80,7 +83,8 @@ impl VersionSourceVerification {
                 if !exists_in_object(version, "_id", &mut self.issues, Vec::new()) {
                     self.issues.push(VerificationIssue {
                         level: VerificationIssueLevel::Critical,
-                        message: format!("Version index {i}: Missing a version number"),
+                        message: format!("Missing a version number"),
+                        version_trace: Vec::from([format!("Version index {i}")])
                     });
                 } else {
                     match adb_get_json_string(&version["_id"]) {
