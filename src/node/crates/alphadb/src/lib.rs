@@ -25,6 +25,7 @@ use crate::methods::update::update_wrap;
 use crate::methods::vacate::vacate_wrap;
 use crate::types::PooledConnWrap;
 use neon::prelude::*;
+use utils::{get_db_name, get_is_connected};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -36,8 +37,14 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
     let db_name = Rc::new(RefCell::new(None::<String>));
     let db_name_rc = cx.boxed(db_name);
 
+    let is_connected = Rc::new(RefCell::new(false));
+    let is_connected_rc = cx.boxed(is_connected);
+
     cx.export_value("internaldbname", db_name_rc)?;
+    cx.export_value("internalisconnected", is_connected_rc)?;
     cx.export_value("conn", conn_rc)?;
+    cx.export_function("get_db_name", get_db_name)?;
+    cx.export_function("get_is_connected", get_is_connected)?;
     cx.export_function("connect", connect_wrap)?;
     cx.export_function("init", init_wrap)?;
     cx.export_function("status", status_wrap)?;

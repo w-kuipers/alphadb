@@ -13,28 +13,60 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use alphadb::prelude::AlphaDBError;
 use crate::types::PooledConnWrap;
-use std::cell::Ref;
+use alphadb::prelude::AlphaDBError;
+use neon::{
+    prelude::{Context, FunctionContext},
+    result::JsResult,
+    types::{JsBoolean, JsBox, JsValue},
+};
+use std::{
+    cell::{Ref, RefCell},
+    rc::Rc,
+};
 
-
-pub fn get_connection<'a>(db_name: Ref<Option<String>>, connection: &'a mut Option<PooledConnWrap>) -> Result<(String, &'a mut PooledConnWrap), AlphaDBError> {
+pub fn get_connection<'a>(
+    db_name: Ref<Option<String>>,
+    connection: &'a mut Option<PooledConnWrap>,
+) -> Result<(String, &'a mut PooledConnWrap), AlphaDBError> {
     let connection = match connection {
         Some(c) => c,
-        None => return Err(AlphaDBError {
-            message: "No active database connection".to_string(),
-            ..Default::default()
-        })
+        None => {
+            return Err(AlphaDBError {
+                message: "No active database connection".to_string(),
+                ..Default::default()
+            })
+        }
     };
 
     let db_name = match &*db_name {
         Some(db) => db.clone(),
-        None => return Err(AlphaDBError {
-            message: "No connection seems to be active. db_name does not have a value".to_string(),
-            ..Default::default()
-        })
-
+        None => {
+            return Err(AlphaDBError {
+                message: "No connection seems to be active. db_name does not have a value"
+                    .to_string(),
+                ..Default::default()
+            })
+        }
     };
-    
+
     return Ok((db_name, connection));
+}
+
+pub fn get_db_name(mut cx: FunctionContext) -> JsResult<JsValue> {
+    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(0)?;
+    let db_name = db_name_rc.borrow();
+
+    if let Some(ref name) = *db_name {
+        Ok(cx.string(name.clone()).upcast())
+    } else {
+        Ok(cx.undefined().upcast())
+    }
+}
+
+pub fn get_is_connected(mut cx: FunctionContext) -> JsResult<JsBoolean> {
+    let is_connected_rc = cx.argument::<JsBox<Rc<RefCell<bool>>>>(0)?;
+    let is_connected = is_connected_rc.borrow();
+
+    Ok(cx.boolean(*is_connected))
 }

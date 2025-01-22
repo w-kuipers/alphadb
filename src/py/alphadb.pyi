@@ -18,6 +18,8 @@ CRITICAL: Will not execute.
 """
 
 class AlphaDB:
+    is_connected: bool
+
     def connect(self, host: str, user: str, password: str, database: str, port: Optional[int] = 3306): ...
     """Connect to a database"""
 

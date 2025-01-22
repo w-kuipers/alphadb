@@ -33,6 +33,9 @@ type ToleratedVerificationIssueLevel = "LOW" | "HIGH" | "CRITICAL" | "ALL";
 interface AlphaDB {
 	conn: any;
 	internaldbname: any;
+	internalisconnected: any;
+	db_name: string | undefined;
+	is_connected: boolean;
 	connect(props: ConnectProps): void;
 	init(): void;
 	status(): Status;
@@ -47,7 +50,10 @@ interface AlphaDB {
 declare module "./load.cjs" {
 	const conn: any;
 	const internaldbname: any;
-	function connect(conn: any, internaldbname: any, host: string, user: string, password: string, database: string, port: number): void;
+	const internalisconnected: any;
+	function get_is_connected(internalisconnected: any): boolean;
+	function get_db_name(internaldbname: any): string | undefined;
+	function connect(conn: any, internaldbname: any, internalisconnected: any, host: string, user: string, password: string, database: string, port: number): void;
 	function init(conn: any, internaldbname: any): void;
 	function status(conn: any, internaldbname: any): Status;
 	function update_queries(conn: any, internaldbname: any, version_source: string, update_to_version: string, no_data: boolean): Array<Query>;
@@ -59,11 +65,17 @@ class AlphaDB {
 	private constructor() {
 		this.conn = addon.conn;
 		this.internaldbname = addon.internaldbname;
+		this.internalisconnected = addon.internalisconnected;
+		this.db_name = undefined;
+		this.is_connected = false;
 	}
 
 	public connect(props: ConnectProps) {
 		if (typeof props.port === "undefined") props.port = 3306;
-		addon.connect(this.conn, this.internaldbname, props.host, props.user, props.password, props.database, props.port);
+		addon.connect(this.conn, this.internaldbname, this.internalisconnected, props.host, props.user, props.password, props.database, props.port);
+
+		this.db_name = addon.get_db_name(this.internaldbname);
+		this.is_connected = addon.get_is_connected(this.internalisconnected);
 	}
 
 	public init() {

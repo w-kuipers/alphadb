@@ -2,7 +2,12 @@ import pytest
 from alphadb import AlphaDB
 
 db = AlphaDB()
-db.connect(host="localhost", user="root", password="test", database="test")
+
+
+def test_connect():
+    assert not db.is_connected
+    db.connect(host="localhost", user="root", password="test", database="test")
+    assert db.is_connected
 
 
 def test_init():
@@ -10,6 +15,7 @@ def test_init():
 
     with pytest.raises(RuntimeError, match="The database is already initialized"):
         db.init()
+
 
 
 def test_status():

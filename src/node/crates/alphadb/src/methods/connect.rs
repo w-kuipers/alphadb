@@ -27,11 +27,14 @@ pub fn connect_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(1)?;
     let mut db_name = db_name_rc.borrow_mut();
 
-    let host = cx.argument::<JsString>(2)?.value(&mut cx);
-    let user = cx.argument::<JsString>(3)?.value(&mut cx);
-    let password = cx.argument::<JsString>(4)?.value(&mut cx);
-    let database = cx.argument::<JsString>(5)?.value(&mut cx);
-    let port = cx.argument::<JsNumber>(6)?.value(&mut cx) as u16;
+    let is_connected_rc = cx.argument::<JsBox<Rc<RefCell<bool>>>>(2)?;
+    let mut is_connected = is_connected_rc.borrow_mut();
+
+    let host = cx.argument::<JsString>(3)?.value(&mut cx);
+    let user = cx.argument::<JsString>(4)?.value(&mut cx);
+    let password = cx.argument::<JsString>(5)?.value(&mut cx);
+    let database = cx.argument::<JsString>(6)?.value(&mut cx);
+    let port = cx.argument::<JsNumber>(7)?.value(&mut cx) as u16;
 
     let c = match connect(&host, &user, &password, &database, port) {
         Ok(c) => c,
@@ -40,6 +43,7 @@ pub fn connect_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
 
     *conn = Some(PooledConnWrap { inner: Some(c) });
     *db_name = Some(database);
+    *is_connected = true;
 
     Ok(cx.undefined())
 }

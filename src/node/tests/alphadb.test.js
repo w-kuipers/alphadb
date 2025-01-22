@@ -1,16 +1,24 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import AlphaDB from ".";
 import fs from "fs";
 
 const db = new AlphaDB();
-db.connect({
-	host: "localhost",
-	user: "root",
-	password: "test",
-	database: "test",
-});
 
 describe("AlphaDB Tests", () => {
+
+	it("should connect to the database", () => {
+		expect(db.is_connected).toEqual(false);
+		expect(db.db_name).toBeUndefined();
+		db.connect({
+			host: "localhost",
+			user: "root",
+			password: "test",
+			database: "test",
+		});
+		expect(db.db_name).toEqual("test");
+		expect(db.is_connected).toEqual(true);
+	});
+
 	it("should initialize the database and throw if already initialized", () => {
 		db.init();
 		expect(() => db.init()).toThrowError(

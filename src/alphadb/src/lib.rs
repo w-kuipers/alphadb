@@ -34,11 +34,12 @@ use mysql::*;
 pub struct AlphaDB<'a> {
     pub connection: Option<PooledConn>,
     pub db_name: Option<&'a str>,
+    pub is_connected: bool
 }
 
 impl<'a> AlphaDB<'a> {
     pub fn new() -> AlphaDB<'a> {
-        AlphaDB { connection: None, db_name: None }
+        AlphaDB { connection: None, db_name: None, is_connected: false }
     }
 
     /// Establish a database connection
@@ -54,6 +55,7 @@ impl<'a> AlphaDB<'a> {
 
         // Set the database name
         self.db_name = Some(database);
+        self.is_connected = true;
 
         Ok(())
     }
@@ -145,12 +147,14 @@ mod alphadb_tests {
         let mut db = AlphaDB::new();
         let mut db2 = AlphaDB::new();
         assert!(db.connection.is_none());
+        assert!(!db.is_connected);
 
         // Test connect
         let _ = db.connect(HOST, USER, PASSWORD, DATABASE, PORT);
         let _ = db2.connect(HOST, USER, PASSWORD, DATABASE, PORT);
         println!("{:?}", db.connection);
         assert!(db.connection.is_some());
+        assert!(db.is_connected);
 
         let db2_name = db2.db_name.unwrap();
         let mut db2_conn = db2.connection.unwrap();

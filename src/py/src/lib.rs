@@ -31,6 +31,7 @@ use pyo3::prelude::*;
 struct AlphaDB {
     connection: Option<PooledConn>,
     db_name: Option<String>,
+    is_connected: bool
 }
 
 #[derive(Debug, IntoPyObject, IntoPyObjectRef)]
@@ -64,7 +65,7 @@ enum PyToleratedVerificationIssueLevel {
     /// High: Will pass with verification errors below level Critical.
     High,
     /// Critical: Will ignore all errors.
-    Critical,
+    Critical, 
     /// All: Will fail with an error of any level.
     All,
 }
@@ -76,7 +77,13 @@ impl AlphaDB {
         Self {
             connection: None,
             db_name: None,
+            is_connected: false
         }
+    }
+
+    #[getter]
+    fn is_connected(&self) -> bool {
+        self.is_connected
     }
 
     #[pyo3(signature = (host, user, password, database, port=3306))]
@@ -92,6 +99,7 @@ impl AlphaDB {
             Ok(c) => {
                 self.connection = Some(c);
                 self.db_name = Some(database.to_string());
+                self.is_connected = true;
                 Ok(())
             }
             Err(e) => Err(PyRuntimeError::new_err(e.message())),
