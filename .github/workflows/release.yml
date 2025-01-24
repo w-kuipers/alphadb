@@ -110,7 +110,7 @@ jobs:
       matrix:
         # os: [ubuntu-latest, macos-latest]
         # os: [windows-latest]
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest, windows-latest, ubuntu-20.04]
 
     runs-on: ${{ matrix.os }}
 
