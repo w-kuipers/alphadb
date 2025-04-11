@@ -11,6 +11,11 @@ jobs:
 
   publish-py:
     name: Publish to Test PyPI
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-22.04]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+
     needs:
       - build-py
     runs-on: ubuntu-latest
@@ -22,8 +27,9 @@ jobs:
     steps:
       - name: Download all the dists
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
-          name: python-api
+          name: python-api-${{ matrix.os }}-${{ matrix.python-version }}
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
