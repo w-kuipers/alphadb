@@ -64,6 +64,21 @@ pub fn exists_in_object(object: &serde_json::Value, key: &str) -> Result<bool, A
     }
 }
 
+// Get JSON value as string
+pub fn get_json_value_as_string(value: &Value) -> Result<String, AlphaDBError> {
+    match value.as_str() {
+        Some(v) => Ok(v.to_string()),
+        None => match value.as_i64() {
+            Some(v) => Ok(v.to_string()),
+            None => Err(AlphaDBError {
+                message: format!("The value {} could not be parsed as a string", value.to_string()),
+                error: "invalid-json-string".to_string(),
+                ..Default::default()
+            }),
+        },
+    }
+}
+
 /// Get JSON string value from serde_json::Value
 pub fn get_json_string(value: &Value) -> Result<&str, AlphaDBError> {
     match value.as_str() {

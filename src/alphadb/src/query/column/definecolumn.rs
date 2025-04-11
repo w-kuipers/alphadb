@@ -12,13 +12,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use core::f64;
-
 use crate::prelude::{AlphaDBError, Get};
 use crate::utils::error_messages::{incompatible_column_attributes_err, incomplete_version_object_err, simple_err};
-use crate::utils::json::{get_json_float, get_json_int, get_json_string, get_object_keys};
+use crate::utils::json::{get_json_float, get_json_int, get_json_string, get_json_value_as_string, get_object_keys};
 use crate::verification::compatibility::{ALLOW_DECIMAL_LENGTH, INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES};
+use core::f64;
 use serde_json::Value;
+
 /// **Define column**
 ///
 /// Generate a MySQL query part that defines a single column
@@ -57,11 +57,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         let mut auto_increment = false;
         if column_keys.iter().any(|&i| i == "a_i") {
             if INCOMPATIBLE_W_AI.iter().any(|&i| i == column_type.to_lowercase()) {
-                return Err(incompatible_column_attributes_err(
-                    "AUTO_INCREMENT",
-                    format!("type=={column_type}").as_str(),
-                    version_trace
-                ));
+                return Err(incompatible_column_attributes_err("AUTO_INCREMENT", format!("type=={column_type}").as_str(), version_trace));
             }
 
             if null {
@@ -75,11 +71,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         let mut unique = false;
         if column_keys.iter().any(|&i| i == "unique") {
             if INCOMPATIBLE_W_UNIQUE.iter().any(|&i| i == column_type.to_lowercase()) {
-                return Err(incompatible_column_attributes_err(
-                    "UNIQUE",
-                    format!("type=={column_type}").as_str(),
-                    version_trace
-                ));
+                return Err(incompatible_column_attributes_err("UNIQUE", format!("type=={column_type}").as_str(), version_trace));
             }
 
             if column_data["unique"] == true {
@@ -102,9 +94,9 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             }
         }
 
-        let mut default: Option<Value> = None;
+        let mut default: Option<String> = None;
         if column_keys.iter().any(|&i| i == "default") {
-            default = Some(column_data["default"].clone())
+            default = Some(get_json_value_as_string(&column_data["default"])?);
         }
 
         if !SUPPORTED_COLUMN_TYPES.iter().any(|&i| i == column_type) {
@@ -127,8 +119,19 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             query = format!("{query} UNIQUE");
         }
 
+		// Default values should contain quotes for strings
         if let Some(d) = default {
-            query = format!("{query} DEFAULT {:?}", d.to_string());
+            if d.parse::<f64>().is_ok() {
+                query = format!("{query} DEFAULT {}", d);
+            } else {
+				// MySQL default functions and keywords should not contain quotes
+                let sql_functions = ["CURRENT_TIMESTAMP", "NOW()", "CURRENT_DATE", "CURRENT_TIME", "LOCALTIME", "LOCALTIMESTAMP", "NULL"];
+                if sql_functions.iter().any(|&func| d.to_uppercase() == func) || (d.to_uppercase().contains("(") && d.to_uppercase().contains(")")) {
+                    query = format!("{query} DEFAULT {}", d);
+                } else {
+                    query = format!("{query} DEFAULT '{}'", d);
+                }
+            }
         }
 
         if auto_increment {
@@ -186,6 +189,19 @@ mod definecolumn_tests {
         let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
         assert!(q.is_err());
         assert_eq!(q.unwrap_err().message, "Column attributes 'UNIQUE' and 'type==json' are not compatible.");
+    }
+
+    // UNIQUE on incompatible type
+    #[test]
+    fn default() {
+        let column = &json!({
+            "type": "VARCHAR",
+            "default": "test",
+        });
+        let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
+        println!("{:?}", q);
+        assert!(q.is_ok());
+        assert_eq!(q.unwrap().unwrap(), "col VARCHAR NOT NULL DEFAULT 'test'");
     }
 
     // AUTO_INCREMENT with NULL

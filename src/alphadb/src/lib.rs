@@ -140,7 +140,7 @@ mod alphadb_tests {
     static USER: &str = "root";
     static PASSWORD: &str = "test";
     static DATABASE: &str = "test";
-    static PORT: u16 = 3306;
+    static PORT: u16 = 333;
 
     #[test]
     fn test_alphadb() {
@@ -175,6 +175,7 @@ mod alphadb_tests {
         // Test update (maybe update later)
         let data = fs::read_to_string("../../assets/test-db-structure.json").expect("Unable to read file");
         let update = db.update(data, None, false, true, ToleratedVerificationIssueLevel::Low);
+		println!("{:?}", update);
         assert!(update.is_ok());
         let status = db.status().unwrap();
         assert_ne!(status.version, Some("0.0.0".to_string()));

@@ -63,7 +63,7 @@ mod connect_tests {
     static USER: &str = "root";
     static PASSWORD: &str = "test";
     static DATABASE: &str = "test";
-    static PORT: u16 = 3306;
+    static PORT: u16 = 333;
 
     #[test]
     fn test_connect() {

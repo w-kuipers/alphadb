@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 services:
   mysql:
     container_name: alphadb_mysql
@@ -10,10 +10,9 @@ services:
       MYSQL_ROOT_PASSWORD: test
       MYSQL_DATABASE: test
     ports:
-      - "3306:3306"
+      - "333:3306"
     networks:
       - db_server
-  
 
   phpmyadmin:
     container_name: alphadb_phpmyadmin
@@ -22,10 +21,10 @@ services:
     image: phpmyadmin/phpmyadmin
     restart: always
     ports:
-      - '8080:80'
+      - "888:80"
     environment:
       PMA_HOST: mysql
-      MYSQL_ROOT_PASSWORD: test 
+      MYSQL_ROOT_PASSWORD: test
     networks:
       - db_server
 
