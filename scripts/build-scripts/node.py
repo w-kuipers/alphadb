@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import sys
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils import get_version_number, replace_line
 
 version = get_version_number()
