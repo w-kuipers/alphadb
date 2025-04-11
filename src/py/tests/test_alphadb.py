@@ -6,7 +6,9 @@ db = AlphaDB()
 
 def test_connect():
     assert not db.is_connected
-    db.connect(host="localhost", user="root", password="test", database="test")
+    db.connect(
+        host="localhost", user="root", password="test", database="test", port=333
+    )
     assert db.is_connected
 
 
@@ -15,7 +17,6 @@ def test_init():
 
     with pytest.raises(RuntimeError, match="The database is already initialized"):
         db.init()
-
 
 
 def test_status():

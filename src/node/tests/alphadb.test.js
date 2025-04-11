@@ -14,6 +14,7 @@ describe("AlphaDB Tests", () => {
 			user: "root",
 			password: "test",
 			database: "test",
+			port: 333
 		});
 		expect(db.db_name).toEqual("test");
 		expect(db.is_connected).toEqual(true);
