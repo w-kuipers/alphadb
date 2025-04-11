@@ -3,13 +3,9 @@ import shutil
 import subprocess
 import sys
 
-if len(sys.argv) == 1 or not sys.argv[1][0] == "v":
-    print("No valid version supplied.")
-    version = "dev"
-    if not input("Would you like to use version 'dev'? (y/N): ") == "y":
-        exit()
-else:
-    version = sys.argv[1]
+from utils import get_version_number, replace_line
+
+version = get_version_number()
 
 base_dir = "src/node"
 package_path = os.path.join(os.getcwd(), base_dir, "package.json")
@@ -21,34 +17,12 @@ node_bin_dir = os.path.join(base_dir, "node-bin")
 os.mkdir(node_bin_dir)
 
 new_version_line = f'"version": "{version[1:]}",\n'
-
-with open(package_path, "r") as file:
-    lines = file.readlines()
-
-for i, line in enumerate(lines):
-    if '"version": "' in line:
-        lines[i] = new_version_line
-
-with open(package_path, "w") as file:
-    file.writelines(lines)
-
-new_version_line = f'version = "{version[1:]}"\n'
+adb_version_line = f'version = "{version[1:]}"\n'
 node_version_line = f'version = "{version[1:]}-node"\n'
 
-for path in setup_paths:
-    with open(path, "r") as file:
-        lines = file.readlines()
-
-    for i, line in enumerate(lines):
-        if line.startswith("version ="):
-
-            if path == node_path:
-                lines[i] = node_version_line
-            else:
-                lines[i] = new_version_line
-
-    with open(path, "w") as file:
-        file.writelines(lines)
+replace_line('"version":', new_version_line, package_path)
+replace_line("version =", adb_version_line, adb_path)
+replace_line("version =", node_version_line, node_path)
 
 mac = ["darwin-x64", "darwin-arm64"]
 win = ["win32-x64-msvc"]
