@@ -18,7 +18,7 @@ postinstalljs_path = os.path.join(cwd, base_dir, "postinstall.mjs")
 
 os.mkdir(new_dir)
 new_version_line = f'"version": "{version[1:]}",\n'
-cargo_version_line = f'alphadb = "{version[1:]}",\n'
+cargo_version_line = f'alphadb = "{version[1:]}"\n'
 postinstalljs_line = (
     'const BASE_URL = "https://github.com/w-kuipers/alphadb/releases/download/'
     + version
