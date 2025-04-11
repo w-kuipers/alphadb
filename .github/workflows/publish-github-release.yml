@@ -16,7 +16,7 @@ jobs:
       - name: Download Linux Node binaries
         uses: actions/download-artifact@v4
         with:
-          name: node-bin-ubuntu-latest
+          name: node-bin-ubuntu-22.04
           path: node-bin/
 
       - name: Download MacOS Node binaries
@@ -34,7 +34,7 @@ jobs:
       - name: Download Linux CLI binaries
         uses: actions/download-artifact@v4
         with:
-          name: cli-bin-ubuntu-20.04
+          name: cli-bin-ubuntu-22.04
           # name: cli-bin-ubuntu-latest
           path: cli-bin/
 
