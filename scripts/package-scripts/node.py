@@ -14,13 +14,21 @@ base_dir = join(cwd, "src/node")
 new_dir = join(cwd, "node-dist/")
 package_path = os.path.join(cwd, base_dir, "package.json")
 cargo_path = os.path.join(cwd, base_dir, "crates/alphadb/Cargo.toml")
+postinstalljs_path = os.path.join(cwd, base_dir, "postinstall.mjs")
 
 os.mkdir(new_dir)
 new_version_line = f'"version": "{version[1:]}",\n'
 cargo_version_line = f'alphadb = "{version[1:]}",\n'
+postinstalljs_line = (
+    'const BASE_URL = "https://github.com/w-kuipers/alphadb/releases/download/'
+    + version
+    + '"'
+)
+
 
 replace_line('"version":', new_version_line, package_path)
 replace_line("alphadb =", cargo_version_line, cargo_path)
+replace_line("const BASE_URL =", postinstalljs_line, postinstalljs_path)
 
 subprocess.Popen(
     ["npm", "install", "--ignore-scripts"], cwd=os.path.join(cwd, base_dir)

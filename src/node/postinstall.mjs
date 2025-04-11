@@ -11,18 +11,18 @@ const platform = os.platform();
 const arch = os.arch();
 
 function getBinaryURL() {
-	const BASE_URL = "https://github.com/w-kuipers/alphadb/releases/download/v1.0.0-beta.20";
+	const BASE_URL = "https://github.com/w-kuipers/alphadb/releases/download/version-number";
 
 	let fileName;
 
 	if (platform === 'linux' && arch === 'x64') {
-		fileName = "linux-x64.node";
+		fileName = "linux-x64-gnu.node";
 	} else if (platform === 'darwin' && arch === 'arm64') {
 		fileName = "darwin-arm64.node";
 	} else if (platform === 'darwin' && arch === 'x64') {
 		fileName = "darwin-x64.node";
 	} else if (platform === 'win32' && arch === 'x64') {
-		fileName = "win32-x64.node";
+		fileName = "win32-x64-msvc.node";
 	} else {
 		return null;
 	}

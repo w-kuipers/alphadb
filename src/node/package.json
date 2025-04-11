@@ -1,6 +1,6 @@
 {
   "name": "@w-kuipers/alphadb",
-  "version": "3.2.1",
+"version": "1.0.0-dev.207",
   "description": "AlphaDB is a versatile tool for managing MySQL database versions, using JSON to define structures and simplify migrations across environments.",
   "author": "Wibo Kuipers",
   "main": "./lib/index.cjs",
