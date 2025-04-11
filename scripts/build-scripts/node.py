@@ -20,6 +20,8 @@ os.mkdir(node_bin_dir)
 new_version_line = f'"version": "{version[1:]}",\n'
 adb_version_line = f'version = "{version[1:]}"\n'
 node_version_line = f'version = "{version[1:]}-node"\n'
+print(version)
+print(node_version_line)
 
 replace_line('"version":', new_version_line, package_path)
 replace_line("version =", adb_version_line, adb_path)
