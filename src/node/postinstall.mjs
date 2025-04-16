@@ -37,7 +37,8 @@ async function getBinary(url) {
 	const binaryPath = path.resolve(__dirname, "./index.node");
 
 	if (!response.ok) {
-		throw new Error(`Failed to download binary: ${response.statusText}`);
+		console.warn(`Failed to download binary: ${response.statusText}`);
+		return false;
 	}
 
 	const fileStream = fs.createWriteStream(binaryPath);
@@ -49,8 +50,10 @@ async function getBinary(url) {
 			fileStream.on('finish', resolve);
 		});
 		console.log("AlphaDB binary successfully downloaded");
+		return true;
 	} catch (error) {
-		console.error('Error while download AlphaDB binary:', error);
+		console.warn('Error while download AlphaDB binary:', error);
+		return false;
 	}
 }
 
@@ -68,7 +71,15 @@ async function main() {
 		const binaryURL = getBinaryURL();
 
 		if (binaryURL) {
-			await getBinary(binaryURL);
+			const downloaded = await getBinary(binaryURL);
+			if (!downloaded) {
+				if (hasRustInstalled()) {
+					buildFromSource();
+				} else {
+					console.error('Rust is not installed. Install Rust to build AlphaDB from source.');
+					process.exit(1);
+				}
+			}
 		} else {
 			console.warn(`There are no prebuilt binaries for platform ${platform}-${arch}. Attempting to build from source.`);
 			if (hasRustInstalled()) {
