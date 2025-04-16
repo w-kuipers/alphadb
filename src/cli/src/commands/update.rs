@@ -53,16 +53,13 @@ pub fn update(
         }
     };
 
-    let vs_file: PathBuf;
-    if let Some(version_source) = version_source {
-        vs_file = version_source.to_path_buf();
-    } else {
-        if let Some(path) = select_version_source(config) {
-            vs_file = path;
-        } else {
-            error("No version source was selected".to_string());
+    let vs_file = match version_source {
+        Some(vs) => vs.to_path_buf(),
+        None => match select_version_source(config) {
+            Some(p) => p,
+            None => error("No version source was selected".to_string())
         }
-    }
+    };
 
     let data = match fs::read_to_string(&vs_file) {
         Ok(f) => f,
@@ -108,7 +105,6 @@ pub fn update(
                 "The database configuration is broken, no version number present.".to_string(),
             ),
             _ => error(e.message()),
-            // _ => error("An unexpected error occured.".to_string()),
         },
     };
 }

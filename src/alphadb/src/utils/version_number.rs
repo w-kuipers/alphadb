@@ -38,7 +38,7 @@ pub fn parse_version_number(version_number: &str) -> Result<u32, AlphaDBError> {
     match version_number.replace(".", "").parse::<u32>() {
         Ok(v) => Ok(v),
         Err(_) => Err(AlphaDBError {
-            message: format!("'{}' is not a valid version number", version_number),
+            message: format!("'{}' is not a valid version number. It can not be parsed to an integer", version_number),
             error: "invalid-version-number".to_string(),
             version_trace: Vec::from([version_number.to_string()]),
             ..Default::default()

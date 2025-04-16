@@ -47,6 +47,18 @@ impl Get for InitError {
             InitError::MySqlError(_) => String::new(),
         }
     }
+    fn version_trace(&self) -> Vec<String> {
+        match self {
+            InitError::AlphaDbError(e) => return e.version_trace.clone(),
+            InitError::MySqlError(_) => return Vec::new(),
+        }
+    }
+    fn set_version_trace(&mut self, version_trace: Vec<String>) {
+        match self {
+            InitError::AlphaDbError(e) => e.set_version_trace(version_trace),
+            InitError::MySqlError(_) => (),
+        }
+    }
 }
 
 /// Create a connection pool to the database and return it.

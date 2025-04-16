@@ -57,6 +57,20 @@ impl Get for UpdateQueriesError {
             UpdateQueriesError::MySqlError(_) => String::from(""),
         }
     }
+    fn version_trace(&self) -> Vec<String> {
+        match self {
+            UpdateQueriesError::AlphaDbError(e) => return e.version_trace.clone(),
+            UpdateQueriesError::StatusError(_) => return Vec::new(),
+            UpdateQueriesError::MySqlError(_) => return Vec::new(),
+        }
+    }
+    fn set_version_trace(&mut self, version_trace: Vec<String>) {
+        match self {
+            UpdateQueriesError::AlphaDbError(e) => e.set_version_trace(version_trace),
+            UpdateQueriesError::StatusError(_) => (),
+            UpdateQueriesError::MySqlError(_) => (),
+        }
+    }
 }
 
 /// Generate MySQL queries to update the tables. Return Vec<Query>
@@ -73,7 +87,15 @@ pub fn update_queries(
     no_data: bool,
 ) -> Result<Vec<Query>, UpdateQueriesError> {
     let mut queries: Vec<Query> = Vec::new();
-    let version_source: serde_json::Value = serde_json::from_str(&version_source).expect("JSON was not well-formatted");
+    let version_source: serde_json::Value = match serde_json::from_str(&version_source) {
+        Ok(vs) => vs,
+        Err(_) => return Err(AlphaDBError {
+            message: "The provided version source can not be deserialized. Not valid JSON.".to_string(),
+            ..Default::default()
+        }.into()) 
+    };
+
+
 
     let versions = match version_source["version"].as_array() {
         Some(versions) => versions,
