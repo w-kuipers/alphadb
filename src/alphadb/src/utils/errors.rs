@@ -85,15 +85,8 @@ impl Get for AlphaDBError {
 
 impl ToVerificationIssue for AlphaDBError {
     fn to_verification_issue(&self, verification_issues: &mut Vec<VerificationIssue>) {
-        let version_trace_string = get_version_trace_string(&self.version_trace);
-
-        let mut message = self.message.clone();
-        if !version_trace_string.is_empty() {
-            message = format!("{version_trace_string}: {message}");
-        }
-
         verification_issues.push(VerificationIssue {
-            message,
+            message: self.message.clone(),
             level: VerificationIssueLevel::Critical,
             version_trace: self.version_trace.clone()
         });

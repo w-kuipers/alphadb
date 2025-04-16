@@ -18,7 +18,7 @@ use crate::utils::errors::{AlphaDBError, Get, ToVerificationIssue};
 use crate::utils::json::{get_json_object as adb_get_json_object, get_json_string as adb_get_json_string};
 use crate::utils::types::VerificationIssueLevel;
 use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
-use crate::verification::json::{get_json_object, array_iter, exists_in_object, get_json_string, parse_version_number};
+use crate::verification::json::{array_iter, exists_in_object, get_json_object, get_json_string, parse_version_number};
 use serde_json::Value;
 
 #[derive(Debug, Clone)]
@@ -62,7 +62,7 @@ impl VersionSourceVerification {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Critical,
                 message: String::from("No rootlevel name specified"),
-                version_trace: Vec::new()
+                version_trace: Vec::new(),
             });
         }
 
@@ -70,34 +70,34 @@ impl VersionSourceVerification {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Low,
                 message: String::from("This version source does not contain any versions"),
-                version_trace: Vec::new()
+                version_trace: Vec::new(),
             });
         } else {
             for (i, version) in array_iter(&self.version_source["version"], &mut self.issues, Vec::from(["versions".to_string()]))
                 .iter()
                 .enumerate()
             {
-                let mut version_output = format!("Version index {i}");
+                let mut version_output = format!("index {i}");
                 let mut version_number: Option<&str> = None;
 
                 if !exists_in_object(version, "_id", &mut self.issues, Vec::new()) {
                     self.issues.push(VerificationIssue {
                         level: VerificationIssueLevel::Critical,
                         message: format!("Missing a version number"),
-                        version_trace: Vec::from([format!("Version index {i}")])
+                        version_trace: Vec::from([format!("index {i}")]),
                     });
                 } else {
                     match adb_get_json_string(&version["_id"]) {
                         Ok(v) => {
                             if parse_version_number(v, &mut self.issues, Vec::from([version_output.clone()])) > -1 {
-                                version_output = format!("Version {}", v);
+                                version_output = v.to_string();
                                 version_number = Some(v);
                             }
                         }
 
                         Err(mut e) => {
                             e.set_version_trace(Vec::from([version_output.clone()]));
-                            e.to_verification_issue(&mut self.issues, Vec::from([version_output.clone()]));
+                            e.to_verification_issue(&mut self.issues);
                         }
                     }
                 }
@@ -111,14 +111,14 @@ impl VersionSourceVerification {
                             Err(e) => self.issues.push(VerificationIssue {
                                 message: e.message(),
                                 level: VerificationIssueLevel::Critical,
-                                version_trace: e.version_trace()
+                                version_trace: e.version_trace(),
                             }),
                         },
                         _ => {
                             self.issues.push(VerificationIssue {
                                 level: VerificationIssueLevel::High,
                                 message: format!("Method '{method}' does not exist"),
-                                version_trace: Vec::from([format!("{version_output}")])
+                                version_trace: Vec::from([format!("{version_output}")]),
                             });
                         }
                     }
@@ -142,7 +142,7 @@ impl VersionSourceVerification {
                     self.issues.push(VerificationIssue {
                         level: VerificationIssueLevel::Low,
                         message: format!("Does not contain any data"),
-                        version_trace
+                        version_trace,
                     });
                     return;
                 }
@@ -160,7 +160,7 @@ impl VersionSourceVerification {
                                 self.issues.push(VerificationIssue {
                                     level: VerificationIssueLevel::Critical,
                                     message: format!("Primary key '{pk}' does not match any column name"),
-                                    version_trace: Vec::from([format!("{version_output}"), "createtable".to_string(), format!("table:{table}")])
+                                    version_trace: Vec::from([format!("{version_output}"), "createtable".to_string(), format!("table:{table}")]),
                                 });
                             }
                             continue;
@@ -183,7 +183,7 @@ impl VersionSourceVerification {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Low,
                 message: format!("Does not contain any data"),
-                version_trace: Vec::from([version_output.to_string(), "altertable".to_string()])
+                version_trace: Vec::from([version_output.to_string(), "altertable".to_string()]),
             });
 
             return Ok(());
@@ -214,7 +214,8 @@ impl VersionSourceVerification {
                                 if dropcol == primary_key {
                                     self.issues.push(VerificationIssue {
                                         level: VerificationIssueLevel::Low,
-                                        message: format!("{version_output} -> altertable -> table:{table} -> dropcolumn: Column {dropcol} is the tables current primary key"),
+                                        message: format!("Column {dropcol} is the tables current primary key"),
+                                        version_trace: vec![version_output.to_string(), "altertable".to_string(), format!("table:{table}"), "dropcolumn".to_string()]
                                     });
                                 }
                             }
@@ -232,12 +233,19 @@ impl VersionSourceVerification {
     /// Verify column compatibility
     pub fn column_compatibility(&mut self, table_name: &str, column_name: &str, data: Value, method: &str, version_output: &str) {
         let data_keys = data.as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
+        let version_trace = vec![
+            version_output.to_string(),
+            method.to_string(),
+            format!("table:{table_name}"),
+            format!("column:{column_name}"),
+        ];
 
         // NULL and AUTO_INCREMENT
         if data_keys.contains(&&String::from("null")) && data_keys.contains(&&String::from("a_i")) {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Critical,
-                message: format!("{version_output} -> {method} -> table:{table_name} -> column:{column_name}: Column attributes NULL and AUTO_INCREMENT are incompatible"),
+                message: format!("Column attributes NULL and AUTO_INCREMENT are incompatible"),
+                version_trace: version_trace.clone(),
             });
         }
 
@@ -246,7 +254,8 @@ impl VersionSourceVerification {
             if !data_keys.contains(&&String::from("recreate")) || data["recreate"].as_bool().unwrap() == true {
                 self.issues.push(VerificationIssue {
                     level: VerificationIssueLevel::Critical,
-                    message: format!("{version_output} -> {method} -> table:{table_name} -> column:{column_name}: Does not contain a column type"),
+                    message: format!("Does not contain a column type"),
+                    version_trace: version_trace.clone(),
                 });
             }
         } else {
@@ -254,10 +263,8 @@ impl VersionSourceVerification {
             if INCOMPATIBLE_W_AI.contains(&&data["type"].as_str().unwrap().to_lowercase().as_str()) && data_keys.contains(&&String::from("a_i")) {
                 self.issues.push(VerificationIssue {
                     level: VerificationIssueLevel::Critical,
-                    message: format!(
-                        "{version_output} -> {method} -> table:{table_name} -> column:{column_name}: Column type {} is incompatible with attribute AUTO_INCREMENT",
-                        data["type"].as_str().unwrap()
-                    ),
+                    message: format!("Column type {} is incompatible with attribute AUTO_INCREMENT", data["type"].as_str().unwrap(),),
+                    version_trace: version_trace.clone(),
                 });
             }
 
@@ -265,10 +272,8 @@ impl VersionSourceVerification {
             if INCOMPATIBLE_W_UNIQUE.contains(&&data["type"].as_str().unwrap().to_lowercase().as_str()) && data_keys.contains(&&String::from("unique")) {
                 self.issues.push(VerificationIssue {
                     level: VerificationIssueLevel::Critical,
-                    message: format!(
-                        "{version_output} -> {method} -> table:{table_name} -> column:{column_name}: Column type {} is incompatible with attribute UNIQUE",
-                        data["type"].as_str().unwrap()
-                    ),
+                    message: format!("Column type {} is incompatible with attribute UNIQUE", data["type"].as_str().unwrap()),
+                    version_trace: version_trace.clone(),
                 });
             }
         }

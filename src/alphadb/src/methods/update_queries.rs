@@ -56,6 +56,13 @@ impl Get for UpdateQueriesError {
             UpdateQueriesError::MySqlError(_) => String::from(""),
         }
     }
+    fn version_trace(&self) -> Vec<String> {
+        match self {
+            UpdateQueriesError::AlphaDbError(e) => return e.version_trace.clone(),
+            UpdateQueriesError::StatusError(_) => return Vec::new(),
+            UpdateQueriesError::MySqlError(_) => return Vec::new(),
+        }
+    }
     fn set_version_trace(&mut self, version_trace: Vec<String>) {
         match self {
             UpdateQueriesError::AlphaDbError(e) => e.set_version_trace(version_trace),

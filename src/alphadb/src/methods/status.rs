@@ -49,6 +49,12 @@ impl Get for StatusError {
             StatusError::MySqlError(_) => String::new(),
         }
     }
+    fn version_trace(&self) -> Vec<String> {
+        match self {
+            StatusError::AlphaDbError(e) => return e.version_trace.clone(),
+            StatusError::MySqlError(_) => return Vec::new(),
+        }
+    }
     fn set_version_trace(&mut self, version_trace: Vec<String>) {
         match self {
             StatusError::AlphaDbError(e) => e.set_version_trace(version_trace),

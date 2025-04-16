@@ -16,7 +16,7 @@
 use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
 use crate::utils::{error, title};
-use alphadb::utils::errors::Get;
+use alphadb::utils::errors::{get_version_trace_string, Get};
 use alphadb::utils::types::VerificationIssueLevel;
 use alphadb::version_source_verification::VersionSourceVerification;
 use colored::Colorize;
@@ -52,21 +52,46 @@ pub fn verify(config: &Config, version_source: Option<PathBuf>) {
 
     match verification.verify() {
         Ok(_) => {
-            println!("{} {} {}\n", "Version source at".green(), vs_file.to_string_lossy().blue(), "verified, without issues".green());
-        },
+            println!(
+                "{} {} {}\n",
+                "Version source at".green(),
+                vs_file.to_string_lossy().blue(),
+                "verified, without issues".green()
+            );
+        }
         Err(issues) => {
-            println!("Version source at {} has {}\n\n", vs_file.to_string_lossy().blue(), format!("{} errors", issues.len()).red());
+            println!(
+                "Version source at {} has {}\n\n",
+                vs_file.to_string_lossy().blue(),
+                format!("{} errors", issues.len()).red()
+            );
 
             for issue in issues {
-                let (issue_path, issue_text) = match issue.message.rsplit_once(": ") {
-                    Some(m) => m,
-                    None => ("", issue.message.as_str())
-                };
+                let mut issue_path = get_version_trace_string(&issue.version_trace);
+
+                if !issue_path.is_empty() {
+                     issue_path = format!("Version {issue_path}: ");
+                }
 
                 match issue.level {
-                    VerificationIssueLevel::Low => println!("{} {} {}", "LOW VULNERABILITY:".on_white().black(), issue_path.cyan(), issue_text),
-                    VerificationIssueLevel::High => println!("{} {} {}", "HIGH VULNERABILITY:".on_yellow().white(), issue_path.cyan(), issue_text.yellow()),
-                    VerificationIssueLevel::Critical => println!("{} {} {}", "CRITICAL:".on_red().white(), issue_path.cyan(), issue_text.red())
+                    VerificationIssueLevel::Low => println!(
+                        "{} {}{}",
+                        "LOW VULNERABILITY:".on_white().black(),
+                        issue_path.cyan(),
+                        issue.message
+                    ),
+                    VerificationIssueLevel::High => println!(
+                        "{} {}{}",
+                        "HIGH VULNERABILITY:".on_yellow().black(),
+                        issue_path.cyan(),
+                        issue.message.yellow()
+                    ),
+                    VerificationIssueLevel::Critical => println!(
+                        "{} {}{}",
+                        "CRITICAL:".on_red().black(),
+                        issue_path.cyan(),
+                        issue.message.red()
+                    ),
                 }
             }
             println!("   ");
