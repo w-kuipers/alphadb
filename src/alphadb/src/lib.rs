@@ -38,17 +38,28 @@ pub struct AlphaDB<'a> {
 }
 
 impl<'a> AlphaDB<'a> {
+    /// Create a new AlphaDB instance
+    ///
+    /// # Returns
+    /// * `AlphaDB<'a>` - New AlphaDB instance with no connection
     pub fn new() -> AlphaDB<'a> {
         AlphaDB { connection: None, db_name: None, is_connected: false }
     }
 
     /// Establish a database connection
     ///
-    /// - host: MySQL host
-    /// - user: Database user
-    /// - password: User password for the database
-    /// - database: Database name
-    /// - port: MySQL port
+    /// # Arguments
+    /// * `host` - MySQL host
+    /// * `user` - Database user
+    /// * `password` - User password for the database
+    /// * `database` - Database name
+    /// * `port` - MySQL port
+    ///
+    /// # Returns
+    /// * `Result<(), ConnectError>` - Ok if connection successful
+    ///
+    /// # Errors
+    /// * Returns `ConnectError` if connection fails
     pub fn connect(&mut self, host: &str, user: &str, password: &str, database: &'a str, port: u16) -> Result<(), ConnectError> {
         // Establish connection to database
         self.connection = Some(connect(host, user, password, database, port)?);
@@ -61,38 +72,60 @@ impl<'a> AlphaDB<'a> {
     }
 
     /// Initialize the database
+    ///
+    /// # Returns
+    /// * `Result<Init, InitError>` - Init enum indicating initialization status
+    ///
+    /// # Errors
+    /// * Returns `InitError` if initialization fails
     pub fn init(&mut self) -> Result<Init, InitError> {
         let (db_name, connection) = get_connection(self.db_name, &mut self.connection)?;
         return init(db_name, connection);
     }
 
-    /// Get database status.
+    /// Get database status including initialization state, version, name and template
     ///
-    /// Returns:
-    /// - If it is initialized
-    /// - The database version
-    /// - The datbase name
-    /// - The name name of the used version source (template)
+    /// # Returns
+    /// * `Result<Status, StatusError>` - Status struct containing database information
+    ///
+    /// # Errors
+    /// * Returns `StatusError` if status check fails
     pub fn status(&mut self) -> Result<Status, StatusError> {
         let (db_name, connection) = get_connection(self.db_name, &mut self.connection)?;
         return status(db_name, connection);
     }
 
-    /// Generate MySQL queries to update the tables. Return Vec<Query>
+    /// Generate MySQL queries to update the tables
     ///
-    /// - version_source: Complete JSON version source
-    /// - update_to_version (optional): Version number to update to
+    /// # Arguments
+    /// * `version_source` - Complete JSON version source
+    /// * `update_to_version` - Optional version number to update to
+    /// * `no_data` - Whether to skip data updates
+    ///
+    /// # Returns
+    /// * `Result<Vec<Query>, UpdateQueriesError>` - Vector of update queries
+    ///
+    /// # Errors
+    /// * Returns `UpdateQueriesError` if query generation fails
     pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, UpdateQueriesError> {
         let (db_name, connection) = get_connection(self.db_name, &mut self.connection)?;
         return update_queries(db_name, connection, version_source, update_to_version, no_data);
     }
 
-    /// **Update**
+    /// Generate and execute MySQL queries to update the tables
     ///
-    /// Generate MySQL queries to update the tables. Run the updates on the database
+    /// # Arguments
+    /// * `version_source` - Complete JSON version source
+    /// * `update_to_version` - Optional version number to update to
+    /// * `no_data` - Whether to skip data updates
+    /// * `verify` - Whether to verify the update
+    /// * `allowed_error_priority` - Level of verification issues to tolerate
     ///
-    /// - version_source: Complete JSON version source
-    /// - update_to_version (optional): Version number to update to
+    /// # Returns
+    /// * `Result<(), UpdateError>` - Ok if update successful
+    ///
+    /// # Errors
+    /// * Returns `UpdateError` if update fails
     pub fn update(
         &mut self,
         version_source: String,
@@ -113,6 +146,10 @@ impl<'a> AlphaDB<'a> {
         );
     }
 
+    /// Remove all tables from the database
+    ///
+    /// # Panics
+    /// * Panics if no connection is established
     pub fn vacate(&mut self) {
         let conn = &mut self.connection.as_mut().expect("Connection could not be established");
 

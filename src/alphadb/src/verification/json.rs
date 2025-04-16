@@ -46,6 +46,15 @@ pub fn get_json_object(object: &serde_json::Value, issues: &mut Vec<Verification
     }
 }
 
+/// Get JSON string value with error handling for verification
+///
+/// # Arguments
+/// * `string` - The JSON value to get string from
+/// * `issues` - Vector to store verification issues
+/// * `version_trace` - Version trace for error reporting
+///
+/// # Returns
+/// * `&str` - String value or empty string if error occurs
 pub fn get_json_string<'a>(string: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> &'a str {
     match adb_get_json_string(string) {
         Ok(v) => v,
@@ -57,6 +66,15 @@ pub fn get_json_string<'a>(string: &'a serde_json::Value, issues: &mut Vec<Verif
     }
 }
 
+/// Check if a JSON object is empty with error handling for verification
+///
+/// # Arguments
+/// * `object` - The JSON value to check
+/// * `issues` - Vector to store verification issues
+/// * `version_trace` - Version trace for error reporting
+///
+/// # Returns
+/// * `bool` - True if object is empty, false if error occurs
 pub fn object_is_empty(object: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> bool {
     match adb_get_json_object(object) {
         Ok(v) => v.is_empty(),
@@ -68,6 +86,15 @@ pub fn object_is_empty(object: &serde_json::Value, issues: &mut Vec<Verification
     }
 }
 
+/// Get array iterator with error handling for verification
+///
+/// # Arguments
+/// * `array` - The JSON value to get array from
+/// * `issues` - Vector to store verification issues
+/// * `version_trace` - Version trace for error reporting
+///
+/// # Returns
+/// * `Vec<serde_json::Value>` - Array values or empty vector if error occurs
 pub fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> Vec<serde_json::Value> {
     match adb_array_iter(array) {
         Ok(v) => v.to_vec(),
@@ -79,6 +106,15 @@ pub fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>
     }
 }
 
+/// Get object iterator with error handling for verification
+///
+/// # Arguments
+/// * `object` - The JSON value to get object from
+/// * `issues` - Vector to store verification issues
+/// * `version_trace` - Version trace for error reporting
+///
+/// # Returns
+/// * `serde_json::map::Keys<'a>` - Object keys iterator or empty map keys if error occurs
 pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> serde_json::map::Keys<'a> {
     static EMPTY_MAP: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock::new(|| serde_json::Map::new());
 
@@ -92,6 +128,15 @@ pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<Verificat
     }
 }
 
+/// Parse version number with error handling for verification
+///
+/// # Arguments
+/// * `version_number` - The version number string to parse
+/// * `issues` - Vector to store verification issues
+/// * `version_trace` - Version trace for error reporting
+///
+/// # Returns
+/// * `i32` - Parsed version number or -1 if error occurs
 pub fn parse_version_number(version_number: &str, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> i32 {
     match adb_parse_version_number(version_number) {
         Ok(vn) => vn as i32,

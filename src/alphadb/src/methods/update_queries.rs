@@ -73,12 +73,20 @@ impl Get for UpdateQueriesError {
     }
 }
 
-/// Generate MySQL queries to update the tables. Return Vec<Query>
+/// Generate MySQL queries to update the tables
 ///
-/// - db_name: The database name
-/// - connection: Active connection pool to the database
-/// - version_source: Complete JSON version source
-/// - update_to_version (optional): Version number to update to
+/// # Arguments
+/// * `db_name` - The name of the database to update
+/// * `connection` - Active connection pool to the database
+/// * `version_source` - Complete JSON version source
+/// * `update_to_version` - Optional version number to update to
+/// * `no_data` - Whether to skip data updates
+///
+/// # Returns
+/// * `Result<Vec<Query>, UpdateQueriesError>` - Vector of update queries
+///
+/// # Errors
+/// * Returns `UpdateQueriesError` if query generation fails
 pub fn update_queries(
     db_name: &str,
     connection: &mut PooledConn,

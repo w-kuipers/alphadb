@@ -17,7 +17,18 @@ use crate::utils::errors::AlphaDBError;
 use mysql::PooledConn;
 
 /// Helper function for the AlphaDB lib. Unwraps the db_name and connection
-/// arguments for usage in the seperated methods.
+/// arguments for usage in the separated methods.
+///
+/// # Arguments
+/// * `db_name` - Optional database name
+/// * `connection` - Mutable reference to an optional pooled connection
+///
+/// # Returns
+/// * `Result<(&str, &mut PooledConn), AlphaDBError>` - Tuple containing database name and connection if successful
+///
+/// # Errors
+/// * Returns `AlphaDBError` if no active database connection exists
+/// * Returns `AlphaDBError` if no database name is provided
 pub fn get_connection<'a>(db_name: Option<&'a str>, connection: &'a mut Option<PooledConn>) -> Result<(&'a str, &'a mut PooledConn), AlphaDBError> {
     let connection = match connection {
         Some(c) => c,

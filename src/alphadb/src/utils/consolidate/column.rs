@@ -120,10 +120,19 @@ pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &
 ///     "rename_version": Version in which the column was renamed (parsed to int)
 /// }
 ///
-/// - version_list: List with versions from version_source
-/// - column_name: Name of the column to be handled
-/// - table_name: Name of the table the column is in
-/// - order: The order in which to walk over the version source. Either "ASC" or "DESC".
+/// Get column rename data from version source
+///
+/// # Arguments
+/// * `version_list` - List of versions from version source
+/// * `column_name` - Name of the column to check for renames
+/// * `table_name` - Name of the table containing the column
+/// * `order` - Order to process versions ("ASC" or "DESC")
+///
+/// # Returns
+/// * `Result<Vec<RenameData>, AlphaDBError>` - Vector of rename data if successful
+///
+/// # Errors
+/// * Returns `AlphaDBError` if order is not "ASC" or "DESC"
 pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &str, order: &str) -> Result<Vec<RenameData>, AlphaDBError> {
     let mut rename_data: Vec<RenameData> = Vec::new();
 

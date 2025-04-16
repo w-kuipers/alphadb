@@ -36,6 +36,16 @@ pub enum CheckError {
 /// **Check**
 ///
 /// Check if the database is initialized and get the current version
+///
+/// # Arguments
+/// * `db_name` - The name of the database to check
+/// * `connection` - Active connection pool to the database
+///
+/// # Returns
+/// * `Result<Check, CheckError>` - Check struct containing initialization status and version
+///
+/// # Errors
+/// * Returns `CheckError` if there are any database or AlphaDB errors
 pub fn check(db_name: &str, connection: &mut PooledConn) -> Result<Check, CheckError> {
     let mut check = false;
     let mut version: Option<String> = None;

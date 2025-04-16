@@ -18,13 +18,18 @@ use crate::query::column::definecolumn::definecolumn;
 use crate::utils::error_messages::incomplete_version_object_err;
 use crate::utils::json::{get_json_string, get_json_object, get_object_keys};
 
-/// **Createtable**
+/// Generate a MySQL CREATE TABLE query
 ///
-/// Generate a MySQL createtable query
+/// # Arguments
+/// * `version_source` - Version source containing table definition
+/// * `table_name` - Name of the table to create
+/// * `version` - Current version in version source loop
 ///
-/// - version_source: Complete JSON version source
-/// - table_name: Name of the table to be created
-/// - version: Current version in version source loop
+/// # Returns
+/// * `Result<String, AlphaDBError>` - SQL query for table creation
+///
+/// # Errors
+/// * Returns `AlphaDBError` if table definition is invalid
 pub fn createtable(version_source: &serde_json::Value, table_name: &str, version: &str) -> Result<String, AlphaDBError> {
     let table_data = &version_source["createtable"][table_name];
     let mut column_queries = String::new();

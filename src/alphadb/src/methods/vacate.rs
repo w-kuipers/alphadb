@@ -54,9 +54,16 @@ impl Get for VacateError {
     }
 }
 
-/// **Vacate**
+/// Remove all tables from the database
 ///
-/// - connection: Active connection pool to the database
+/// # Arguments
+/// * `connection` - Active connection pool to the database
+///
+/// # Returns
+/// * `Result<(), VacateError>` - Ok if all tables were removed successfully
+///
+/// # Errors
+/// * Returns `VacateError` if there are any database or AlphaDB errors
 pub fn vacate(connection: &mut Option<PooledConn>) -> Result<(), VacateError> {
     if let Some(conn) = connection.as_mut() {
         conn.query_drop("SET FOREIGN_KEY_CHECKS = 0")?;

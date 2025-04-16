@@ -63,10 +63,17 @@ impl Get for StatusError {
     }
 }
 
-/// Get database status. Returns if it is initialized, it's version, name and template name
+/// Get database status including initialization state, version, name and template
 ///
-/// - db_name: The database name
-/// - connection: Active connection pool to the database
+/// # Arguments
+/// * `db_name` - The name of the database to check
+/// * `connection` - Active connection pool to the database
+///
+/// # Returns
+/// * `Result<Status, StatusError>` - Status struct containing database information
+///
+/// # Errors
+/// * Returns `StatusError` if there are any database or AlphaDB errors
 pub fn status(db_name: &str, connection: &mut PooledConn) -> Result<Status, StatusError> {
     let mut init = false;
     let mut version: Option<String> = None;

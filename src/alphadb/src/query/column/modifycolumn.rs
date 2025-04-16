@@ -20,10 +20,17 @@ use crate::{prelude::AlphaDBError, query::column::definecolumn::definecolumn};
 ///
 /// Generate a MySQL query part that modifies a column
 ///
-/// - column_data: Current column object from version source
-/// - table_name: Name of the table to be created
-/// - column_name: Name of the column to be defined
-/// - version: Current version in version source loop
+/// # Arguments
+/// * `table_data` - Current table object from version source
+/// * `table_name` - Name of the table containing the column
+/// * `column_name` - Name of the column to be modified
+/// * `version` - Current version in version source loop
+///
+/// # Returns
+/// * `Result<Option<String>, AlphaDBError>` - SQL query part for column modification
+///
+/// # Errors
+/// * Returns `AlphaDBError` if column definition fails
 pub fn modifycolumn(table_data: &Value, table_name: &str, column_name: &str, version: &str) -> Result<Option<String>, AlphaDBError> {
     let mut query = String::from("MODIFY COLUMN");
     let defined_column = definecolumn(&table_data["modifycolumn"][column_name], table_name, &column_name.to_string(), version)?;

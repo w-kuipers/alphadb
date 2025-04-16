@@ -62,15 +62,22 @@ impl Get for UpdateError {
     }
 }
 
-/// Generate MySQL queries to update the tables. Run the updates on the database
+/// Generate and execute MySQL queries to update the tables
 ///
-/// - db_name: The database name
-/// - connection: Active connection pool to the database
-/// - version_source: Complete JSON version source
-/// - update_to_version (optional): Version number to update to
-/// - no_data: If true, the default data will not be inserted to the database
-/// - verify: If true, the version source will be verified before running the updates
-/// - allowed_error_priority: The issuelevel that will be ignored after verification
+/// # Arguments
+/// * `db_name` - The name of the database to update
+/// * `connection` - Active connection pool to the database
+/// * `version_source` - Complete JSON version source
+/// * `update_to_version` - Optional version number to update to
+/// * `no_data` - Whether to skip data updates
+/// * `verify` - Whether to verify the update
+/// * `allowed_error_priority` - Level of verification issues to tolerate
+///
+/// # Returns
+/// * `Result<(), UpdateError>` - Ok if update successful
+///
+/// # Errors
+/// * Returns `UpdateError` if update fails
 pub fn update(
     db_name: &str,
     connection: &mut PooledConn,

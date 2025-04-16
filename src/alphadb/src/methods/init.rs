@@ -61,10 +61,17 @@ impl Get for InitError {
     }
 }
 
-/// Create a connection pool to the database and return it.
+/// Initialize the database with configuration table
 ///
-/// - db_name: The database name
-/// - connection: Active connection pool to the database
+/// # Arguments
+/// * `db_name` - The name of the database to initialize
+/// * `connection` - Active connection pool to the database
+///
+/// # Returns
+/// * `Result<Init, InitError>` - Init enum indicating initialization status
+///
+/// # Errors
+/// * Returns `InitError` if initialization fails
 pub fn init(db_name: &str, connection: &mut PooledConn) -> Result<Init, InitError> {
     // Check if the table is already initialized
     let checked = check(db_name, connection);
