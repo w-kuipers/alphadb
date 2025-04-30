@@ -64,3 +64,122 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
 
     Ok(consolidated_version_source)
 }
+
+#[cfg(test)]
+mod consolidate_version_source_tests {
+    use super::consolidate_version_source;
+    use serde_json::json;
+
+    #[test]
+    fn basic_consolidation() {
+        let version_source = json!({
+            "name": "test",
+            "version": [
+                {"_id": "0.0.1", "createtable": {"table1": {"col1": {"type": "VARCHAR", "length": 200}}}},
+                {"_id": "0.0.2", "createtable": {"table2": {"col1": {"type": "INTEGER"}}}},
+                {"_id": "0.0.3", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": false, "unique": true}}}}},
+                {"_id": "0.0.4", "altertable": {"table2": {"addcolumn": {"col2": {"type": "TEXT"}}}}},
+            ]
+        }).to_string();
+
+        let result = json!({
+            "name": "test",
+            "version": [{
+                "_id": "0.0.4",
+                "createtable": {
+                    "table1": {
+                        "col1": {"type": "VARCHAR", "length": 200, "unique": true}
+                    },
+                    "table2": {
+                        "col1": {"type": "INTEGER"},
+                        "col2": {"type": "TEXT"}
+                    }
+                }
+            }]
+        });
+        assert_eq!(consolidate_version_source(version_source).unwrap(), result);
+    }
+
+    #[test]
+    fn multiple_tables_with_renames() {
+        let version_source = json!({
+            "name": "test",
+            "version": [
+                {"_id": "0.0.1", "createtable": {"table1": {"col1": {"type": "VARCHAR", "length": 200}}}},
+                {"_id": "0.0.2", "createtable": {"table2": {"col1": {"type": "INTEGER"}}}},
+                {"_id": "0.0.3", "altertable": {"table1": {"renamecolumn": {"col1": "renamed_col"}}}},
+                {"_id": "0.0.4", "altertable": {"table2": {"modifycolumn": {"col1": {"recreate": false, "unique": true}}}}},
+                {"_id": "0.0.5", "altertable": {"table1": {"addcolumn": {"new_col": {"type": "TEXT"}}}}},
+            ]
+        }).to_string();
+
+        let result = json!({
+            "name": "test",
+            "version": [{
+                "_id": "0.0.5",
+                "createtable": {
+                    "table1": {
+                        "renamed_col": {"type": "VARCHAR", "length": 200},
+                        "new_col": {"type": "TEXT"}
+                    },
+                    "table2": {
+                        "col1": {"type": "INTEGER", "unique": true}
+                    }
+                }
+            }]
+        });
+        assert_eq!(consolidate_version_source(version_source).unwrap(), result);
+    }
+
+    #[test]
+    fn complex_modifications() {
+        let version_source = json!({
+            "name": "test",
+            "version": [
+                {"_id": "0.0.1", "createtable": {"table1": {"col1": {"type": "VARCHAR", "length": 200}}}},
+                {"_id": "0.0.2", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": false, "unique": true}}}}},
+                {"_id": "0.0.3", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": false, "null": true}}}}},
+                {"_id": "0.0.4", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": true, "type": "INTEGER"}}}}},
+                {"_id": "0.0.5", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": false, "unique": false}}}}},
+            ]
+        }).to_string();
+
+        let result = json!({
+            "name": "test",
+            "version": [{
+                "_id": "0.0.5",
+                "createtable": {
+                    "table1": {
+                        "col1": {"type": "INTEGER", "null": true, "unique": false}
+                    }
+                }
+            }]
+        });
+        assert_eq!(consolidate_version_source(version_source).unwrap(), result);
+    }
+
+    #[test]
+    fn drop_columns() {
+        let version_source = json!({
+            "name": "test",
+            "version": [
+                {"_id": "0.0.1", "createtable": {"table1": {"col1": {"type": "VARCHAR", "length": 200}, "col2": {"type": "TEXT"}}}},
+                {"_id": "0.0.2", "altertable": {"table1": {"dropcolumn": ["col1"]}}},
+                {"_id": "0.0.3", "altertable": {"table1": {"modifycolumn": {"col2": {"recreate": false, "unique": true}}}}},
+            ]
+        }).to_string();
+
+        let result = json!({
+            "name": "test",
+            "version": [{
+                "_id": "0.0.3",
+                "createtable": {
+                    "table1": {
+                        "col2": {"type": "TEXT", "unique": true}
+                    }
+                }
+            }]
+        });
+        assert_eq!(consolidate_version_source(version_source).unwrap(), result);
+    }
+}

@@ -243,10 +243,6 @@ mod consolidate_column_tests {
             {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
             {"_id": "0.0.2", "altertable": {"table": {"modifycolumn": {"col": {"recreate": false, "unique": true}}}}},
         ]});
-        // let versions = json!([
-        //     {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
-        //     {"_id": "0.0.2", "altertable": {"table": {"modifycolumn": {"col": {"recreate": false, "unique": true}}}}},
-        // ]);
 
         let result = json!({"type": "VARCHAR", "length": 200, "unique": true});
         assert_eq!(consolidate_column(get_version_array(&versions).unwrap(), "col", "table").unwrap(), result);
