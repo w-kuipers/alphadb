@@ -20,19 +20,30 @@ use crate::utils::consolidate::column::{consolidate_column, get_column_renames};
 use crate::utils::consolidate::primary_key::get_primary_key;
 use crate::utils::json::{array_iter, exists_in_object, get_json_string, object_iter};
 use crate::utils::version_number::parse_version_number;
+use crate::utils::version_source::get_version_array;
 use serde_json::{json, Value};
 
-/// **Altertable**
-///
 /// Generate a MySQL altertable query
 ///
-/// - version_source: Complete JSON version source
-/// - table_name: Name of the table to be created
-/// - version: Current version in version source loop
+/// This function processes version data to generate SQL ALTER TABLE statements,
+/// handling column modifications including adding, dropping, modifying, and renaming columns,
+/// as well as primary key changes.
+///
+/// # Arguments
+/// * `version_source` - Complete JSON version source containing table modification history
+/// * `table_name` - Name of the table to be altered
+/// * `version` - Current version number to process
+///
+/// # Returns
+/// * `Result<String, AlphaDBError>` - SQL ALTER TABLE statement if successful
+///
+/// # Errors
+/// * Returns `AlphaDBError` if version data is invalid or missing required information
 pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Result<String, AlphaDBError> {
     let mut query = String::new();
     let mut table_data: Option<&Value> = None;
     let mut version_index: Option<usize> = None;
+    let version_list = get_version_array(&version_source)?;
 
     let mut c = 0;
     for table in array_iter(&version_source["version"])? {
@@ -62,8 +73,8 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
                 // The query for the primary key is created after all column modification
                 // There is a chance that the old primary_key has the AUTO_INCREMENT attribute
                 // which must be removed first.
-                if let Some(old_primary_key) = get_primary_key(&version_source["version"], table_name, Some(version))? {
-                    let column_renames = get_column_renames(&version_source["version"], old_primary_key, table_name, "ASC")?;
+                if let Some(old_primary_key) = get_primary_key(&version_list, table_name, Some(version))? {
+                    let column_renames = get_column_renames(&version_list, old_primary_key, table_name, "ASC")?;
 
                     // If the column is renamed, get hystorical column name for current version
                     let mut version_column_name = old_primary_key;
@@ -129,7 +140,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
                     if exists_in_object(&table_data["altertable"][table_name]["modifycolumn"][column], "recreate")?
                         && table_data["altertable"][table_name]["modifycolumn"][column]["recreate"] == false
                     {
-                        mutable_table_data["altertable"][table_name]["modifycolumn"][column] = consolidate_column(&version_source["version"], column, table_name)?;
+                        mutable_table_data["altertable"][table_name]["modifycolumn"][column] = consolidate_column(&version_list, column, table_name)?;
                     }
 
                     let partial = modifycolumn(&mutable_table_data["altertable"][table_name], table_name, column, version)?;
@@ -201,6 +212,7 @@ mod altertable_tests {
     #[test]
     fn dropcolumn() {
         let column = &json!({
+            "name": "test",
             "version": [{
                 "_id": "0.0.1",
                 "altertable": {
@@ -220,6 +232,7 @@ mod altertable_tests {
     #[test]
     fn drop_primary_key() {
         let column = &json!({
+            "name": "test",
             "version": [
                 {"_id": "0.0.1", "createtable": {"table": {"primary_key": "col", "col": {"type": "INT", "a_i": true}}}},
                 {"_id": "0.0.2", "altertable": {"table": {"primary_key": null}}},

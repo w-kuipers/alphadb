@@ -1,5 +1,6 @@
 use clap::{Arg, ArgAction, Command};
 use colored::Colorize;
+use commands::consolidate::consolidate;
 use config::connection::ActiveConnection;
 mod commands;
 mod config;
@@ -76,6 +77,13 @@ fn main() {
                 .short('s')
                 .long("source")
                 .help("Version source to verify")
+                .action(ArgAction::Set)
+        ]))
+        .subcommand(Command::new("consolidate").about("Consolidate all versions into a single version").args([
+            Arg::new("source")
+                .short('s')
+                .long("source")
+                .help("Version source to consolidate")
                 .action(ArgAction::Set)
         ]))
         .get_matches();
@@ -183,6 +191,13 @@ fn main() {
                 version_source = Some(vs.into());
             }
             verify(&config, version_source);
+        }
+        Some(("consolidate", query_matches)) => {
+            let mut version_source: Option<PathBuf> = None;
+            if let Some(vs) = query_matches.get_one::<String>("source") {
+                version_source = Some(vs.into());
+            }
+            consolidate(&config, version_source);
         }
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable
     }
