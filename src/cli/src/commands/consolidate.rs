@@ -64,13 +64,13 @@ pub fn consolidate(config: &Config, version_source: Option<PathBuf>) {
                 serde_json::to_string_pretty(&consolidated_vs).unwrap(),
             ) {
                 error(format!(
-                    "Failed to write consolidated version source to '{}': {}",
+                    "Failed to write consolidated version source to '{}': {}\n",
                     output_path.to_string_lossy().cyan(),
                     e
                 ));
             } else {
                 println!(
-                    "Consolidated version source written to '{}'",
+                    "Consolidated version source written to '{}'\n",
                     output_path.to_string_lossy().cyan()
                 );
             }
