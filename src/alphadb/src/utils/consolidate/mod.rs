@@ -15,3 +15,6 @@
 
 pub mod primary_key;
 pub mod column;
+pub mod version_source;
+
+pub use version_source::consolidate_version_source;

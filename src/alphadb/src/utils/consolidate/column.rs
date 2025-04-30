@@ -25,8 +25,6 @@ pub struct RenameData {
     pub rename_version: u32,
 }
 
-/// **Consolidate column**
-///
 /// Consolidate all column updates into a single version
 ///
 /// - version_list: List with versions from version_source
@@ -110,8 +108,6 @@ pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &
     return Ok(column);
 }
 
-/// **Get column renames**
-///
 /// Returns list of objects container column renames:
 ///
 /// {

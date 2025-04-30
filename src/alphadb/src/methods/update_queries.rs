@@ -19,8 +19,9 @@ use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
 use crate::utils::errors::{AlphaDBError, Get};
 use crate::utils::globals::CONFIG_TABLE_NAME;
-use crate::utils::json::{array_iter, get_json_boolean, get_json_int, get_json_string, get_object_keys, object_iter};
+use crate::utils::json::{array_iter, get_object_keys, object_iter};
 use crate::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
+use crate::utils::version_source::{get_version_array, parse_version_source_string};
 use mysql::*;
 use thiserror::Error;
 
@@ -95,25 +96,8 @@ pub fn update_queries(
     no_data: bool,
 ) -> Result<Vec<Query>, UpdateQueriesError> {
     let mut queries: Vec<Query> = Vec::new();
-    let version_source: serde_json::Value = match serde_json::from_str(&version_source) {
-        Ok(vs) => vs,
-        Err(_) => return Err(AlphaDBError {
-            message: "The provided version source can not be deserialized. Not valid JSON.".to_string(),
-            ..Default::default()
-        }.into()) 
-    };
-
-
-
-    let versions = match version_source["version"].as_array() {
-        Some(versions) => versions,
-        None => {
-            return Err(AlphaDBError {
-                message: "Version information data not complete. Must contain 'latest', 'version' and 'name'. Latest is the latest version number, version is a JSON object containing the database structure and name is the database template name.".to_string(),
-                ..Default::default()
-            }.into());
-        }
-    };
+    let version_source = parse_version_source_string(version_source)?;
+    let versions = get_version_array(&version_source);
 
     // Check if database is initialized
     let status = status(db_name, connection)?;

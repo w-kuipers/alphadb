@@ -22,3 +22,4 @@ pub mod check;
 pub mod errors;
 pub mod json;
 pub mod helpers;
+pub mod version_source;
