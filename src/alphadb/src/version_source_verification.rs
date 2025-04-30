@@ -17,6 +17,7 @@ use crate::utils::consolidate::primary_key::get_primary_key;
 use crate::utils::errors::{AlphaDBError, Get, ToVerificationIssue};
 use crate::utils::json::{get_json_object as adb_get_json_object, get_json_string as adb_get_json_string};
 use crate::utils::types::VerificationIssueLevel;
+use crate::utils::version_source::get_version_array;
 use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
 use crate::verification::json::{array_iter, exists_in_object, get_json_object, get_json_string, parse_version_number};
 use serde_json::Value;
@@ -32,6 +33,7 @@ pub struct VerificationIssue {
 pub struct VersionSourceVerification {
     version_source: Value,
     issues: Vec<VerificationIssue>,
+    version_list: Vec<Value>,
 }
 
 impl VersionSourceVerification {
@@ -48,6 +50,7 @@ impl VersionSourceVerification {
         };
 
         Ok(VersionSourceVerification {
+            version_list: get_version_array(&version_source)?.clone(),
             version_source,
             issues: Vec::new(),
         })
@@ -202,7 +205,7 @@ impl VersionSourceVerification {
                 // Without a valid version number it's not possible to determine the primary key
                 if version_number.is_some() {
                     let primary_key = get_primary_key(
-                        &self.version_source["version"],
+                        &self.version_list,
                         table,
                         version_number,
                         // Some(self.version_source["version"][version_index]["_id"].as_str().unwrap()),

@@ -97,7 +97,7 @@ pub fn update_queries(
 ) -> Result<Vec<Query>, UpdateQueriesError> {
     let mut queries: Vec<Query> = Vec::new();
     let version_source = parse_version_source_string(version_source)?;
-    let versions = get_version_array(&version_source);
+    let versions = get_version_array(&version_source)?;
 
     // Check if database is initialized
     let status = status(db_name, connection)?;

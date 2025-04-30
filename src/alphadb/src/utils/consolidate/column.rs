@@ -27,16 +27,26 @@ pub struct RenameData {
 
 /// Consolidate all column updates into a single version
 ///
-/// - version_list: List with versions from version_source
-/// - column_name: Name of the column to be handled
-/// - table_name: Name of the table the column is in
-pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &str) -> Result<Value, AlphaDBError> {
+/// This function processes a list of versions to determine the final state of a column,
+/// taking into account all modifications including creation, alterations, and renames.
+///
+/// # Arguments
+/// * `version_list` - List of versions from version source containing column modifications
+/// * `column_name` - Name of the column to be consolidated
+/// * `table_name` - Name of the table containing the column
+///
+/// # Returns
+/// * `Result<Value, AlphaDBError>` - JSON value containing the consolidated column properties
+///
+/// # Errors
+/// * Returns `AlphaDBError` if there are issues parsing version numbers or JSON values
+pub fn consolidate_column(version_list: &Vec<Value>, column_name: &str, table_name: &str) -> Result<Value, AlphaDBError> {
     let mut column = json!({});
     let mut version_column_name = column_name;
     let rename_data = get_column_renames(version_list, column_name, table_name, "DESC")?;
     let version_list_cloned = version_list.clone();
 
-    for version in version_list_cloned.as_array().unwrap() {
+    for version in version_list_cloned {
         let _v = parse_version_number(get_json_string(&version["_id"])?)?;
 
         // If the column is renamed, get hystorical column name for current version
@@ -108,7 +118,7 @@ pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &
     return Ok(column);
 }
 
-/// Returns list of objects container column renames:
+/// Returns list of objects containing column renames:
 ///
 /// {
 ///     "old_name": Column name before renaming,
@@ -129,7 +139,7 @@ pub fn consolidate_column(version_list: &Value, column_name: &str, table_name: &
 ///
 /// # Errors
 /// * Returns `AlphaDBError` if order is not "ASC" or "DESC"
-pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &str, order: &str) -> Result<Vec<RenameData>, AlphaDBError> {
+pub fn get_column_renames(version_list: &Vec<Value>, column_name: &str, table_name: &str, order: &str) -> Result<Vec<RenameData>, AlphaDBError> {
     let mut rename_data: Vec<RenameData> = Vec::new();
 
     let mut version_loop = |version: &Value| -> Result<bool, AlphaDBError> {
@@ -199,13 +209,13 @@ pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &
     };
 
     if order == "ASC" {
-        for version in version_list.as_array().unwrap().into_iter() {
+        for version in version_list {
             if version_loop(version)? {
                 break;
             }
         }
     } else if order == "DESC" {
-        for version in version_list.as_array().unwrap().into_iter().rev() {
+        for version in version_list.iter().rev() {
             if version_loop(version)? {
                 break;
             }
@@ -222,52 +232,58 @@ pub fn get_column_renames(version_list: &Value, column_name: &str, table_name: &
 
 #[cfg(test)]
 mod consolidate_column_tests {
+    use crate::utils::version_source::get_version_array;
+
     use super::consolidate_column;
     use serde_json::json;
 
     #[test]
     fn remove_recreate() {
-        let versions = json!([
+        let versions = json!({"name": "test", "version": [
             {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
             {"_id": "0.0.2", "altertable": {"table": {"modifycolumn": {"col": {"recreate": false, "unique": true}}}}},
-        ]);
+        ]});
+        // let versions = json!([
+        //     {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+        //     {"_id": "0.0.2", "altertable": {"table": {"modifycolumn": {"col": {"recreate": false, "unique": true}}}}},
+        // ]);
 
         let result = json!({"type": "VARCHAR", "length": 200, "unique": true});
-        assert_eq!(consolidate_column(&versions, "col", "table").unwrap(), result);
+        assert_eq!(consolidate_column(get_version_array(&versions).unwrap(), "col", "table").unwrap(), result);
     }
 
     #[test]
     fn consolidate() {
-        let versions = json!([
+        let versions = json!({"name": "test", "version": [
             {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}, "col2": {"type": "TEXT", "length": 9000}}}},
             {"_id": "0.0.2", "altertable": {"table": {"modifycolumn": {"col": {"recreate": false, "unique": true}}}}},
             {"_id": "0.0.5", "altertable": {"table": {"modifycolumn": {"col": {"recreate": false, "null": true, "length": 240}, "col2": {"type": "TEXT", "length": 200}}}}},
-        ]);
+        ]});
 
         let result = json!({"type": "VARCHAR", "length": 240, "unique": true, "null": true});
-        assert_eq!(consolidate_column(&versions, "col", "table").unwrap(), result);
+        assert_eq!(consolidate_column(get_version_array(&versions).unwrap(), "col", "table").unwrap(), result);
     }
 
     #[test]
     fn rename_single_column() {
-        let versions = json!([
+        let versions = json!({"name": "test", "version": [
             {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}, "col2": {"type": "TEXT", "length": 200}}}},
             {"_id": "0.0.2", "altertable": {"table": {"renamecolumn": {"col": "renamed"}}}},
             {"_id": "0.0.3", "altertable": {"table": {"modifycolumn": {"col": {"recreate": false, "unique": true}}}}},// Should be ignored because uses old column name
             {"_id": "0.0.4", "altertable": {"table": {"modifycolumn": {"renamed": {"recreate": false, "null": true}, "col2": {"type": "TEXT", "length": 935}}}}},
-        ]);
+        ]});
 
         let result = json!({"type": "VARCHAR", "length": 200, "null": true});
-        assert_eq!(consolidate_column(&versions, "renamed", "table").unwrap(), result);
+        assert_eq!(consolidate_column(get_version_array(&versions).unwrap(), "renamed", "table").unwrap(), result);
 
         // Don't break on column that has not been renamed
         let result_col2 = json!({"type": "TEXT", "length": 935});
-        assert_eq!(consolidate_column(&versions, "col2", "table").unwrap(), result_col2);
+        assert_eq!(consolidate_column(get_version_array(&versions).unwrap(), "col2", "table").unwrap(), result_col2);
     }
 
     #[test]
     fn rename_multiple_columns() {
-        let versions = json!([
+        let versions = json!({"name": "test", "version": [
             {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
             {"_id": "0.0.2", "altertable": {"table": {"renamecolumn": {"col": "renamed"}}}},
             {"_id": "0.0.3", "altertable": {"table": {"modifycolumn": {"col": {"recreate": false, "unique": true, "length": 7000}}}}}, // Should be ignored because uses old column name
@@ -276,23 +292,23 @@ mod consolidate_column_tests {
             {"_id": "0.0.6", "altertable": {"table": {"modifycolumn": {"rerenamed": {"recreate": false, "unique": false}}}}},
             {"_id": "0.0.7", "altertable": {"table": {"renamecolumn": {"rerenamed": "multiplerenamed"}}}},
             {"_id": "0.0.8", "altertable": {"table": {"modifycolumn": {"multiplerenamed": {"recreate": false, "length": 2300}}}}},
-        ]);
+        ]});
 
         let result = json!({"type": "VARCHAR", "length": 2300, "null": true, "unique": false});
-        assert_eq!(consolidate_column(&versions, "multiplerenamed", "table").unwrap(), result);
+        assert_eq!(consolidate_column(get_version_array(&versions).unwrap(), "multiplerenamed", "table").unwrap(), result);
     }
 
     #[test]
     fn modify_recreate() {
-        let versions = json!([
+        let versions = json!({"name": "test", "version": [
             {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
             {"_id": "0.0.2", "altertable": {"table": {"modifycolumn": {"col": {"length": 300}}}}},
-        ]);
+        ]});
 
         let result_recreate = json!({"length": 300});
-        assert_eq!(consolidate_column(&versions, "col", "table").unwrap(), result_recreate);
+        assert_eq!(consolidate_column(get_version_array(&versions).unwrap(), "col", "table").unwrap(), result_recreate);
 
-        let versions_no_recreate = json!([
+        let versions_no_recreate = json!({"name": "test", "version": [
             {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
             {
                 "_id": "0.0.2",
@@ -307,22 +323,27 @@ mod consolidate_column_tests {
                     }
                 },
             },
-        ]);
+        ]});
 
         let result_no_recreate = json!({"type": "VARCHAR", "length": 300});
-        assert_eq!(consolidate_column(&versions_no_recreate, "col", "table").unwrap(), result_no_recreate);
+        assert_eq!(
+            consolidate_column(get_version_array(&versions_no_recreate).unwrap(), "col", "table").unwrap(),
+            result_no_recreate
+        );
     }
 }
 
 #[cfg(test)]
 mod get_column_renames_tests {
+    use crate::utils::version_source::get_version_array;
+
     use super::get_column_renames;
     use super::RenameData;
     use serde_json::json;
 
     #[test]
     fn desc() {
-        let versions = json!([
+        let versions = json!({"name": "test", "version": [
             {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
             {"_id": "0.0.2", "altertable": {"table": {"renamecolumn": {"col": "renamed"}}}},
             {"_id": "0.0.3", "altertable": {"table": {"modifycolumn": {"col": {"recreate": true, "unique": true, "length": 7000}}}}},  // Should be ignored because uses old column name
@@ -331,10 +352,10 @@ mod get_column_renames_tests {
             {"_id": "0.0.6", "altertable": {"table": {"modifycolumn": {"rerenamed": {"recreate": true, "unique": true}}}}},
             {"_id": "0.0.7", "altertable": {"table": {"renamecolumn": {"rerenamed": "multiplerenamed"}}}},
             {"_id": "0.0.8", "altertable": {"table": {"modifycolumn": {"multiplerenamed": {"recreate": true, "length": 2300}}}}},
-        ]);
+        ]});
 
         assert_eq!(
-            get_column_renames(&versions, "multiplerenamed", "table", "DESC").unwrap(),
+            get_column_renames(get_version_array(&versions).unwrap(), "multiplerenamed", "table", "DESC").unwrap(),
             [
                 RenameData {
                     new_name: "multiplerenamed".to_string(),
@@ -357,7 +378,7 @@ mod get_column_renames_tests {
 
     #[test]
     fn asc() {
-        let versions = json!([
+        let versions = json!({"name": "test", "version": [
             {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
             {"_id": "0.0.2", "altertable": {"table": {"renamecolumn": {"col": "renamed"}}}},
             {"_id": "0.0.3", "altertable": {"table": {"modifycolumn": {"col": {"recreate": true, "unique": true, "length": 7000}}}}},  // Should be ignored because uses old column name
@@ -366,10 +387,10 @@ mod get_column_renames_tests {
             {"_id": "0.0.6", "altertable": {"table": {"modifycolumn": {"rerenamed": {"recreate": true, "unique": true}}}}},
             {"_id": "0.0.7", "altertable": {"table": {"renamecolumn": {"rerenamed": "multiplerenamed"}}}},
             {"_id": "0.0.8", "altertable": {"table": {"modifycolumn": {"multiplerenamed": {"recreate": true, "length": 2300}}}}},
-        ]);
+        ]});
 
         assert_eq!(
-            get_column_renames(&versions, "col", "table", "ASC").unwrap(),
+            get_column_renames(get_version_array(&versions).unwrap(), "col", "table", "ASC").unwrap(),
             [
                 RenameData {
                     new_name: "renamed".to_string(),

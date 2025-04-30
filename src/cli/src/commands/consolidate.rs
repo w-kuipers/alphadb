@@ -43,5 +43,12 @@ pub fn consolidate(config: &Config, version_source: Option<PathBuf>) {
         }
     };
 
-    consolidate_version_source(vs);
+    match consolidate_version_source(vs) {
+        Ok(_) => {
+            println!("consolidated.");
+        }
+        Err(e) => {
+            error(e.to_string());
+        }
+    }
 }

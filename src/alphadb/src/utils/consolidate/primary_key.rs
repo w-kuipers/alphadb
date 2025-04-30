@@ -25,10 +25,10 @@ use serde_json::Value;
 /// - version_list: List with versions from version_source
 /// - table_name: Name of the table to be created
 /// - before_version: The version before which the primary key was defined
-pub fn get_primary_key<'a>(version_list: &'a Value, table_name: &str, before_version: Option<&str>) -> Result<Option<&'a str>, AlphaDBError> {
+pub fn get_primary_key<'a>(version_list: &'a Vec<Value>, table_name: &str, before_version: Option<&str>) -> Result<Option<&'a str>, AlphaDBError> {
     let mut primary_key: Option<&str> = None;
 
-    for version in version_list.as_array().unwrap() {
+    for version in version_list {
         // Skip if version is after or equel to before_version
         if let Some(before_version) = before_version {
             if parse_version_number(before_version)? <= parse_version_number(get_json_string(&version["_id"])?)? {
@@ -77,25 +77,27 @@ pub fn get_primary_key<'a>(version_list: &'a Value, table_name: &str, before_ver
 
 #[cfg(test)]
 mod get_primary_key_tests {
+    use crate::utils::version_source::get_version_array;
+
     use super::get_primary_key;
     use serde_json::json;
 
     #[test]
     fn created() {
-        let versions = json!([{
+        let versions = json!({"name": "test", "version": [{
             "_id": "0.0.1",
             "createtable": {
                 "table": {
                     "primary_key": "col"
                 }
             }
-        }]);
-        assert_eq!(get_primary_key(&versions, &"table".to_string(), None).unwrap(), Some("col"));
+        }]});
+        assert_eq!(get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(), Some("col"));
     }
 
     #[test]
     fn altered() {
-        let versions = json!([{
+        let versions = json!({"name": "test", "version": [{
             "_id": "0.0.1",
             "createtable": {
                 "table": {
@@ -110,13 +112,13 @@ mod get_primary_key_tests {
                     "primary_key": "other_col"
                 }
             }
-        }]);
-        assert_eq!(get_primary_key(&versions, &"table".to_string(), None).unwrap(), Some("other_col"));
+        }]});
+        assert_eq!(get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(), Some("other_col"));
     }
 
     #[test]
     fn deleted() {
-        let versions = json!([{
+        let versions = json!({"name": "test", "version": [{
             "_id": "0.0.1",
             "createtable": {
                 "table": {
@@ -131,7 +133,7 @@ mod get_primary_key_tests {
                     "primary_key": null
                 }
             }
-        }]);
-        assert_eq!(get_primary_key(&versions, &"table".to_string(), None).unwrap(), None)
+        }]});
+        assert_eq!(get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(), None)
     }
 }
