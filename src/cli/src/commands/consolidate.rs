@@ -17,7 +17,9 @@ use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
 use crate::utils::{error, title};
 use alphadb::utils::consolidate::consolidate_version_source;
+use chrono::Local;
 use colored::Colorize;
+use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
 
@@ -44,8 +46,34 @@ pub fn consolidate(config: &Config, version_source: Option<PathBuf>) {
     };
 
     match consolidate_version_source(vs) {
-        Ok(_) => {
-            println!("consolidated.");
+        Ok(consolidated_vs) => {
+            // Create output filepath for the consolidated source
+            let timestamp = Local::now().format("%y%m%d_%H%M").to_string();
+            let output_filename = format!(
+                "{}_{}",
+                vs_file.file_stem().unwrap().to_string_lossy(),
+                timestamp
+            );
+            let output_path = vs_file
+                .with_file_name(output_filename)
+                .with_extension("json");
+
+            // Write to JSON file
+            if let Err(e) = fs::write(
+                &output_path,
+                serde_json::to_string_pretty(&consolidated_vs).unwrap(),
+            ) {
+                error(format!(
+                    "Failed to write consolidated version source to '{}': {}",
+                    output_path.to_string_lossy().cyan(),
+                    e
+                ));
+            } else {
+                println!(
+                    "Consolidated version source written to '{}'",
+                    output_path.to_string_lossy().cyan()
+                );
+            }
         }
         Err(e) => {
             error(e.to_string());
