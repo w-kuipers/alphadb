@@ -3,8 +3,7 @@ use serde_json::{json, Value};
 use crate::{
     prelude::AlphaDBError,
     utils::{
-        json::get_object_keys,
-        version_source::{get_version_array, parse_version_source_string},
+        json::get_object_keys, version_number::get_latest_version, version_source::{get_version_array, parse_version_source_string}
     },
 };
 
@@ -48,17 +47,19 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
     }
 
     // Consolidate tables
-    let mut consolidated_versions: Vec<Value> = Vec::new();
+    let mut consolidated_versions = json!({});
     for table in tables {
         let consolidated_table = consolidate_table(versions, table.as_str())?;
-        consolidated_versions.push(json!({
-            table: consolidated_table
-        }));
+        consolidated_versions[table] = consolidated_table;
     }
 
+    let latest_version = get_latest_version(&versions)?;
     let consolidated_version_source = json!({
         "name": version_source["name"],
-        "version": consolidated_versions
+        "version": [{
+            "_id": latest_version,
+            "createtable": consolidated_versions
+        }]
     });
 
     Ok(consolidated_version_source)
