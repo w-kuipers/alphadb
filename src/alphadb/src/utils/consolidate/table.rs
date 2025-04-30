@@ -55,17 +55,18 @@ pub fn consolidate_table(version_list: &Vec<Value>, table_name: &str) -> Result<
     }
 
     for column in columns {
+        // If the column is renamed, get the final name
+        let renames = get_column_renames(version_list, column.as_str(), table_name, "ASC")?;
+        let last_rename = renames.iter().last();
+        let column = match last_rename {
+            Some(c) => c.new_name.clone(),
+            None => column,
+        };
+
         let consolidated_column = consolidate_column(version_list, column.as_str(), table_name)?;
 
-        let renames = get_column_renames(version_list, column.as_str(), table_name, "ASC")?;
-
         if !get_json_object(&consolidated_column)?.is_empty() {
-            if renames.is_empty() {
-                table[column] = consolidated_column;
-            } else {
-                let last = renames.iter().last().unwrap();
-                table[last.new_name.clone()] = consolidated_column;
-            }
+            table[column] = consolidated_column;
         }
     }
 

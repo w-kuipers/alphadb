@@ -139,7 +139,7 @@ mod consolidate_version_source_tests {
                 {"_id": "0.0.1", "createtable": {"table1": {"col1": {"type": "VARCHAR", "length": 200}}}},
                 {"_id": "0.0.2", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": false, "unique": true}}}}},
                 {"_id": "0.0.3", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": false, "null": true}}}}},
-                {"_id": "0.0.4", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": true, "type": "INTEGER"}}}}},
+                {"_id": "0.0.4", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": false, "type": "INTEGER"}}}}},
                 {"_id": "0.0.5", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": false, "unique": false}}}}},
             ]
         }).to_string();
@@ -150,7 +150,7 @@ mod consolidate_version_source_tests {
                 "_id": "0.0.5",
                 "createtable": {
                     "table1": {
-                        "col1": {"type": "INTEGER", "null": true, "unique": false}
+                        "col1": {"type": "INTEGER", "length": 200, "null": true, "unique": false}
                     }
                 }
             }]
