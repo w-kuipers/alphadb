@@ -5,6 +5,19 @@ use crate::{
     utils::json::{array_iter, exists_in_object, object_iter},
 };
 
+/// Consolidate default data from multiple versions into a single JSON object
+///
+/// This function takes a list of versions and merges their default data into a single JSON object.
+/// For each table in the default data, it combines the data from all versions into a single array.
+///
+/// # Arguments
+/// * `version_list` - A vector of JSON values representing different versions
+///
+/// # Returns
+/// * `Result<Value, AlphaDBError>` - A JSON object containing the consolidated default data if successful
+///
+/// # Errors
+/// * Returns `AlphaDBError` if there are issues accessing or processing the JSON data
 pub fn consolidate_default_data(version_list: &Vec<Value>) -> Result<Value, AlphaDBError> {
     let mut default_data = json!({});
 

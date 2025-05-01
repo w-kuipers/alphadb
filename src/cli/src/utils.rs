@@ -23,10 +23,10 @@ use std::string::FromUtf8Error;
 use thiserror::Error;
 use std::process;
 
-/// Print function title and current
-/// database connection to the commandline
+/// Print function title and current database connection to the commandline
 ///
-/// - title: Title that will be displayed
+/// # Arguments
+/// * `title` - Title that will be displayed
 pub fn title(title: &str) {
     if let Some(conn) = get_active_connection() {
         println!(
@@ -43,7 +43,10 @@ pub fn title(title: &str) {
     println!("\n{} {} {}\n", "-----".green(), title, "-----".green());
 }
 
-/// Function to abort program
+/// Abort the program with a message
+///
+/// This function prints an "Aborted" message in red and exits the program
+/// with status code 0.
 pub fn abort() {
     println!("{}", "\nAborted.".red());
     process::exit(0);
@@ -72,12 +75,28 @@ macro_rules! error {
             let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
             let end = error_string.rfind("}").unwrap_or(error_string.len());
             let clean_error = &error_string[start..end].trim();
-            eprintln!("\n{}\nLocation: {}:{}:{}\n", clean_error.red(), file!(), line!(), column!());
+            eprintln!("\n{}\n", clean_error.red());
             process::exit(1);
         }
     };
 }
 
+/// Encrypt a password using AES-256-GCM
+///
+/// This function encrypts a password using AES-256-GCM encryption with a provided secret.
+/// The encrypted password is returned as a base64 encoded string containing both the
+/// ciphertext and nonce.
+///
+/// # Arguments
+/// * `password` - The password to encrypt
+/// * `secret` - The base64 encoded secret key
+///
+/// # Returns
+/// * `String` - Base64 encoded string containing ciphertext and nonce
+///
+/// # Panics
+/// * Panics if the secret cannot be decoded
+/// * Panics if encryption fails
 pub fn encrypt_password(password: &str, secret: String) -> String {
     let secret_decoded = general_purpose::STANDARD.decode(secret);
     if secret_decoded.is_err() {
@@ -122,6 +141,23 @@ impl From<aes_gcm::Error> for DecryptionReturnError {
     }
 }
 
+/// Decrypt a password using AES-256-GCM
+///
+/// This function decrypts a password that was encrypted using AES-256-GCM encryption.
+/// The input string should be a base64 encoded string containing both the ciphertext
+/// and nonce, separated by a dot.
+///
+/// # Arguments
+/// * `password` - The encrypted password string (ciphertext.nonce)
+/// * `secret` - The base64 encoded secret key
+///
+/// # Returns
+/// * `Result<String, DecryptionReturnError>` - The decrypted password if successful
+///
+/// # Errors
+/// * Returns `DecryptionReturnError` if decryption fails
+/// * Returns `DecryptionReturnError` if the password format is invalid
+/// * Returns `DecryptionReturnError` if UTF-8 conversion fails
 pub fn decrypt_password(password: String, secret: String) -> Result<String, DecryptionReturnError> {
     let secret_decoded = general_purpose::STANDARD.decode(secret);
     if secret_decoded.is_err() {
@@ -149,15 +185,6 @@ pub fn decrypt_password(password: String, secret: String) -> Result<String, Decr
         Nonce::from_slice(&nonce.unwrap()),
         ciphertext.unwrap().as_slice(),
     )?;
-    // if decrypted_bytes.is_err() {
-    //     error("Unable to decrypt password".to_string());
-    // }
 
-    // Convert it back to a string
-    let decrypted_password = String::from_utf8(decrypted_bytes)?;
-    // if decrypted_password.is_err() {
-    //     error("Unable to decrypt password".to_string());
-    // }
-
-    return Ok(decrypted_password);
+    Ok(String::from_utf8(decrypted_bytes)?)
 }

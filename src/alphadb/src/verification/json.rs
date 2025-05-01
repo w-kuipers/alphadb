@@ -22,8 +22,16 @@ use crate::utils::json::{get_json_string as adb_get_json_string, object_iter as 
 use crate::utils::version_number::parse_version_number as adb_parse_version_number;
 use crate::version_source_verification::VerificationIssue;
 
-/// Verify wether a key exists in serde_json::Value and catch potential errors as Verification
-/// issue
+/// Verify whether a key exists in serde_json::Value and catch potential errors as Verification issue
+///
+/// # Arguments
+/// * `object` - The JSON value to check
+/// * `key` - The key to check for existence
+/// * `issues` - Vector to store any verification issues
+/// * `version_trace` - Trace of version numbers for error reporting
+///
+/// # Returns
+/// * `bool` - True if key exists, false otherwise
 pub fn exists_in_object(object: &serde_json::Value, key: &str, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> bool {
     match adb_exists_in_object(object, key) {
         Ok(v) => v,
@@ -35,6 +43,15 @@ pub fn exists_in_object(object: &serde_json::Value, key: &str, issues: &mut Vec<
     }
 }
 
+/// Get JSON object with error handling for verification
+///
+/// # Arguments
+/// * `object` - The JSON value to get object from
+/// * `issues` - Vector to store any verification issues
+/// * `version_trace` - Trace of version numbers for error reporting
+///
+/// # Returns
+/// * `Map<String, Value>` - The JSON object if successful, empty map otherwise
 pub fn get_json_object(object: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> Map<String, Value> {
     match adb_get_json_object(object) {
         Ok(v) => v.clone(),
@@ -50,11 +67,11 @@ pub fn get_json_object(object: &serde_json::Value, issues: &mut Vec<Verification
 ///
 /// # Arguments
 /// * `string` - The JSON value to get string from
-/// * `issues` - Vector to store verification issues
-/// * `version_trace` - Version trace for error reporting
+/// * `issues` - Vector to store any verification issues
+/// * `version_trace` - Trace of version numbers for error reporting
 ///
 /// # Returns
-/// * `&str` - String value or empty string if error occurs
+/// * `&'a str` - The string value if successful, empty string otherwise
 pub fn get_json_string<'a>(string: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> &'a str {
     match adb_get_json_string(string) {
         Ok(v) => v,
@@ -70,18 +87,18 @@ pub fn get_json_string<'a>(string: &'a serde_json::Value, issues: &mut Vec<Verif
 ///
 /// # Arguments
 /// * `object` - The JSON value to check
-/// * `issues` - Vector to store verification issues
-/// * `version_trace` - Version trace for error reporting
+/// * `issues` - Vector to store any verification issues
+/// * `version_trace` - Trace of version numbers for error reporting
 ///
 /// # Returns
-/// * `bool` - True if object is empty, false if error occurs
+/// * `bool` - True if object is empty, false otherwise
 pub fn object_is_empty(object: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> bool {
     match adb_get_json_object(object) {
         Ok(v) => v.is_empty(),
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return false;
+            return true;
         }
     }
 }
@@ -90,14 +107,14 @@ pub fn object_is_empty(object: &serde_json::Value, issues: &mut Vec<Verification
 ///
 /// # Arguments
 /// * `array` - The JSON value to get array from
-/// * `issues` - Vector to store verification issues
-/// * `version_trace` - Version trace for error reporting
+/// * `issues` - Vector to store any verification issues
+/// * `version_trace` - Trace of version numbers for error reporting
 ///
 /// # Returns
-/// * `Vec<serde_json::Value>` - Array values or empty vector if error occurs
+/// * `Vec<serde_json::Value>` - Vector of array values if successful, empty vector otherwise
 pub fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> Vec<serde_json::Value> {
     match adb_array_iter(array) {
-        Ok(v) => v.to_vec(),
+        Ok(v) => v.clone(),
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
@@ -109,21 +126,19 @@ pub fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>
 /// Get object iterator with error handling for verification
 ///
 /// # Arguments
-/// * `object` - The JSON value to get object from
-/// * `issues` - Vector to store verification issues
-/// * `version_trace` - Version trace for error reporting
+/// * `object` - The JSON value to get iterator from
+/// * `issues` - Vector to store any verification issues
+/// * `version_trace` - Trace of version numbers for error reporting
 ///
 /// # Returns
-/// * `serde_json::map::Keys<'a>` - Object keys iterator or empty map keys if error occurs
+/// * `serde_json::map::Keys<'a>` - Iterator over object keys if successful, empty iterator otherwise
 pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> serde_json::map::Keys<'a> {
-    static EMPTY_MAP: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock::new(|| serde_json::Map::new());
-
     match adb_object_iter(object) {
         Ok(v) => v,
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return EMPTY_MAP.keys();
+            return Map::new().keys();
         }
     }
 }
@@ -132,18 +147,18 @@ pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<Verificat
 ///
 /// # Arguments
 /// * `version_number` - The version number string to parse
-/// * `issues` - Vector to store verification issues
-/// * `version_trace` - Version trace for error reporting
+/// * `issues` - Vector to store any verification issues
+/// * `version_trace` - Trace of version numbers for error reporting
 ///
 /// # Returns
-/// * `i32` - Parsed version number or -1 if error occurs
+/// * `i32` - Parsed version number if successful, 0 otherwise
 pub fn parse_version_number(version_number: &str, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> i32 {
     match adb_parse_version_number(version_number) {
-        Ok(vn) => vn as i32,
+        Ok(v) => v as i32,
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return -1;
+            return 0;
         }
     }
 }

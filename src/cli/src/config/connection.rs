@@ -49,11 +49,21 @@ pub struct Session {
     pub port: u16,
 }
 
-/// Add a new database connection by promting the user
-/// for the credentials and saving it to the sessions config file
+/// Add a new database connection by prompting the user for credentials
 ///
-/// - activate: Set the connection as active after creating it
-/// - config: The full user configuration
+/// This function prompts the user for database connection details, tests the connection,
+/// and saves it to the sessions config file.
+///
+/// # Arguments
+/// * `activate` - Whether to set the connection as active after creating it
+/// * `config` - The full user configuration
+///
+/// # Returns
+/// * `String` - The label assigned to the new connection
+///
+/// # Panics
+/// * Panics if unable to connect to the database with provided credentials
+/// * Panics if unable to write to the config file
 pub fn new_connection(activate: bool, config: &Config) -> String {
     let home = get_home();
 
@@ -168,8 +178,13 @@ pub fn new_connection(activate: bool, config: &Config) -> String {
     return label;
 }
 
-/// Get all the saved connections from
-/// sessions.toml in user config
+/// Get all saved database connections
+///
+/// This function retrieves all saved connections from the sessions config file.
+/// The active connection, if any, will be marked with "(active)" in green.
+///
+/// # Returns
+/// * `Option<Vec<String>>` - List of connection labels if any exist, None otherwise
 pub fn get_connections() -> Option<Vec<String>> {
     let sessions_content = get_config_content::<DbSessions>();
     if sessions_content.is_none() {
@@ -198,8 +213,10 @@ pub struct ActiveConnection {
     pub connection: Session,
 }
 
-/// Get the currently active connection from
-/// sessions.toml in user config
+/// Get the currently active database connection
+///
+/// # Returns
+/// * `Option<ActiveConnection>` - The active connection if one exists, None otherwise
 pub fn get_active_connection() -> Option<ActiveConnection> {
     let sessions_content = get_config_content::<DbSessions>();
     if sessions_content.is_none() {
@@ -207,60 +224,63 @@ pub fn get_active_connection() -> Option<ActiveConnection> {
     }
 
     let sessions_content = sessions_content.unwrap();
-
-    if let Some(active_session) = sessions_content.setup.active_session {
-        if let Some(connection) = sessions_content.sessions.get(&active_session) {
-            return Some(ActiveConnection {
-                label: active_session,
-                connection: connection.clone(),
-            });
-        } else {
-            return None;
-        }
-    } else {
+    if sessions_content.setup.active_session.is_none() {
         return None;
-    };
+    }
+
+    let active_session = sessions_content.setup.active_session.unwrap();
+    let connection = sessions_content.sessions.get(&active_session);
+    if connection.is_none() {
+        return None;
+    }
+
+    return Some(ActiveConnection {
+        label: active_session,
+        connection: connection.unwrap().clone(),
+    });
 }
 
-/// Set setup.active_connection to a connection label
-/// in sessions.toml in user config
+/// Set a connection as the active database connection
 ///
-/// - label: Label for the connection to be removed
+/// # Arguments
+/// * `label` - The label of the connection to set as active
+///
+/// # Panics
+/// * Panics if unable to write to the config file
 pub fn set_active_connection(label: &String) {
     let sessions_content = get_config_content::<DbSessions>();
     if sessions_content.is_none() {
-        error!("There are no saved connections.".to_string());
+        error!("No sessions found".to_string());
     }
 
     let mut sessions_content = sessions_content.unwrap();
-    if sessions_content.sessions.get(label).is_none() {
-        error!(format!(
-            "Connection with label {} does not exist.",
-            label.blue()
-        ));
-    }
+    let _ = sessions_content.setup.active_session.insert(label.to_string());
 
-    let _ = sessions_content
-        .setup
-        .active_session
-        .insert(label.to_string());
-    write_config::<DbSessions>(sessions_content);
+    write_config(sessions_content);
 }
 
-/// Remove connection credentials from
-/// the sessions.toml file in user config
+/// Remove a saved database connection
 ///
-/// - label: Label for the connection to be removed
+/// # Arguments
+/// * `label` - The label of the connection to remove
+///
+/// # Panics
+/// * Panics if no sessions exist
+/// * Panics if unable to write to the config file
 pub fn remove_connection(label: String) {
-    let sessions = get_config_content::<DbSessions>();
-
-    // If sessions.toml does not exist, no error is thrown
-    // This is debatable
-    if sessions.is_none() {
-        return;
+    let sessions_content = get_config_content::<DbSessions>();
+    if sessions_content.is_none() {
+        error!("No sessions found".to_string());
     }
 
-    let mut sessions = sessions.unwrap();
-    sessions.sessions.remove(&label);
-    write_config::<DbSessions>(sessions);
+    let mut sessions_content = sessions_content.unwrap();
+    sessions_content.sessions.remove(&label);
+
+    if let Some(active_session) = sessions_content.setup.active_session.clone() {
+        if active_session == label {
+            sessions_content.setup.active_session = None;
+        }
+    }
+
+    write_config(sessions_content);
 }
