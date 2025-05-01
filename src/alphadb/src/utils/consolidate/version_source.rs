@@ -7,7 +7,7 @@ use crate::{
     },
 };
 
-use super::table::consolidate_table;
+use super::{default_data::consolidate_default_data, table::consolidate_table};
 
 /// Consolidate a version source by combining all table definitions across versions
 ///
@@ -52,6 +52,9 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
         let consolidated_table = consolidate_table(versions, table.as_str())?;
         consolidated_versions[table] = consolidated_table;
     }
+
+    // Consolidate default data
+    let default_data = consolidate_default_data(versions)?;
 
     let latest_version = get_latest_version(&versions)?;
     let consolidated_version_source = json!({

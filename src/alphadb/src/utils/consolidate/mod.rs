@@ -17,5 +17,6 @@ pub mod primary_key;
 pub mod column;
 pub mod table;
 pub mod version_source;
+pub mod default_data;
 
 pub use version_source::consolidate_version_source;
