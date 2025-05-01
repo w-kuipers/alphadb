@@ -15,7 +15,7 @@
 
 use crate::config::connection::DbSessions;
 use crate::config::version_source::VersionSources;
-use crate::utils::error;
+use crate::error;
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use home::home_dir;
@@ -55,7 +55,7 @@ pub fn get_home() -> std::path::PathBuf {
     let home = home_dir();
 
     if home_dir().is_none() {
-        error("Unable to get user home directory".to_string());
+        error!("Unable to get user home directory".to_string());
     }
 
     return home.unwrap();
@@ -90,10 +90,10 @@ pub fn init_config() -> () {
         let _ = fs::File::create(&config_file);
         let toml_string = toml::to_string(&config);
         if toml_string.is_err() {
-            error("Error occured when initializing config".to_string())
+            error!("Error occured when initializing config".to_string())
         }
         if fs::write(config_file, toml_string.unwrap()).is_err() {
-            error("Error occured when initializing config".to_string())
+            error!("Error occured when initializing config".to_string())
         };
     }
 }
@@ -107,7 +107,7 @@ where
     let config_content_raw = match fs::read_to_string(&config_file) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "Unable to read config file: '{}'",
                 config_file.display().to_string().blue()
             ));
@@ -121,7 +121,7 @@ where
     let config_content: T = match toml::from_str(&config_content_raw) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "Unable to deserialize config file: '{}' is it corrupted?",
                 config_file.display().to_string().blue(),
             ));
@@ -150,7 +150,7 @@ fn get_config_path_from_struct<T: 'static + Any>() -> PathBuf {
         return config_dir.join(CONFIG_FILE);
     }
 
-    error("An unexpected error occured".to_string());
+    error!("An unexpected error occured".to_string());
 }
 
 /// Read and parse a config file
@@ -171,7 +171,7 @@ where
     let config_content: T = match toml::from_str(&config_content_raw) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "Unable to deserialize config file: '{}' is it corrupted?",
                 config_file.display().to_string().blue(),
             ));
@@ -192,7 +192,7 @@ where
     let toml_string = match toml::to_string(&config) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "An unexpected error occured. Unable to encode generated config."
             ));
         }
@@ -203,7 +203,7 @@ where
     match fs::write(&config_file, toml_string) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "Unable to write to config file: '{}'",
                 config_file.display().to_string().blue(),
             ));

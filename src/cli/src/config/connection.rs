@@ -14,8 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::commands::connect::Connection;
-use crate::config::setup::{get_home, Config, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE, get_config_content};
-use crate::utils::{encrypt_password, error};
+use crate::config::setup::{
+    get_config_content, get_home, Config, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE,
+};
+use crate::error;
+use crate::utils::encrypt_password;
 use alphadb::AlphaDB;
 use colored::Colorize;
 use inquire::{required, CustomType, Password, Text};
@@ -46,7 +49,7 @@ pub struct Session {
     pub port: u16,
 }
 
-/// Add a new database connection by promting the user 
+/// Add a new database connection by promting the user
 /// for the credentials and saving it to the sessions config file
 ///
 /// - activate: Set the connection as active after creating it
@@ -104,7 +107,7 @@ pub fn new_connection(activate: bool, config: &Config) -> String {
     );
 
     if testconn.is_err() {
-        error(testconn.unwrap_err().to_string());
+        error!(testconn.unwrap_err().to_string());
     }
 
     println!(
@@ -145,7 +148,7 @@ pub fn new_connection(activate: bool, config: &Config) -> String {
     let toml_string = match toml::to_string(&file) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "An unexpected error occured. Unable to encode generated config."
             ));
         }
@@ -155,7 +158,7 @@ pub fn new_connection(activate: bool, config: &Config) -> String {
     match fs::write(&sessions_file, toml_string) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "Unable to write to config file: '{}'",
                 sessions_file.display().to_string().blue(),
             ));
@@ -195,7 +198,7 @@ pub struct ActiveConnection {
     pub connection: Session,
 }
 
-/// Get the currently active connection from 
+/// Get the currently active connection from
 /// sessions.toml in user config
 pub fn get_active_connection() -> Option<ActiveConnection> {
     let sessions_content = get_config_content::<DbSessions>();
@@ -209,10 +212,9 @@ pub fn get_active_connection() -> Option<ActiveConnection> {
         if let Some(connection) = sessions_content.sessions.get(&active_session) {
             return Some(ActiveConnection {
                 label: active_session,
-                connection: connection.clone()
+                connection: connection.clone(),
             });
-        }
-        else {
+        } else {
             return None;
         }
     } else {
@@ -227,21 +229,23 @@ pub fn get_active_connection() -> Option<ActiveConnection> {
 pub fn set_active_connection(label: &String) {
     let sessions_content = get_config_content::<DbSessions>();
     if sessions_content.is_none() {
-        error("There are no saved connections.".to_string());
+        error!("There are no saved connections.".to_string());
     }
 
     let mut sessions_content = sessions_content.unwrap();
     if sessions_content.sessions.get(label).is_none() {
-        error(format!(
+        error!(format!(
             "Connection with label {} does not exist.",
             label.blue()
         ));
     }
 
-    let _ = sessions_content.setup.active_session.insert(label.to_string());
+    let _ = sessions_content
+        .setup
+        .active_session
+        .insert(label.to_string());
     write_config::<DbSessions>(sessions_content);
 }
-
 
 /// Remove connection credentials from
 /// the sessions.toml file in user config

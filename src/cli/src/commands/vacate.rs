@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::config::connection::get_active_connection;
-use crate::utils::{error, title};
+use crate::{config::connection::get_active_connection, error};
+use crate::utils::title;
 use alphadb::AlphaDB;
 use colored::Colorize;
 use inquire::{ui::RenderConfig, Confirm};
@@ -37,7 +37,7 @@ pub fn vacate(db: &mut AlphaDB) {
     let conn = match get_active_connection() {
         Some(c) => c,
         None => {
-            error("An unexpected error occured".to_string());
+            error!("An unexpected error occured".to_string());
         }
     };
 
@@ -90,7 +90,7 @@ pub fn vacate(db: &mut AlphaDB) {
             }
         }
         Err(_) => {
-            error("An unexpected error occured".to_string());
+            error!("An unexpected error occured".to_string());
         }
     }
 }

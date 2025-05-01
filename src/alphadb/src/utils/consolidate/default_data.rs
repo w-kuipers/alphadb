@@ -14,7 +14,7 @@ pub fn consolidate_default_data(version_list: &Vec<Value>) -> Result<Value, Alph
                 default_data[table] = json!({});
 
                 for col in object_iter(&version["default_data"][table])? {
-                    default_data[table][col] = version["default_data"][table][col].clone();
+                    // default_data[table][col] = version["default_data"][table][col].clone();
                 }
             }
         }

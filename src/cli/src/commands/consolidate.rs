@@ -15,7 +15,8 @@
 
 use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
-use crate::utils::{error, title};
+use crate::error;
+use crate::utils::title;
 use alphadb::utils::consolidate::consolidate_version_source;
 use chrono::Local;
 use colored::Colorize;
@@ -31,14 +32,14 @@ pub fn consolidate(config: &Config, version_source: Option<PathBuf>) {
         Some(vs) => vs.to_path_buf(),
         None => match select_version_source(config) {
             Some(p) => p,
-            None => error("No version source was selected".to_string()),
+            None => error!("No version source was selected".to_string()),
         },
     };
 
     let vs = match fs::read_to_string(&vs_file) {
         Ok(f) => f,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "An error occured while opening the version source file at '{}'",
                 vs_file.to_string_lossy().cyan()
             ));
@@ -63,7 +64,7 @@ pub fn consolidate(config: &Config, version_source: Option<PathBuf>) {
                 &output_path,
                 serde_json::to_string_pretty(&consolidated_vs).unwrap(),
             ) {
-                error(format!(
+                error!(format!(
                     "Failed to write consolidated version source to '{}': {}\n",
                     output_path.to_string_lossy().cyan(),
                     e
@@ -76,7 +77,7 @@ pub fn consolidate(config: &Config, version_source: Option<PathBuf>) {
             }
         }
         Err(e) => {
-            error(e.to_string());
+            error!(e.to_string());
         }
     }
 }

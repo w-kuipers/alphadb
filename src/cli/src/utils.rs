@@ -50,39 +50,38 @@ pub fn abort() {
 }
 
 #[cfg(debug_assertions)]
-/// Print an error message to the
-/// command line and end the process
-///
-/// - error_string: The error message
-pub fn error(error_string: String) -> ! {
-    // Some error messages are still wrapped in their definition
-    let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
-    let end = error_string.rfind("}").unwrap_or(error_string.len());
-
-    let clean_error = &error_string[start..end].trim();
-    panic!("{clean_error}");
+#[macro_export]
+macro_rules! error {
+    ($error_string:expr) => {
+        {
+            let error_string = $error_string;
+            let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
+            let end = error_string.rfind("}").unwrap_or(error_string.len());
+            let clean_error = &error_string[start..end].trim();
+            panic!("{}\nLocation: {}:{}:{}", clean_error, file!(), line!(), column!());
+        }
+    };
 }
 
 #[cfg(not(debug_assertions))]
-/// Debug version for the above
-/// error function. Panics.
-///
-/// - error_string: The error message
-pub fn error(error_string: String) -> ! {
-    use std::process;
-    let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
-    let end = error_string.rfind("}").unwrap_or(error_string.len());
-
-    let clean_error = &error_string[start..end].trim();
-
-    eprintln!("\n{}\n", clean_error.red());
-    process::exit(1);
+#[macro_export]
+macro_rules! error {
+    ($error_string:expr) => {
+        {
+            let error_string = $error_string;
+            let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
+            let end = error_string.rfind("}").unwrap_or(error_string.len());
+            let clean_error = &error_string[start..end].trim();
+            eprintln!("\n{}\nLocation: {}:{}:{}\n", clean_error.red(), file!(), line!(), column!());
+            process::exit(1);
+        }
+    };
 }
 
 pub fn encrypt_password(password: &str, secret: String) -> String {
     let secret_decoded = general_purpose::STANDARD.decode(secret);
     if secret_decoded.is_err() {
-        error("Error decoding use secret".to_string());
+        error!("Error decoding use secret");
     }
     let secret_decoded = secret_decoded.unwrap();
 
@@ -97,14 +96,14 @@ pub fn encrypt_password(password: &str, secret: String) -> String {
         let ciphertext = cipher.unwrap().encrypt(nonce, password.as_bytes());
 
         if ciphertext.is_err() {
-            error("An unexpected error occured".to_string());
+            error!("An unexpected error occured");
         }
         let ciphertext_encoded = general_purpose::STANDARD.encode(ciphertext.unwrap());
         let nonce_encoded = general_purpose::STANDARD.encode(nonce_bytes);
 
         return format!("{}.{}", ciphertext_encoded, nonce_encoded);
     } else {
-        error("An unexpected error occured".to_string());
+        error!("An unexpected error occured");
     }
 }
 
@@ -126,13 +125,13 @@ impl From<aes_gcm::Error> for DecryptionReturnError {
 pub fn decrypt_password(password: String, secret: String) -> Result<String, DecryptionReturnError> {
     let secret_decoded = general_purpose::STANDARD.decode(secret);
     if secret_decoded.is_err() {
-        error("Error decoding use secret".to_string());
+        error!("Error decoding use secret");
     }
     let secret_decoded = secret_decoded.unwrap();
 
     let cipher = Aes256Gcm::new_from_slice(&secret_decoded);
     if cipher.is_err() {
-        error("Error decoding use secret".to_string());
+        error!("Error decoding use secret");
     }
     let cipher = cipher.unwrap();
 
@@ -142,7 +141,7 @@ pub fn decrypt_password(password: String, secret: String) -> Result<String, Decr
     let nonce = general_purpose::STANDARD.decode(password_split[1]);
 
     if nonce.is_err() || ciphertext.is_err() {
-        error("Unable to decode password".to_string());
+        error!("Unable to decode password");
     }
 
     // Decrypt the password
