@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::{error, title};
+use crate::{error, utils::title};
 use alphadb::AlphaDB;
 use colored::Colorize;
 
@@ -26,7 +26,7 @@ pub fn status(db: &mut AlphaDB) {
     let status = match db.status() {
         Ok(s) => s,
         Err(_) => {
-            error("Unable to retrieve database status".to_string());
+            error!("Unable to retrieve database status".to_string());
         }
     };
 

@@ -15,7 +15,8 @@
 use crate::config::setup::{
     get_config_content, get_home, Config, ALPHADB_DIR, CONFIG_DIR, SOURCES_FILE,
 };
-use crate::utils::{abort, error};
+use crate::error;
+use crate::utils::{abort};
 use colored::Colorize;
 use inquire::Select;
 use inquire::{CustomType, Text};
@@ -52,7 +53,7 @@ pub fn select_version_source(config: &Config) -> Option<PathBuf> {
                     abort();
                 }
 
-                error("An unexpected error occured".to_string());
+                error!("An unexpected error occured".to_string());
             }
         };
 
@@ -84,7 +85,7 @@ pub fn new_version_source(config: &Config) -> String {
     if vs_file.is_err() {
         // TODO better error messages for different situations (not exist, unable to read,
         // etc...)
-        error(format!(
+        error!(format!(
             "An error occured while opening the version source file at '{}'",
             version_source_path.to_string().cyan()
         ));
@@ -113,7 +114,7 @@ pub fn new_version_source(config: &Config) -> String {
     let toml_string = match toml::to_string(&file) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "An unexpected error occured. Unable to encode generated config."
             ));
         }
@@ -123,7 +124,7 @@ pub fn new_version_source(config: &Config) -> String {
     match fs::write(&sources_file, toml_string) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "Unable to write to config file: '{}'",
                 sources_file.display().to_string().blue(),
             ));

@@ -15,7 +15,7 @@
 
 use crate::config::connection::DbSessions;
 use crate::config::version_source::VersionSources;
-use crate::utils::error;
+use crate::error;
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use home::home_dir;
@@ -51,16 +51,31 @@ pub struct Input {
     pub vim_bindings: bool,
 }
 
+/// Get the user's home directory
+///
+/// # Returns
+/// * `std::path::PathBuf` - Path to the user's home directory
+///
+/// # Panics
+/// * Panics if unable to get the user's home directory
 pub fn get_home() -> std::path::PathBuf {
     let home = home_dir();
 
     if home_dir().is_none() {
-        error("Unable to get user home directory".to_string());
+        error!("Unable to get user home directory".to_string());
     }
 
     return home.unwrap();
 }
 
+/// Get the AlphaDB config directory path
+///
+/// This function returns the path to the AlphaDB config directory, which is platform-specific:
+/// - Windows: %APPDATA%\Roaming\alphadb
+/// - Unix: ~/.config/alphadb
+///
+/// # Returns
+/// * `std::path::PathBuf` - Path to the AlphaDB config directory
 fn get_config_dir() -> std::path::PathBuf {
     let home = get_home();
     if env::consts::OS == "windows" {
@@ -70,6 +85,14 @@ fn get_config_dir() -> std::path::PathBuf {
     return home.join(CONFIG_DIR).join(ALPHADB_DIR);
 }
 
+/// Initialize the AlphaDB configuration
+///
+/// This function creates the config directory if it doesn't exist and initializes
+/// a new config file with a randomly generated secret for encryption.
+///
+/// # Panics
+/// * Panics if unable to create the config directory
+/// * Panics if unable to create or write to the config file
 pub fn init_config() -> () {
     let config_dir = get_config_dir();
     let config_file = config_dir.join(CONFIG_FILE);
@@ -90,14 +113,25 @@ pub fn init_config() -> () {
         let _ = fs::File::create(&config_file);
         let toml_string = toml::to_string(&config);
         if toml_string.is_err() {
-            error("Error occured when initializing config".to_string())
+            error!("Error occured when initializing config".to_string())
         }
         if fs::write(config_file, toml_string.unwrap()).is_err() {
-            error("Error occured when initializing config".to_string())
+            error!("Error occured when initializing config".to_string())
         };
     }
 }
 
+/// Read and parse a config file
+///
+/// # Type Parameters
+/// * `T` - The type of config to read, must implement DeserializeOwned and Any
+///
+/// # Returns
+/// * `Option<T>` - The parsed config if successful, None otherwise
+///
+/// # Panics
+/// * Panics if unable to read the config file
+/// * Panics if unable to deserialize the config file
 pub fn config_read<T: 'static + Any>() -> Option<T>
 where
     T: DeserializeOwned,
@@ -107,7 +141,7 @@ where
     let config_content_raw = match fs::read_to_string(&config_file) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "Unable to read config file: '{}'",
                 config_file.display().to_string().blue()
             ));
@@ -121,7 +155,7 @@ where
     let config_content: T = match toml::from_str(&config_content_raw) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "Unable to deserialize config file: '{}' is it corrupted?",
                 config_file.display().to_string().blue(),
             ));
@@ -133,7 +167,14 @@ where
 
 /// Return the sessions config file path
 ///
-/// _config: The config struct
+/// # Type Parameters
+/// * `T` - The type of config to get the path for, must implement Any
+///
+/// # Returns
+/// * `PathBuf` - Path to the config file
+///
+/// # Panics
+/// * Panics if the type T is not a recognized config type
 fn get_config_path_from_struct<T: 'static + Any>() -> PathBuf {
     let home = get_home();
     let config_dir = home.join(CONFIG_DIR).join(ALPHADB_DIR);
@@ -150,12 +191,19 @@ fn get_config_path_from_struct<T: 'static + Any>() -> PathBuf {
         return config_dir.join(CONFIG_FILE);
     }
 
-    error("An unexpected error occured".to_string());
+    error!("An unexpected error occured".to_string());
 }
 
 /// Read and parse a config file
 ///
-/// T: Config struct. The correct config file will be matched
+/// # Type Parameters
+/// * `T` - The type of config to read, must implement DeserializeOwned and Any
+///
+/// # Returns
+/// * `Option<T>` - The parsed config if successful, None otherwise
+///
+/// # Panics
+/// * Panics if unable to deserialize the config file
 pub fn get_config_content<T: 'static + Any>() -> Option<T>
 where
     T: DeserializeOwned,
@@ -171,7 +219,7 @@ where
     let config_content: T = match toml::from_str(&config_content_raw) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "Unable to deserialize config file: '{}' is it corrupted?",
                 config_file.display().to_string().blue(),
             ));
@@ -183,8 +231,14 @@ where
 
 /// Write to a config file
 ///
-/// T: Config struct. The correct config file will be matched
-/// config: Config data to write to the file
+/// # Type Parameters
+/// * `T` - The type of config to write, must implement DeserializeOwned, Serialize, and Any
+///
+/// # Arguments
+/// * `config` - The config data to write to the file
+///
+/// # Panics
+/// * Panics if unable to serialize the config data
 pub fn write_config<T: 'static + Any>(config: T)
 where
     T: DeserializeOwned + Serialize,
@@ -192,7 +246,7 @@ where
     let toml_string = match toml::to_string(&config) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "An unexpected error occured. Unable to encode generated config."
             ));
         }
@@ -203,7 +257,7 @@ where
     match fs::write(&config_file, toml_string) {
         Ok(c) => c,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "Unable to write to config file: '{}'",
                 config_file.display().to_string().blue(),
             ));

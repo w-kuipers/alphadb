@@ -15,7 +15,8 @@
 
 use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
-use crate::utils::{error, title};
+use crate::error;
+use crate::utils::title;
 use alphadb::prelude::*;
 use alphadb::{utils::types::ToleratedVerificationIssueLevel, AlphaDB};
 use colored::Colorize;
@@ -43,7 +44,7 @@ pub fn update(
         "critical" => ToleratedVerificationIssueLevel::Critical,
         "all" => ToleratedVerificationIssueLevel::All,
         _ => {
-            error(format!(
+            error!(format!(
                 "Allow error priority must be any of {}, {}, {}, {}",
                 "low".cyan(),
                 "high".cyan(),
@@ -57,14 +58,14 @@ pub fn update(
         Some(vs) => vs.to_path_buf(),
         None => match select_version_source(config) {
             Some(p) => p,
-            None => error("No version source was selected".to_string())
-        }
+            None => error!("No version source was selected".to_string()),
+        },
     };
 
     let data = match fs::read_to_string(&vs_file) {
         Ok(f) => f,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "An error occured while opening the version source file at '{}'",
                 vs_file.to_string_lossy().cyan()
             ));
@@ -76,7 +77,7 @@ pub fn update(
     let status = match db.status() {
         Ok(s) => s,
         Err(_) => {
-            error("Unable to retrieve database status".to_string());
+            error!("Unable to retrieve database status".to_string());
         }
     };
 
@@ -89,22 +90,22 @@ pub fn update(
             );
         }
         Err(e) => match e.error().as_str() {
-            "not-initialized" => error(format!(
+            "not-initialized" => error!(format!(
                 "{} {} {}\n",
                 "Database".yellow(),
                 status.name.cyan(),
                 "has not yet been initialized".yellow()
             )),
-            "up-to-date" => error(format!(
+            "up-to-date" => error!(format!(
                 "{} {} {}\n",
                 "Database".yellow(),
                 status.name.cyan(),
                 "is already up-to-date".yellow()
             )),
-            "no-version-number" => error(
-                "The database configuration is broken, no version number present.".to_string(),
+            "no-version-number" => error!(
+                "The database configuration is broken, no version number present.".to_string()
             ),
-            _ => error(e.message()),
+            _ => error!(e.message()),
         },
     };
 }

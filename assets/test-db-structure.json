@@ -25,6 +25,16 @@
             "length": 7
           }
         }
+      },
+      "default_data": {
+        "table1": [
+          {
+            "col1": 4,
+            "col2": "test2",
+            "col3": "test",
+            "col4": 12
+          }
+        ]
       }
     },
     {
@@ -59,6 +69,16 @@
             "default": "default value"
           }
         }
+      },
+      "default_data": {
+        "table1": [
+          {
+            "col1": 3,
+            "col2": "test3",
+            "col3": "test",
+            "col4": 12
+          }
+        ]
       }
     },
     {

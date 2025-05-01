@@ -13,7 +13,7 @@ use crate::commands::vacate::*;
 use crate::commands::verify::*;
 use crate::config::connection::{get_active_connection, remove_connection};
 use crate::config::setup::{config_read, init_config, Config};
-use crate::utils::{abort, decrypt_password, error};
+use crate::utils::{abort, decrypt_password};
 use alphadb::AlphaDB;
 use std::path::PathBuf;
 
@@ -24,7 +24,7 @@ fn main() {
         // Config should not be able to be none,
         // if it is, something has gone wrong
         None => {
-            error("An unexpected error occured. User config not defined.".to_string());
+            error!("An unexpected error occured. User config not defined.".to_string());
         }
     };
 
@@ -88,7 +88,6 @@ fn main() {
         ]))
         .get_matches();
 
-
     // Check if the current command should have an active database connection
     let mut should_connect = true;
     if let Some(m) = matches.subcommand() {
@@ -99,7 +98,7 @@ fn main() {
 
     // Establish a connection to the database
     let conn_option = get_active_connection();
-    let conn: ActiveConnection; 
+    let conn: ActiveConnection;
     if should_connect {
         conn = match conn_option {
             Some(c) => c,
@@ -117,7 +116,7 @@ fn main() {
             Err(_) => {
                 remove_connection(conn.label);
 
-                error(format!(
+                error!(format!(
                 "Unable to connect to database {}@{}:{} using saved credentials. The connection has been removed.",
                 conn.connection.database.cyan(),
                 conn.connection.host.cyan(),
@@ -135,7 +134,7 @@ fn main() {
         ) {
             Ok(_) => (),
             Err(e) => {
-                error(e.to_string());
+                error!(e.to_string());
             }
         };
 

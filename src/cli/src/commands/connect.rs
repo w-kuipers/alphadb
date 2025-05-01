@@ -15,7 +15,8 @@
 
 use crate::config::connection::{get_connections, new_connection, set_active_connection};
 use crate::config::setup::Config;
-use crate::utils::{error, title, abort};
+use crate::error;
+use crate::utils::{abort, title};
 use colored::Colorize;
 use inquire::Select;
 
@@ -47,7 +48,7 @@ pub fn connect(config: &Config) {
                     abort();
                 }
 
-                error("An unexpected error occured".to_string());
+                error!("An unexpected error occured".to_string());
             }
         };
 

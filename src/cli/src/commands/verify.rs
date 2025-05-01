@@ -15,7 +15,8 @@
 
 use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
-use crate::utils::{error, title};
+use crate::error;
+use crate::utils::title;
 use alphadb::utils::errors::{get_version_trace_string, Get};
 use alphadb::utils::types::VerificationIssueLevel;
 use alphadb::version_source_verification::VersionSourceVerification;
@@ -31,14 +32,14 @@ pub fn verify(config: &Config, version_source: Option<PathBuf>) {
         Some(vs) => vs.to_path_buf(),
         None => match select_version_source(config) {
             Some(p) => p,
-            None => error("No version source was selected".to_string()),
+            None => error!("No version source was selected".to_string()),
         },
     };
 
     let version_source = match fs::read_to_string(&vs_file) {
         Ok(f) => f,
         Err(_) => {
-            error(format!(
+            error!(format!(
                 "An error occured while opening the version source file at '{}'",
                 vs_file.to_string_lossy().cyan()
             ));
@@ -47,7 +48,7 @@ pub fn verify(config: &Config, version_source: Option<PathBuf>) {
 
     let mut verification = match VersionSourceVerification::new(version_source) {
         Ok(v) => v,
-        Err(e) => error(e.message()),
+        Err(e) => error!(e.message()),
     };
 
     match verification.verify() {
@@ -70,7 +71,7 @@ pub fn verify(config: &Config, version_source: Option<PathBuf>) {
                 let mut issue_path = get_version_trace_string(&issue.version_trace);
 
                 if !issue_path.is_empty() {
-                     issue_path = format!("Version {issue_path}: ");
+                    issue_path = format!("Version {issue_path}: ");
                 }
 
                 match issue.level {

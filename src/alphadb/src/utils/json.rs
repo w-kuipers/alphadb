@@ -254,6 +254,32 @@ pub fn get_json_float(value: &Value) -> Result<f64, AlphaDBError> {
     }
 }
 
+/// Check if a JSON value is empty
+///
+/// This function checks if a JSON value is considered empty based on its type:
+/// - Null: Always empty
+/// - Boolean: Never empty
+/// - Number: Never empty
+/// - String: Empty if string length is 0
+/// - Array: Empty if array length is 0
+/// - Object: Empty if object has no keys
+///
+/// # Arguments
+/// * `value` - The JSON value to check
+///
+/// # Returns
+/// * `bool` - True if the value is considered empty, false otherwise
+pub fn is_empty_json(value: &Value) -> bool {
+    match value {
+        Value::Null => true,
+        Value::Bool(_) => false,
+        Value::Number(_) => false,
+        Value::String(s) => s.is_empty(),
+        Value::Array(arr) => arr.is_empty(),
+        Value::Object(map) => map.is_empty(),
+    }
+}
+
 #[cfg(test)]
 mod json_tests {
     use super::*;
