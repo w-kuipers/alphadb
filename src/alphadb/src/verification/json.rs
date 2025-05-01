@@ -133,12 +133,14 @@ pub fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>
 /// # Returns
 /// * `serde_json::map::Keys<'a>` - Iterator over object keys if successful, empty iterator otherwise
 pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> serde_json::map::Keys<'a> {
+    static EMPTY_MAP: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock::new(|| serde_json::Map::new());
+
     match adb_object_iter(object) {
         Ok(v) => v,
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return Map::new().keys();
+            return EMPTY_MAP.keys();
         }
     }
 }
