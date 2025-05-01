@@ -2,8 +2,11 @@ use serde_json::{json, Value};
 
 use crate::{
     prelude::AlphaDBError,
+    query::default_data::default_data,
     utils::{
-        json::get_object_keys, version_number::get_latest_version, version_source::{get_version_array, parse_version_source_string}
+        json::{get_object_keys, is_empty_json},
+        version_number::get_latest_version,
+        version_source::{get_version_array, parse_version_source_string},
     },
 };
 
@@ -53,16 +56,21 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
         consolidated_versions[table] = consolidated_table;
     }
 
+    let latest_version = get_latest_version(&versions)?;
+    let mut consolidated_version = json!({
+        "_id": latest_version,
+        "createtable": consolidated_versions
+    });
+
     // Consolidate default data
     let default_data = consolidate_default_data(versions)?;
+    if !is_empty_json(&default_data) {
+        consolidated_version["default_data"] = default_data;
+    }
 
-    let latest_version = get_latest_version(&versions)?;
     let consolidated_version_source = json!({
         "name": version_source["name"],
-        "version": [{
-            "_id": latest_version,
-            "createtable": consolidated_versions
-        }]
+        "version": [consolidated_version]
     });
 
     Ok(consolidated_version_source)
@@ -83,7 +91,8 @@ mod consolidate_version_source_tests {
                 {"_id": "0.0.3", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": false, "unique": true}}}}},
                 {"_id": "0.0.4", "altertable": {"table2": {"addcolumn": {"col2": {"type": "TEXT"}}}}},
             ]
-        }).to_string();
+        })
+        .to_string();
 
         let result = json!({
             "name": "test",
@@ -114,7 +123,8 @@ mod consolidate_version_source_tests {
                 {"_id": "0.0.4", "altertable": {"table2": {"modifycolumn": {"col1": {"recreate": false, "unique": true}}}}},
                 {"_id": "0.0.5", "altertable": {"table1": {"addcolumn": {"new_col": {"type": "TEXT"}}}}},
             ]
-        }).to_string();
+        })
+        .to_string();
 
         let result = json!({
             "name": "test",
@@ -145,7 +155,8 @@ mod consolidate_version_source_tests {
                 {"_id": "0.0.4", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": false, "type": "INTEGER"}}}}},
                 {"_id": "0.0.5", "altertable": {"table1": {"modifycolumn": {"col1": {"recreate": false, "unique": false}}}}},
             ]
-        }).to_string();
+        })
+        .to_string();
 
         let result = json!({
             "name": "test",
@@ -170,7 +181,8 @@ mod consolidate_version_source_tests {
                 {"_id": "0.0.2", "altertable": {"table1": {"dropcolumn": ["col1"]}}},
                 {"_id": "0.0.3", "altertable": {"table1": {"modifycolumn": {"col2": {"recreate": false, "unique": true}}}}},
             ]
-        }).to_string();
+        })
+        .to_string();
 
         let result = json!({
             "name": "test",

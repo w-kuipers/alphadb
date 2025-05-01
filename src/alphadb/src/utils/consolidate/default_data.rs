@@ -2,7 +2,7 @@ use serde_json::{json, Value};
 
 use crate::{
     prelude::AlphaDBError,
-    utils::json::{exists_in_object, object_iter},
+    utils::json::{array_iter, exists_in_object, object_iter},
 };
 
 pub fn consolidate_default_data(version_list: &Vec<Value>) -> Result<Value, AlphaDBError> {
@@ -11,16 +11,19 @@ pub fn consolidate_default_data(version_list: &Vec<Value>) -> Result<Value, Alph
     for version in version_list.iter() {
         if exists_in_object(version, "default_data")? {
             for table in object_iter(&version["default_data"])? {
-                default_data[table] = json!({});
+                if exists_in_object(&default_data, table)? {
+                    let mut old_data = array_iter(&default_data[table])?.clone();
+                    for data in array_iter(&version["default_data"][table])? {
+                        old_data.push(data.clone());
+                    }
 
-                for col in object_iter(&version["default_data"][table])? {
-                    // default_data[table][col] = version["default_data"][table][col].clone();
+                    default_data[table] = old_data.into();
+                } else {
+                    default_data[table] = version["default_data"][table].clone();
                 }
             }
         }
     }
-
-    println!("{:?}", default_data);
 
     Ok(default_data)
 }

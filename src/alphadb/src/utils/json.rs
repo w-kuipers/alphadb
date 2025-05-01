@@ -254,6 +254,17 @@ pub fn get_json_float(value: &Value) -> Result<f64, AlphaDBError> {
     }
 }
 
+pub fn is_empty_json(value: &Value) -> bool {
+    match value {
+        Value::Null => true,
+        Value::Bool(_) => false,
+        Value::Number(_) => false,
+        Value::String(s) => s.is_empty(),
+        Value::Array(arr) => arr.is_empty(),
+        Value::Object(map) => map.is_empty(),
+    }
+}
+
 #[cfg(test)]
 mod json_tests {
     use super::*;
