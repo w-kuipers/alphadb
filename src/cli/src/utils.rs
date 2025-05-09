@@ -19,9 +19,9 @@ use aes_gcm::{Aes256Gcm, Nonce};
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use rand_core::RngCore;
+use std::process;
 use std::string::FromUtf8Error;
 use thiserror::Error;
-use std::process;
 
 /// Print function title and current database connection to the commandline
 ///
@@ -55,30 +55,34 @@ pub fn abort() {
 #[cfg(debug_assertions)]
 #[macro_export]
 macro_rules! error {
-    ($error_string:expr) => {
-        {
-            let error_string = $error_string;
-            let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
-            let end = error_string.rfind("}").unwrap_or(error_string.len());
-            let clean_error = &error_string[start..end].trim();
-            panic!("{}\nLocation: {}:{}:{}", clean_error, file!(), line!(), column!());
-        }
-    };
+    ($error_string:expr) => {{
+        let error_string = $error_string;
+        let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
+        let end = error_string.rfind("}").unwrap_or(error_string.len());
+        let clean_error = &error_string[start..end].trim();
+        panic!(
+            "{}\nLocation: {}:{}:{}",
+            clean_error,
+            file!(),
+            line!(),
+            column!()
+        );
+    }};
 }
 
 #[cfg(not(debug_assertions))]
 #[macro_export]
 macro_rules! error {
-    ($error_string:expr) => {
-        {
-            let error_string = $error_string;
-            let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
-            let end = error_string.rfind("}").unwrap_or(error_string.len());
-            let clean_error = &error_string[start..end].trim();
-            eprintln!("\n{}\n", clean_error.red());
-            process::exit(1);
-        }
-    };
+    ($error_string:expr) => {{
+        use std::process;
+
+        let error_string = $error_string;
+        let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
+        let end = error_string.rfind("}").unwrap_or(error_string.len());
+        let clean_error = &error_string[start..end].trim();
+        eprintln!("\n{}\n", clean_error.red());
+        process::exit(1);
+    }};
 }
 
 /// Encrypt a password using AES-256-GCM
