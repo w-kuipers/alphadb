@@ -2,17 +2,17 @@ version: "3.8"
 services:
   mysql:
     container_name: alphadb_mysql
-    image: mysql:8
-    volumes:
-      - mysql_data:/var/lib/mysql
+    image: mariadb:latest
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: test
-      MYSQL_DATABASE: test
+    volumes:
+      - ./scripts/init-dev-db.sql:/docker-entrypoint-initdb.d/init.sql
+      - alphadb_mysql:/var/lib/mysql
     ports:
       - "333:3306"
     networks:
-      - db_server
+      - alphadb_network
 
   phpmyadmin:
     container_name: alphadb_phpmyadmin
@@ -26,9 +26,9 @@ services:
       PMA_HOST: mysql
       MYSQL_ROOT_PASSWORD: test
     networks:
-      - db_server
+      - alphadb_network
 
 networks:
-  db_server:
+  alphadb_network:
 volumes:
-  mysql_data:
+  alphadb_mysql:

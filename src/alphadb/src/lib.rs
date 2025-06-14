@@ -176,7 +176,7 @@ mod alphadb_tests {
     static HOST: &str = "localhost";
     static USER: &str = "root";
     static PASSWORD: &str = "test";
-    static DATABASE: &str = "test";
+    static DATABASE: &str = "adb_test1";
     static PORT: u16 = 333;
 
     #[test]
