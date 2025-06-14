@@ -18,7 +18,7 @@ services:
     container_name: alphadb_phpmyadmin
     depends_on:
       - mysql
-    image: phpmyadmin/phpmyadmin
+    image: phpmyadmin
     restart: always
     ports:
       - "888:80"
