@@ -1,0 +1,82 @@
+{
+  "name": "test",
+  "version": [
+    {
+      "_id": "0.2.6",
+      "createtable": {
+        "table1": {
+          "col2": {
+            "length": 200,
+            "type": "VARCHAR",
+            "unique": true
+          },
+          "col4": {
+            "length": 7,
+            "type": "INT"
+          },
+          "col5": {
+            "length": 1000,
+            "type": "TEXT"
+          },
+          "col6": {
+            "null": true,
+            "type": "JSON"
+          }
+        },
+        "table2": {
+          "col2": {
+            "length": 2,
+            "null": true,
+            "type": "INT",
+            "unique": true
+          },
+          "secondrenameoncol1": {
+            "a_i": true,
+            "length": 30,
+            "null": false,
+            "type": "TINYINT"
+          }
+        },
+        "table3": {
+          "col1": {
+            "a_i": true,
+            "type": "INT",
+            "unique": true
+          },
+          "col2": {
+            "default": "default value",
+            "length": 100,
+            "type": "VARCHAR"
+          }
+        },
+        "table4": {
+          "thecol1": {
+            "a_i": true,
+            "type": "INT"
+          },
+          "thecol2": {
+            "default": "some value",
+            "length": 3000,
+            "type": "VARCHAR"
+          }
+        }
+      },
+      "default_data": {
+        "table1": [
+          {
+            "col1": 4,
+            "col2": "test2",
+            "col3": "test",
+            "col4": 12
+          },
+          {
+            "col1": 3,
+            "col2": "test3",
+            "col3": "test",
+            "col4": 12
+          }
+        ]
+      }
+    }
+  ]
+}

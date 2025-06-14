@@ -14,57 +14,66 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::prelude::AlphaDBError;
-use crate::utils::json::get_json_string;
+use crate::utils::json::{array_iter, exists_in_object, get_json_string};
 use crate::utils::version_number::parse_version_number;
 use serde_json::Value;
 
-/// **Get primary key**
+/// Get the primary key for a table from version history
 ///
-/// Returns the tables primary key.
+/// Searches through version history to find the most recent primary key definition
+/// for the specified table, optionally stopping before a specific version.
 ///
-/// - version_list: List with versions from version_source
-/// - table_name: Name of the table to be created
-/// - before_version: The version before which the primary key was defined
+/// # Arguments
+/// * `version_list` - List with versions from version_source
+/// * `table_name` - Name of the table to get the primary key for
+/// * `before_version` - Optional version before which to search for the primary key
+///
+/// # Returns
+/// * `Result<Option<&str>, AlphaDBError>` - The primary key column name if found, None if no primary key exists
+///
+/// # Errors
+/// * Returns `AlphaDBError` if there are issues parsing version numbers or accessing JSON properties
 pub fn get_primary_key<'a>(version_list: &'a Vec<Value>, table_name: &str, before_version: Option<&str>) -> Result<Option<&'a str>, AlphaDBError> {
     let mut primary_key: Option<&str> = None;
 
     for version in version_list {
-        // Skip if version is after or equel to before_version
+        // Skip if version is after or equal to before_version
         if let Some(before_version) = before_version {
             if parse_version_number(before_version)? <= parse_version_number(get_json_string(&version["_id"])?)? {
                 continue;
             }
         }
 
-        let version_keys = version.as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
-
-        if version_keys.iter().any(|&i| i == "createtable") {
-            let createtables = version["createtable"].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
-            if createtables.iter().any(|&t| t == table_name) {
-                let table_keys = version["createtable"][table_name].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
-
-                if table_keys.iter().any(|&p| p == "primary_key") {
+        if exists_in_object(version, "createtable")? {
+            if exists_in_object(&version["createtable"], table_name)? {
+                if exists_in_object(&version["createtable"][table_name], "primary_key")? {
                     primary_key = version["createtable"][table_name]["primary_key"].as_str();
                 }
             }
         }
 
-        if version_keys.iter().any(|&i| i == "altertable") {
-            let altertables = version["altertable"].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
-            if altertables.iter().any(|&t| t == table_name) {
-                let table_keys = version["altertable"][table_name].as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
-
-                if table_keys.iter().any(|&p| p == "primary_key") {
+        if exists_in_object(version, "altertable")? {
+            if exists_in_object(&version["altertable"], table_name)? {
+                if exists_in_object(&version["altertable"][table_name], "primary_key")? {
                     primary_key = version["altertable"][table_name]["primary_key"].as_str();
                 }
 
                 // If the column is dropped, primary key should reset to None
-                if table_keys.iter().any(|&p| p == "dropcolumn") {
+                if exists_in_object(&version["altertable"][table_name], "dropcolumn")? {
                     if primary_key.is_some() {
-                        for dropcol in version["altertable"][table_name]["dropcolumn"].as_array().unwrap() {
+                        for dropcol in array_iter(&version["altertable"][table_name]["dropcolumn"])? {
                             if dropcol.as_str() == primary_key {
                                 primary_key = None;
                             }
+                        }
+                    }
+                }
+
+                // Handle column renames
+                if let Some(pk) = primary_key {
+                    if exists_in_object(&version["altertable"][table_name], "renamecolumn")? {
+                        if exists_in_object(&version["altertable"][table_name]["renamecolumn"], pk)? {
+                            primary_key = version["altertable"][table_name]["renamecolumn"][pk].as_str();
                         }
                     }
                 }
@@ -113,7 +122,10 @@ mod get_primary_key_tests {
                 }
             }
         }]});
-        assert_eq!(get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(), Some("other_col"));
+        assert_eq!(
+            get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(),
+            Some("other_col")
+        );
     }
 
     #[test]
@@ -135,5 +147,101 @@ mod get_primary_key_tests {
             }
         }]});
         assert_eq!(get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(), None)
+    }
+
+    #[test]
+    fn renamed_column() {
+        let versions = json!({"name": "test", "version": [{
+            "_id": "0.0.1",
+            "createtable": {
+                "table": {
+                    "primary_key": "old_col"
+                }
+            }
+        },
+        {
+            "_id": "0.0.2",
+            "altertable": {
+                "table": {
+                    "renamecolumn": {
+                        "old_col": "new_col"
+                    }
+                }
+            }
+        }]});
+        assert_eq!(
+            get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(),
+            Some("new_col")
+        );
+    }
+
+    #[test]
+    fn renamed_column_multiple_changes() {
+        let versions = json!({"name": "test", "version": [{
+            "_id": "0.0.1",
+            "createtable": {
+                "table": {
+                    "primary_key": "id"
+                }
+            }
+        },
+        {
+            "_id": "0.0.2",
+            "altertable": {
+                "table": {
+                    "renamecolumn": {
+                        "id": "user_id"
+                    }
+                }
+            }
+        },
+        {
+            "_id": "0.0.3",
+            "altertable": {
+                "table": {
+                    "renamecolumn": {
+                        "user_id": "account_id"
+                    }
+                }
+            }
+        }]});
+        assert_eq!(
+            get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(),
+            Some("account_id")
+        );
+    }
+
+    #[test]
+    fn change_primary_key_then_rename() {
+        let versions = json!({"name": "test", "version": [{
+            "_id": "0.0.1",
+            "createtable": {
+                "table": {
+                    "primary_key": "id"
+                }
+            }
+        },
+        {
+            "_id": "0.0.2",
+            "altertable": {
+                "table": {
+                    "primary_key": "email"
+                }
+            }
+        },
+        {
+            "_id": "0.0.3",
+            "altertable": {
+                "table": {
+                    "renamecolumn": {
+                        "email": "email_address"
+                    }
+                }
+            }
+        }]});
+        assert_eq!(
+            get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(),
+            Some("email_address")
+        );
     }
 }
