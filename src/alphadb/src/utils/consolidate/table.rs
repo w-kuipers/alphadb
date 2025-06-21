@@ -5,7 +5,7 @@ use crate::{
     utils::json::{exists_in_object, get_json_object, get_object_keys},
 };
 
-use super::column::{consolidate_column, get_column_renames};
+use super::{column::{consolidate_column, get_column_renames}, primary_key::{self, get_primary_key}};
 
 /// Consolidate table information from multiple versions into a single table definition
 ///
@@ -24,6 +24,13 @@ use super::column::{consolidate_column, get_column_renames};
 pub fn consolidate_table(version_list: &Vec<Value>, table_name: &str) -> Result<Value, AlphaDBError> {
     let mut table = json!({});
     let mut columns: Vec<String> = Vec::new();
+
+    // Get the tables primary key
+    let primary_key = get_primary_key(version_list, table_name, None)?;
+    if let Some(primary_key) = primary_key {
+        println!("{primary_key}");
+        table["primary_key"] = Value::from(primary_key);
+    }
 
     // Get all columns that should exist in the latest version of the table
     for version in version_list.iter() {

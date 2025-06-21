@@ -221,6 +221,9 @@ mod consolidate_version_source_tests {
         db2.connect(HOST, USER, PASSWORD, DB2, PORT).unwrap();
         db3.connect(HOST, USER, PASSWORD, DB3, PORT).unwrap();
 
+        db2.vacate();
+        db3.vacate();
+
         db2.init().unwrap();
         db3.init().unwrap();
 

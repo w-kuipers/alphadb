@@ -18,13 +18,21 @@ use crate::utils::json::get_json_string;
 use crate::utils::version_number::parse_version_number;
 use serde_json::Value;
 
-/// **Get primary key**
+/// Get the primary key for a table from version history
 ///
-/// Returns the tables primary key.
+/// Searches through version history to find the most recent primary key definition
+/// for the specified table, optionally stopping before a specific version.
 ///
-/// - version_list: List with versions from version_source
-/// - table_name: Name of the table to be created
-/// - before_version: The version before which the primary key was defined
+/// # Arguments
+/// * `version_list` - List with versions from version_source
+/// * `table_name` - Name of the table to get the primary key for
+/// * `before_version` - Optional version before which to search for the primary key
+///
+/// # Returns
+/// * `Result<Option<&str>, AlphaDBError>` - The primary key column name if found, None if no primary key exists
+///
+/// # Errors
+/// * Returns `AlphaDBError` if there are issues parsing version numbers or accessing JSON properties
 pub fn get_primary_key<'a>(version_list: &'a Vec<Value>, table_name: &str, before_version: Option<&str>) -> Result<Option<&'a str>, AlphaDBError> {
     let mut primary_key: Option<&str> = None;
 
