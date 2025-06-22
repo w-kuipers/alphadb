@@ -13,13 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::errors::AlphaDBError;
-use crate::utils::json::get_json_string;
+use crate::utils::json::{array_iter, get_json_string};
 use crate::utils::version_number::parse_version_number;
+use crate::utils::{errors::AlphaDBError, json::exists_in_object};
 use serde_json::{json, Value};
 
 #[derive(Debug, PartialEq)]
-pub struct RenameData {
+pub struct ColumnRename {
     pub old_name: String,
     pub new_name: String,
     pub rename_version: u32,
@@ -139,13 +139,13 @@ pub fn consolidate_column(version_list: &Vec<Value>, column_name: &str, table_na
 ///
 /// # Errors
 /// * Returns `AlphaDBError` if order is not "ASC" or "DESC"
-pub fn get_column_renames(version_list: &Vec<Value>, column_name: &str, table_name: &str, order: &str) -> Result<Vec<RenameData>, AlphaDBError> {
-    let mut rename_data: Vec<RenameData> = Vec::new();
+pub fn get_column_renames(version_list: &Vec<Value>, column_name: &str, table_name: &str, order: &str) -> Result<Vec<ColumnRename>, AlphaDBError> {
+    let mut rename_data: Vec<ColumnRename> = Vec::new();
 
     let mut version_loop = |version: &Value| -> Result<bool, AlphaDBError> {
-        if version.as_object().unwrap().keys().any(|i| i == "altertable") {
-            if version["altertable"].as_object().unwrap().keys().any(|t| t == table_name) {
-                let v = parse_version_number(get_json_string(&version["_id"]).unwrap()).unwrap();
+        if exists_in_object(&version, "altertable")? {
+            if exists_in_object(&version["altertable"], table_name)? {
+                let v = parse_version_number(get_json_string(&version["_id"])?)?;
 
                 // Skip version that are already processed
                 if order == "DESC" {
@@ -159,7 +159,7 @@ pub fn get_column_renames(version_list: &Vec<Value>, column_name: &str, table_na
                     }
                 }
 
-                if version["altertable"][table_name].as_object().unwrap().keys().any(|r| r == "renamecolumn") {
+                if exists_in_object(&version["altertable"][table_name], "renamecolumn")? {
                     let renamecolumn_values = version["altertable"][table_name]["renamecolumn"].as_object().unwrap().values().collect::<Vec<&Value>>();
 
                     // If the current column is not the one being renamed, continue
@@ -170,7 +170,7 @@ pub fn get_column_renames(version_list: &Vec<Value>, column_name: &str, table_na
                     let renamecolumn_keys = version["altertable"][table_name]["renamecolumn"].as_object().unwrap().keys().collect::<Vec<&String>>();
 
                     // If the current column is not the one being renamed, continue
-                    if order == "ASC" && !renamecolumn_keys.iter().any(|&k| k == column_name) {
+                    if order == "ASC" && !exists_in_object(&version["altertable"][table_name]["renamecolumn"], column_name)? {
                         return Ok(false);
                     }
 
@@ -183,7 +183,7 @@ pub fn get_column_renames(version_list: &Vec<Value>, column_name: &str, table_na
                     }
 
                     if order == "DESC" {
-                        rename_data.push(RenameData {
+                        rename_data.push(ColumnRename {
                             old_name: name.to_string(),
                             new_name: column_name.to_string(),
                             rename_version: v,
@@ -191,7 +191,7 @@ pub fn get_column_renames(version_list: &Vec<Value>, column_name: &str, table_na
                     }
 
                     if order == "ASC" {
-                        rename_data.push(RenameData {
+                        rename_data.push(ColumnRename {
                             old_name: column_name.to_string(),
                             new_name: name.to_string(),
                             rename_version: v,
@@ -228,6 +228,97 @@ pub fn get_column_renames(version_list: &Vec<Value>, column_name: &str, table_na
     }
 
     return Ok(rename_data);
+}
+
+/// Get the list of version numbers in which a column was dropped.
+///
+/// This function iterates through the provided version list and collects all version numbers
+/// where the specified column was dropped from the given table.
+///
+/// # Arguments
+/// * `version_list` - List of versions from version source
+/// * `column_name` - Name of the column to check for drops
+/// * `table_name` - Name of the table containing the column
+///
+/// # Returns
+/// * `Result<Vec<u32>, AlphaDBError>` - Vector of version numbers where the column was dropped
+///
+/// # Errors
+/// * Returns `AlphaDBError` if there are issues parsing version numbers or JSON values
+pub fn get_column_drops(version_list: &Vec<Value>, column_name: &str, table_name: &str) -> Result<Vec<u32>, AlphaDBError> {
+    let mut column_drops: Vec<u32> = Vec::new();
+
+    for version in version_list.iter() {
+        if exists_in_object(&version, "altertable")? {
+            if exists_in_object(&version["altertable"], table_name)? {
+                let v = parse_version_number(get_json_string(&version["_id"])?)?;
+
+                if exists_in_object(&version["altertable"][table_name], "dropcolumn")? {
+                    if array_iter(&version["altertable"][table_name]["dropcolumn"])?.contains(&Value::from(column_name)) {
+                        column_drops.push(v);
+                    }
+                }
+            }
+        }
+    }
+
+    return Ok(column_drops);
+}
+
+/// Determine if a column will be dropped in or after a specific version.
+///
+/// This function checks if the specified column will be dropped in the given version or any later version
+/// by searching for drop events in the version list.
+///
+/// # Arguments
+/// * `version_list` - List of versions from version source
+/// * `column_name` - Name of the column to check for drops
+/// * `table_name` - Name of the table containing the column
+/// * `version` - The version number to check against
+///
+/// # Returns
+/// * `Result<bool, AlphaDBError>` - True if the column will be dropped in or after the specified version, false otherwise
+///
+/// # Errors
+/// * Returns `AlphaDBError` if there are issues parsing version numbers or JSON values
+pub fn will_column_be_dropped(version_list: &Vec<Value>, column_name: &str, table_name: &str, version: u32) -> Result<bool, AlphaDBError> {
+    let column_drops = get_column_drops(version_list, column_name, table_name)?;
+    let drop_count = column_drops.len();
+    println!("{:?}, {}", column_drops, version);
+
+    if drop_count == 0 {
+        return Ok(false);
+    }
+
+    // If only deleted once, the version must be before the deletion to pass
+    if drop_count == 1 {
+        return Ok(column_drops[0] >= version);
+    }
+
+    let mut low = 0;
+    let mut high = column_drops.len() - 1;
+
+    while low <= high {
+        let mid = (low + high) / 2;
+
+        if column_drops[mid] == version {
+            println!("mid: {mid}");
+            if mid == 0 {
+                return Ok(column_drops[0] >= version);
+            }
+
+            let lower_than = column_drops[mid - 1] < version;
+            let higher_than = mid < column_drops.len() - 1 && column_drops[mid + 1] > version;
+
+            return Ok(lower_than && higher_than);
+        } else if column_drops[mid] < version {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+
+    Ok(false)
 }
 
 #[cfg(test)]
@@ -331,10 +422,9 @@ mod consolidate_column_tests {
 
 #[cfg(test)]
 mod get_column_renames_tests {
-    use crate::utils::version_source::get_version_array;
+    use crate::utils::{consolidate::column::ColumnRename, version_source::get_version_array};
 
     use super::get_column_renames;
-    use super::RenameData;
     use serde_json::json;
 
     #[test]
@@ -353,17 +443,17 @@ mod get_column_renames_tests {
         assert_eq!(
             get_column_renames(get_version_array(&versions).unwrap(), "multiplerenamed", "table", "DESC").unwrap(),
             [
-                RenameData {
+                ColumnRename {
                     new_name: "multiplerenamed".to_string(),
                     old_name: "rerenamed".to_string(),
                     rename_version: 7
                 },
-                RenameData {
+                ColumnRename {
                     new_name: "rerenamed".to_string(),
                     old_name: "renamed".to_string(),
                     rename_version: 5
                 },
-                RenameData {
+                ColumnRename {
                     new_name: "renamed".to_string(),
                     old_name: "col".to_string(),
                     rename_version: 2
@@ -388,17 +478,17 @@ mod get_column_renames_tests {
         assert_eq!(
             get_column_renames(get_version_array(&versions).unwrap(), "col", "table", "ASC").unwrap(),
             [
-                RenameData {
+                ColumnRename {
                     new_name: "renamed".to_string(),
                     old_name: "col".to_string(),
                     rename_version: 2
                 },
-                RenameData {
+                ColumnRename {
                     new_name: "rerenamed".to_string(),
                     old_name: "renamed".to_string(),
                     rename_version: 5
                 },
-                RenameData {
+                ColumnRename {
                     new_name: "multiplerenamed".to_string(),
                     old_name: "rerenamed".to_string(),
                     rename_version: 7
@@ -406,4 +496,61 @@ mod get_column_renames_tests {
             ]
         );
     }
+}
+
+#[cfg(test)]
+mod column_drop_tests {
+    use super::{get_column_drops, will_column_be_dropped};
+    use crate::utils::version_source::get_version_array;
+    use serde_json::json;
+
+    #[test]
+    fn test_get_column_drops_with() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"dropcolumn": ["col"]}}},
+            {"_id": "0.0.3", "altertable": {"table": {"addcolumn": {"col": {"type": "VARCHAR", "length": 300}}}}},
+            {"_id": "0.0.4", "altertable": {"table": {"dropcolumn": ["col"]}}},
+            {"_id": "0.0.5", "altertable": {"table": {"addcolumn": {"col": {"type": "VARCHAR", "length": 400}}}}}
+        ]});
+        let version_array = get_version_array(&versions).unwrap();
+        let drops = get_column_drops(&version_array, "col", "table").unwrap();
+        assert_eq!(drops, vec![2, 4]);
+    }
+
+    #[test]
+    fn test_will_column_be_dropped_true() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"dropcolumn": ["col"]}}},
+            {"_id": "0.0.3", "altertable": {"table": {"addcolumn": {"col": {"type": "VARCHAR", "length": 300}}}}},
+            {"_id": "0.0.4", "altertable": {"table": {"dropcolumn": ["col"]}}},
+            {"_id": "0.0.5", "altertable": {"table": {"addcolumn": {"col": {"type": "VARCHAR", "length": 400}}}}},
+            {"_id": "0.0.6", "createtable": {"table2": {"col2": {"type": "VARCHAR", "length": 200}}}},
+        ]});
+        let version_array = get_version_array(&versions).unwrap();
+        // Dropped at 2, recreated at 3, dropped again at 4, recreated at 5
+        assert_eq!(will_column_be_dropped(&version_array, "col", "table", 2).unwrap(), true);
+        assert_eq!(will_column_be_dropped(&version_array, "col", "table", 3).unwrap(), true);
+        assert_eq!(will_column_be_dropped(&version_array, "col", "table", 4).unwrap(), true);
+        assert_eq!(will_column_be_dropped(&version_array, "col", "table", 5).unwrap(), false);
+    }
+
+    // fn test_will_column_be_dropped_false() {
+    //     let versions = json!({"name": "test", "version": [
+    //         {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+    //         {"_id": "0.0.2", "altertable": {"table": {"dropcolumn": ["col"]}}},
+    //         {"_id": "0.0.3", "altertable": {"table": {"addcolumn": {"col": {"type": "VARCHAR", "length": 300}}}}},
+    //         {"_id": "0.0.4", "altertable": {"table": {"dropcolumn": ["col"]}}},
+    //         {"_id": "0.0.5", "altertable": {"table": {"addcolumn": {"col": {"type": "VARCHAR", "length": 400}}}}}
+    //     ]});
+    //     let version_array = get_version_array(&versions).unwrap();
+    //     // Dropped at 2, recreated at 3, dropped again at 4, recreated at 5
+    //     assert_eq!(will_column_be_dropped(&version_array, "col", "table", 2).unwrap(), true); // dropped at 2
+    //     assert_eq!(will_column_be_dropped(&version_array, "col", "table", 3).unwrap(), true); // recreated at 3
+    //     assert_eq!(will_column_be_dropped(&version_array, "col", "table", 4).unwrap(), true); // dropped at 4
+    //     assert_eq!(will_column_be_dropped(&version_array, "col", "table", 5).unwrap(), true); // recreated at 5
+    //                                                                                           // Before any drops
+    //     assert_eq!(will_column_be_dropped(&version_array, "col", "table", 1).unwrap(), false);
+    // }
 }
