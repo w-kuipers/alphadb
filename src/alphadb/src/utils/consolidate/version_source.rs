@@ -215,6 +215,8 @@ mod consolidate_version_source_tests {
         let version_source = fs::read_to_string("../../assets/test-db-structure.json").expect("Unable to read file");
         let consolidated_version_source = consolidate_version_source(version_source.clone()).unwrap();
 
+        println!("{consolidated_version_source}");
+
         let mut db2 = AlphaDB::new();
         let mut db3 = AlphaDB::new();
 

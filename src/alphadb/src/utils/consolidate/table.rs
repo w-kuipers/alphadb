@@ -27,6 +27,7 @@ pub fn consolidate_table(version_list: &Vec<Value>, table_name: &str) -> Result<
 
     // Get the tables primary key
     let primary_key = get_primary_key(version_list, table_name, None)?;
+    println!("{table_name}");
     if let Some(primary_key) = primary_key {
         println!("{primary_key}");
         table["primary_key"] = Value::from(primary_key);
