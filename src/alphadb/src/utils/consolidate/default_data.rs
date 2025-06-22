@@ -20,10 +20,13 @@ use crate::{
 /// * Returns `AlphaDBError` if there are issues accessing or processing the JSON data
 pub fn consolidate_default_data(version_list: &Vec<Value>) -> Result<Value, AlphaDBError> {
     let mut default_data = json!({});
+    let mut default_data_tables: Vec<&String> = Vec::new();
 
     for version in version_list.iter() {
         if exists_in_object(version, "default_data")? {
             for table in object_iter(&version["default_data"])? {
+                default_data_tables.push(table);
+
                 if exists_in_object(&default_data, table)? {
                     let mut old_data = array_iter(&default_data[table])?.clone();
                     for data in array_iter(&version["default_data"][table])? {
