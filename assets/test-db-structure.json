@@ -114,6 +114,19 @@
             }
           }
         }
+      },
+      "default_data": {
+        "table1": {
+          "0": { "col5": "test" },
+          "1": { "col5": "test" },
+          "2": {
+            "col1": 4,
+            "col2": "test2",
+            "col3": "test",
+            "col4": 12,
+            "col5": "test"
+          }
+        }
       }
     },
     {
@@ -207,6 +220,17 @@
             }
           }
         }
+      },
+      "default_data": {
+        "table1": [
+          {
+            "col1": 4,
+            "col2": "test2",
+            "col3": "test",
+            "col4": 12,
+            "col5": "test"
+          }
+        ]
       }
     },
     {

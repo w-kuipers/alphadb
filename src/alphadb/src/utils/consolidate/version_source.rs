@@ -51,7 +51,7 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
     // Consolidate tables
     let mut consolidated_versions = json!({});
     for table in tables {
-        let consolidated_table = consolidate_table(versions, table.as_str())?;
+        let consolidated_table = consolidate_table(versions, table.as_str(), None)?;
         consolidated_versions[table] = consolidated_table;
     }
 
@@ -62,9 +62,8 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
     });
 
     // Consolidate default data
-    let default_data = consolidate_default_data(versions)?;
+    let default_data = consolidate_default_data(versions, None)?;
     if !is_empty_json(&default_data) {
-        println!("default data: {default_data}");
         consolidated_version["default_data"] = default_data;
     }
 

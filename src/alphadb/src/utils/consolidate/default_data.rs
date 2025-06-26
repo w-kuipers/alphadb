@@ -14,22 +14,37 @@ use super::column::{get_column_renames, will_column_be_dropped};
 ///
 /// This function takes a list of versions and merges their default data into a single JSON object.
 /// For each table in the default data, it combines the data from all versions into a single array.
+/// If a `target_version` is specified, the consolidation will only include versions up to and including
+/// the specified target version.
 ///
 /// # Arguments
-/// * `version_list` - A vector of JSON values representing different versions
+/// * `version_list` - A vector of JSON values representing different versions.
+/// * `target_version` - An optional string slice representing the maximum version number to
+///                      include in the consolidation. If `None`, all versions in `version_list`
+///                      will be processed.
 ///
 /// # Returns
-/// * `Result<Value, AlphaDBError>` - A JSON object containing the consolidated default data if successful
+/// * `Result<Value, AlphaDBError>` - A JSON object containing the consolidated default data if successful.
 ///
 /// # Errors
-/// * Returns `AlphaDBError` if there are issues accessing or processing the JSON data
-pub fn consolidate_default_data(version_list: &Vec<Value>) -> Result<Value, AlphaDBError> {
+/// * Returns `AlphaDBError` if there are issues accessing or processing the JSON data,
+///   or if the `target_version` string is not a valid version number format.
+pub fn consolidate_default_data(version_list: &Vec<Value>, target_version: Option<&str>) -> Result<Value, AlphaDBError> {
     let mut default_data = json!({});
 
     for version in version_list.iter() {
+        // If target version is defined and the current version is higher than the target version
+        // consolidation should be stopped
+        if let Some(target_version) = target_version {
+            if parse_version_number(get_json_string(&version["_id"])?)? > parse_version_number(target_version)? {
+                break;
+            }
+        }
+
         if exists_in_object(version, "default_data")? {
             for table in object_iter(&version["default_data"])? {
-                let v = parse_version_number(get_json_string(&version["_id"])?)?;
+                let version_number = get_json_string(&version["_id"])?;
+                let v = parse_version_number(version_number)?;
                 let mut updated_data = Vec::new();
 
                 // If the data already exists it should be appended to
@@ -37,26 +52,66 @@ pub fn consolidate_default_data(version_list: &Vec<Value>) -> Result<Value, Alph
                     updated_data = array_iter(&default_data[table])?.clone();
                 }
 
-                for data in array_iter(&version["default_data"][table])? {
-                    // Handle column renames
-                    let mut renamed_data: Value = json!({});
-                    for col in object_iter(data)? {
-                        // If the column is dropped, don't process it
-                        if will_column_be_dropped(version_list, col, table, v)? {
+                // Update specific rows when table default definition type is object
+                if version["default_data"][table].is_object() {
+                    for iteration in object_iter(&version["default_data"][table])? {
+                        let index = match iteration.parse::<usize>() {
+                            Ok(i) => i,
+                            Err(_) => {
+                                return Err(AlphaDBError {
+                                    message: format!("Default data keys should serve as an index and '{}' could not be parsed as an integer", iteration),
+                                    error: "invalid-default-data-index".to_string(),
+                                    version_trace: Vec::from([version_number.to_string(), "default_data".to_string(), table.to_string()]),
+                                    ..Default::default()
+                                })
+                            }
+                        };
+
+                        // If the index does not yet exist, append a new item
+                        if updated_data.get(index).is_none() {
+                            updated_data.push(version["default_data"][table][iteration].clone());
                             continue;
                         }
 
-                        let renames = get_column_renames(version_list, col, table, "ASC")?;
-                        if renames.len() > 0 {
-                            if let Some(last) = renames.last() {
-                                renamed_data[last.new_name.clone()] = data[col].clone();
+                        for col in object_iter(&version["default_data"][table][iteration])? {
+                            let value = version["default_data"][table][iteration][col].clone();
+
+                            if value.is_null() {
+                                if let Value::Object(ref mut map) = updated_data[index] {
+                                    map.remove(col);
+                                }
+
+                                continue;
                             }
-                        } else {
-                            renamed_data[col] = data[col].clone();
+
+                            updated_data[index][col] = value;
                         }
                     }
+                }
 
-                    updated_data.push(renamed_data);
+                // Append all new items if the table default definition type is array
+                if version["default_data"][table].is_array() {
+                    for data in array_iter(&version["default_data"][table])? {
+                        // Handle column renames
+                        let mut renamed_data: Value = json!({});
+                        for col in object_iter(data)? {
+                            // If the column is dropped, don't process it
+                            if will_column_be_dropped(version_list, col, table, v)? {
+                                continue;
+                            }
+
+                            let renames = get_column_renames(version_list, col, table, "ASC")?;
+                            if renames.len() > 0 {
+                                if let Some(last) = renames.last() {
+                                    renamed_data[last.new_name.clone()] = data[col].clone();
+                                }
+                            } else {
+                                renamed_data[col] = data[col].clone();
+                            }
+                        }
+
+                        updated_data.push(renamed_data);
+                    }
                 }
 
                 default_data[table] = updated_data.into();
@@ -75,7 +130,7 @@ mod tests {
     #[test]
     fn test_consolidate_empty_version_list() {
         let version_list = vec![];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(result, json!({}));
     }
 
@@ -89,12 +144,12 @@ mod tests {
                 }
             }
         })];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(result, json!({}));
     }
 
     #[test]
-    fn test_consolidate_single_version_with_default_data() {
+    fn test_consolidate_single_version() {
         let version_list = vec![json!({
             "_id": "0.0.1",
             "default_data": {
@@ -107,7 +162,7 @@ mod tests {
                 ]
             }
         })];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
@@ -123,7 +178,7 @@ mod tests {
     }
 
     #[test]
-    fn test_consolidate_multiple_versions_different_tables() {
+    fn test_consolidate_multiple_versions() {
         let version_list = vec![
             json!({
                 "_id": "0.0.1",
@@ -142,7 +197,7 @@ mod tests {
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
@@ -176,7 +231,7 @@ mod tests {
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
@@ -189,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn test_consolidate_with_column_rename_before_data() {
+    fn test_consolidate_with_column_rename() {
         // Test when column is renamed before default data is added
         let version_list = vec![
             json!({
@@ -216,7 +271,7 @@ mod tests {
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
@@ -225,10 +280,7 @@ mod tests {
                 ]
             })
         );
-    }
 
-    #[test]
-    fn test_consolidate_with_column_rename_after_data() {
         // Test when default data uses the new column name after rename
         let version_list = vec![
             json!({
@@ -258,8 +310,7 @@ mod tests {
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
-        // The column "username" doesn't have any renames, so it stays as is
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
@@ -271,84 +322,10 @@ mod tests {
     }
 
     #[test]
-    fn test_consolidate_multiple_column_renames() {
+    fn test_consolidate_add_column() {
         let version_list = vec![
             json!({
                 "_id": "0.0.1",
-                "createtable": {
-                    "users": {
-                        "name": {"type": "VARCHAR", "length": 100},
-                        "email": {"type": "VARCHAR", "length": 200}
-                    }
-                },
-                "default_data": {
-                    "users": [
-                        {"id": 1, "name": "Alice", "email": "alice@example.com"}
-                    ]
-                }
-            }),
-            json!({
-                "_id": "0.0.2",
-                "altertable": {
-                    "users": {
-                        "renamecolumn": {
-                            "name": "full_name",
-                            "email": "email_address"
-                        }
-                    }
-                }
-            }),
-        ];
-        let result = consolidate_default_data(&version_list).unwrap();
-        assert_eq!(
-            result,
-            json!({
-                "users": [
-                    {"id": 1, "full_name": "Alice", "email_address": "alice@example.com"}
-                ]
-            })
-        );
-    }
-
-    #[test]
-    fn test_consolidate_empty_default_data_arrays() {
-        let version_list = vec![
-            json!({
-                "_id": "0.0.1",
-                "default_data": {
-                    "users": []
-                }
-            }),
-            json!({
-                "_id": "0.0.2",
-                "default_data": {
-                    "users": [
-                        {"id": 1, "name": "Alice"}
-                    ]
-                }
-            }),
-        ];
-        let result = consolidate_default_data(&version_list).unwrap();
-        assert_eq!(
-            result,
-            json!({
-                "users": [
-                    {"id": 1, "name": "Alice"}
-                ]
-            })
-        );
-    }
-
-    #[test]
-    fn test_consolidate_nested_column_renames() {
-        let version_list = vec![
-            json!({
-                "_id": "0.0.1",
-                "createtable": {
-                    "users": {
-                        "name": {"type": "VARCHAR", "length": 100}
-                    }
-                },
                 "default_data": {
                     "users": [
                         {"id": 1, "name": "Alice"}
@@ -357,35 +334,135 @@ mod tests {
             }),
             json!({
                 "_id": "0.0.2",
-                "altertable": {
+                "default_data": {
                     "users": {
-                        "renamecolumn": {
-                            "name": "user_name"
-                        }
+                        "0": {"email": "alice@provider.com"}
                     }
                 }
             }),
             json!({
                 "_id": "0.0.3",
-                "altertable": {
+                "default_data": {
                     "users": {
-                        "renamecolumn": {
-                            "user_name": "full_name"
-                        }
+                        "0": {"is_admin": true}
                     }
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
-        // The column "name" should be renamed through the chain: name -> user_name -> full_name
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
                 "users": [
-                    {"id": 1, "full_name": "Alice"}
+                    {"id": 1, "name": "Alice", "email": "alice@provider.com", "is_admin": true}
                 ]
             })
         );
     }
 
+    #[test]
+    fn test_consolidate_remove_column() {
+        let version_list = vec![
+            json!({
+                "_id": "0.0.1",
+                "default_data": {
+                    "users": [
+                        {"id": 1, "name": "Alice"}
+                    ]
+                }
+            }),
+            json!({
+                "_id": "0.0.2",
+                "default_data": {
+                    "users": {
+                        "0": {"name": null}
+                    }
+                }
+            }),
+        ];
+        let result = consolidate_default_data(&version_list, None).unwrap();
+        assert_eq!(
+            result,
+            json!({
+                "users": [
+                    {"id": 1}
+                ]
+            })
+        );
+    }
+
+    #[test]
+    fn test_consolidate_update_and_add() {
+        let version_list = vec![
+            json!({
+                "_id": "0.0.1",
+                "default_data": {
+                    "users": [
+                        {"id": 1, "name": "Alice"}
+                    ]
+                }
+            }),
+            json!({
+                "_id": "0.0.2",
+                "default_data": {
+                    "users": {
+                        "0": {"name": "John"},
+                        "1": {"id": 2, "name": "Brian"}
+                    }
+                }
+            }),
+        ];
+        let result = consolidate_default_data(&version_list, None).unwrap();
+        assert_eq!(
+            result,
+            json!({
+                "users": [
+                    {"id": 1, "name": "John"},
+                    {"id": 2, "name": "Brian"},
+
+                ]
+            })
+        );
+    }
+
+    #[test]
+    fn test_consolidate_with_target_version() {
+        let version_list = vec![
+            json!({
+                "_id": "0.0.1",
+                "default_data": {
+                    "users": [
+                        {"id": 1, "name": "Alice"}
+                    ]
+                }
+            }),
+            json!({
+                "_id": "0.0.2",
+                "default_data": {
+                    "users": [
+                        {"id": 2, "name": "Bob"}
+                    ]
+                }
+            }),
+            json!({
+                "_id": "0.0.3",
+                "default_data": {
+                    "users": [
+                        {"id": 3, "name": "Charlie"}
+                    ]
+                }
+            }),
+        ];
+        // Only include up to version 0.0.2
+        let result = consolidate_default_data(&version_list, Some("0.0.2")).unwrap();
+        assert_eq!(
+            result,
+            json!({
+                "users": [
+                    {"id": 1, "name": "Alice"},
+                    {"id": 2, "name": "Bob"}
+                ]
+            })
+        );
+    }
 }

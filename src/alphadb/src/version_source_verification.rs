@@ -13,16 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::utils::consolidate::default_data::consolidate_default_data;
 use crate::utils::consolidate::primary_key::get_primary_key;
+use crate::utils::consolidate::table::consolidate_table;
 use crate::utils::errors::{AlphaDBError, Get, ToVerificationIssue};
-use crate::utils::json::{get_json_object as adb_get_json_object, get_json_string as adb_get_json_string};
+use crate::utils::json::{get_json_float as adb_get_json_float, get_json_int as adb_get_json_int, get_json_object as adb_get_json_object, get_json_string as adb_get_json_string};
 use crate::utils::types::VerificationIssueLevel;
 use crate::utils::version_source::get_version_array;
-use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
-use crate::verification::json::{array_iter, exists_in_object, get_json_object, get_json_string, parse_version_number};
+use crate::verification::compatibility::{FLOAT_COLUMNS, INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, INT_COLUMNS, NON_COLUMN_TABLE_KEYS, STRING_COLUMNS};
+use crate::verification::json::{array_iter, exists_in_object, get_json_boolean, get_json_object, get_json_string, object_iter, parse_version_number};
 use serde_json::Value;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerificationIssue {
     pub level: VerificationIssueLevel,
     pub message: String,
@@ -34,6 +36,12 @@ pub struct VersionSourceVerification {
     version_source: Value,
     issues: Vec<VerificationIssue>,
     version_list: Vec<Value>,
+}
+
+fn insert_issue(issues: &mut Vec<VerificationIssue>, issue: VerificationIssue) {
+    if !issues.contains(&issue) {
+        issues.push(issue);
+    }
 }
 
 impl VersionSourceVerification {
@@ -108,8 +116,16 @@ impl VersionSourceVerification {
                 for method in version.as_object().unwrap().keys() {
                     match method.as_str() {
                         "_id" => continue,
-                        "createtable" => self.createtable(version["createtable"].clone(), &version_output, version_number),
-                        "altertable" => match self.altertable(version["altertable"].clone(), i, &version_output, version_number) {
+                        "createtable" => self.createtable(version["createtable"].clone(), &version_output),
+                        "altertable" => match self.altertable(version["altertable"].clone(), &version_output, version_number) {
+                            Ok(v) => v,
+                            Err(e) => self.issues.push(VerificationIssue {
+                                message: e.message(),
+                                level: VerificationIssueLevel::Critical,
+                                version_trace: e.version_trace(),
+                            }),
+                        },
+                        "default_data" => match self.default_data(&version_output, version_number) {
                             Ok(v) => v,
                             Err(e) => self.issues.push(VerificationIssue {
                                 message: e.message(),
@@ -137,7 +153,7 @@ impl VersionSourceVerification {
     }
 
     /// Verify a single createtable block
-    pub fn createtable(&mut self, createtable: Value, version_output: &str, version_number: Option<&str>) {
+    pub fn createtable(&mut self, createtable: Value, version_output: &str) {
         let version_trace = Vec::from([version_output.to_string(), "createtable".to_string()]);
         match adb_get_json_object(&createtable) {
             Ok(ct) => {
@@ -181,7 +197,7 @@ impl VersionSourceVerification {
     }
 
     /// Verify a single altertable block
-    pub fn altertable(&mut self, altertable: Value, version_index: usize, version_output: &str, version_number: Option<&str>) -> Result<(), AlphaDBError> {
+    pub fn altertable(&mut self, altertable: Value, version_output: &str, version_number: Option<&str>) -> Result<(), AlphaDBError> {
         if altertable.as_object().unwrap().is_empty() {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Low,
@@ -218,7 +234,7 @@ impl VersionSourceVerification {
                                     self.issues.push(VerificationIssue {
                                         level: VerificationIssueLevel::Low,
                                         message: format!("Column {dropcol} is the tables current primary key"),
-                                        version_trace: vec![version_output.to_string(), "altertable".to_string(), format!("table:{table}"), "dropcolumn".to_string()]
+                                        version_trace: vec![version_output.to_string(), "altertable".to_string(), format!("table:{table}"), "dropcolumn".to_string()],
                                     });
                                 }
                             }
@@ -280,5 +296,136 @@ impl VersionSourceVerification {
                 });
             }
         }
+    }
+
+    // TODO
+    pub fn default_data(&mut self, version_output: &str, version_number: Option<&str>) -> Result<(), AlphaDBError> {
+        for version in &self.version_list {
+            let mut version_trace = vec![version_output.to_string(), "default_data".to_string()];
+            let mut table_version_trace = vec![version_output.to_string()];
+            let loop_version_number = get_json_string(&version["_id"], &mut self.issues, version_trace.clone());
+            let parsed_loop_version_number = parse_version_number(loop_version_number, &mut self.issues, Vec::from([loop_version_number.to_string()]));
+            let parsed_version_number = match version_number {
+                Some(v) => parse_version_number(v, &mut self.issues, Vec::from([v.to_string()])),
+                None => 0,
+            };
+
+            if  parsed_loop_version_number > parsed_version_number {
+                break;
+            }
+
+            let consolidated_default_data = match consolidate_default_data(&self.version_list, version_number) {
+                Ok(c) => c,
+                Err(e) => {
+                    return Err(AlphaDBError {
+                        message: e.message(),
+                        error: e.error(),
+                        version_trace,
+                    });
+                }
+            };
+
+            for table in object_iter(&consolidated_default_data, &mut self.issues, version_trace.clone()) {
+                version_trace.push(format!("table:{table}"));
+                table_version_trace.push(format!("table:{table}"));
+
+                let consolidated_table = match consolidate_table(&self.version_list, table, Some(loop_version_number)) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        return Err(AlphaDBError {
+                            message: e.message(),
+                            error: e.error(),
+                            version_trace,
+                        });
+                    }
+                };
+
+                // Loop over the table columns and check if any of them are required and do not
+                // have a default value. If the column then does not exist in the default data,
+                // an issue should be added
+                for column in object_iter(&consolidated_table, &mut self.issues, table_version_trace.clone()) {
+                    version_trace.push(format!("column:{column}"));
+                    table_version_trace.push(format!("column:{column}"));
+
+                    if !NON_COLUMN_TABLE_KEYS.contains(&column.as_str()) {
+                        // If the column is not allowed to have a NULL value, default data is
+                        // required to be present
+                        if !exists_in_object(&consolidated_table[column], "null", &mut self.issues, table_version_trace.clone())
+                            || !get_json_boolean(&consolidated_table[column]["null"], &mut self.issues, table_version_trace.clone())
+                        {
+                            for (i, default_data) in array_iter(&consolidated_default_data[table], &mut self.issues, table_version_trace.clone())
+                                .iter()
+                                .enumerate()
+                            {
+                                version_trace.push(format!("item:{i}"));
+                                let col_type = get_json_string(&&consolidated_table[column]["type"], &mut self.issues, table_version_trace.clone());
+
+                                // Check if the default data for the current column exists
+                                if !exists_in_object(&default_data, column, &mut self.issues, version_trace.clone()) {
+                                    insert_issue(
+                                        &mut self.issues,
+                                        VerificationIssue {
+                                            level: VerificationIssueLevel::Critical,
+                                            message: format!("Column {column} is not allowed to be NULL, so default data is required to be specified."),
+                                            version_trace: version_trace.clone(),
+                                        },
+                                    );
+
+                                    version_trace.pop();
+                                    continue;
+                                }
+
+                                // Verify if the specified default data value is the right type
+                                if STRING_COLUMNS.contains(&col_type) {
+                                    if adb_get_json_string(&default_data[column]).is_err() {
+                                        insert_issue(
+                                            &mut self.issues,
+                                            VerificationIssue {
+                                                level: VerificationIssueLevel::Critical,
+                                                message: format!("Default data for column type `{col_type}` is required to be of type string"),
+                                                version_trace: version_trace.clone(),
+                                            },
+                                        );
+                                    }
+                                }
+                                if INT_COLUMNS.contains(&col_type) {
+                                    if adb_get_json_int(&default_data[column]).is_err() {
+                                        insert_issue(
+                                            &mut self.issues,
+                                            VerificationIssue {
+                                                level: VerificationIssueLevel::Critical,
+                                                message: format!("Default data for column type `{col_type}` is required to be of type int"),
+                                                version_trace: version_trace.clone(),
+                                            },
+                                        );
+                                    }
+                                }
+                                if FLOAT_COLUMNS.contains(&col_type) {
+                                    if adb_get_json_float(&default_data[column]).is_err() {
+                                        insert_issue(
+                                            &mut self.issues,
+                                            VerificationIssue {
+                                                level: VerificationIssueLevel::Critical,
+                                                message: format!("Default data for column type `{col_type}` is required to be of type float"),
+                                                version_trace: version_trace.clone(),
+                                            },
+                                        );
+                                    }
+                                }
+
+                                version_trace.pop();
+                            }
+                        }
+                    }
+
+                    version_trace.pop();
+                    table_version_trace.pop();
+                }
+                version_trace.pop();
+                table_version_trace.pop();
+            }
+        }
+
+        Ok(())
     }
 }
