@@ -283,39 +283,10 @@ pub fn get_column_drops(version_list: &Vec<Value>, column_name: &str, table_name
 /// * Returns `AlphaDBError` if there are issues parsing version numbers or JSON values
 pub fn will_column_be_dropped(version_list: &Vec<Value>, column_name: &str, table_name: &str, version: u32) -> Result<bool, AlphaDBError> {
     let column_drops = get_column_drops(version_list, column_name, table_name)?;
-    let drop_count = column_drops.len();
-    println!("{:?}, {}", column_drops, version);
 
-    if drop_count == 0 {
-        return Ok(false);
-    }
-
-    // If only deleted once, the version must be before the deletion to pass
-    if drop_count == 1 {
-        return Ok(column_drops[0] >= version);
-    }
-
-    let mut low = 0;
-    let mut high = column_drops.len() - 1;
-
-    while low <= high {
-        let mid = (low + high) / 2;
-
-        if column_drops[mid] == version {
-            println!("mid: {mid}");
-            if mid == 0 {
-                return Ok(column_drops[0] >= version);
-            }
-
-            let lower_than = column_drops[mid - 1] < version;
-            let higher_than = mid < column_drops.len() - 1 && column_drops[mid + 1] > version;
-
-            return Ok(lower_than && higher_than);
-        } else if column_drops[mid] < version {
-            low = mid + 1;
-        } else {
-            high = mid - 1;
-        }
+    // If the column is dropped at this or any higher version than the current, it will be dropped
+    if column_drops.iter().any(|&x| x >= version) {
+        return Ok(true);
     }
 
     Ok(false)
