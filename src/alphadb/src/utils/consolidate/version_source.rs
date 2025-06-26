@@ -64,7 +64,6 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
     // Consolidate default data
     let default_data = consolidate_default_data(versions)?;
     if !is_empty_json(&default_data) {
-        println!("default data: {default_data}");
         consolidated_version["default_data"] = default_data;
     }
 

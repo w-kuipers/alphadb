@@ -21,7 +21,8 @@
           "col6": {
             "null": true,
             "type": "JSON"
-          }
+          },
+          "primary_key": "col4"
         },
         "table2": {
           "col2": {
@@ -30,6 +31,7 @@
             "type": "INT",
             "unique": true
           },
+          "primary_key": "secondrenameoncol1",
           "secondrenameoncol1": {
             "a_i": true,
             "length": 30,
@@ -50,6 +52,7 @@
           }
         },
         "table4": {
+          "primary_key": "thecol1",
           "thecol1": {
             "a_i": true,
             "type": "INT"
@@ -64,15 +67,11 @@
       "default_data": {
         "table1": [
           {
-            "col1": 4,
             "col2": "test2",
-            "col3": "test",
             "col4": 12
           },
           {
-            "col1": 3,
             "col2": "test3",
-            "col3": "test",
             "col4": 12
           }
         ]

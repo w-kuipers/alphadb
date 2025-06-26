@@ -117,6 +117,7 @@ impl VersionSourceVerification {
                                 version_trace: e.version_trace(),
                             }),
                         },
+                        "default_data" => self.default_data(&version, &version_output, version_number),
                         _ => {
                             self.issues.push(VerificationIssue {
                                 level: VerificationIssueLevel::High,
@@ -218,7 +219,7 @@ impl VersionSourceVerification {
                                     self.issues.push(VerificationIssue {
                                         level: VerificationIssueLevel::Low,
                                         message: format!("Column {dropcol} is the tables current primary key"),
-                                        version_trace: vec![version_output.to_string(), "altertable".to_string(), format!("table:{table}"), "dropcolumn".to_string()]
+                                        version_trace: vec![version_output.to_string(), "altertable".to_string(), format!("table:{table}"), "dropcolumn".to_string()],
                                     });
                                 }
                             }
@@ -280,5 +281,10 @@ impl VersionSourceVerification {
                 });
             }
         }
+    }
+
+    // TODO
+    pub fn default_data(&mut self, version: &Value, version_output: &str, version_number: Option<&str>) {
+
     }
 }
