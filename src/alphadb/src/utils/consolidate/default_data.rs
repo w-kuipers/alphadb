@@ -14,19 +14,33 @@ use super::column::{get_column_renames, will_column_be_dropped};
 ///
 /// This function takes a list of versions and merges their default data into a single JSON object.
 /// For each table in the default data, it combines the data from all versions into a single array.
+/// If a `target_version` is specified, the consolidation will only include versions up to and including
+/// the specified target version.
 ///
 /// # Arguments
-/// * `version_list` - A vector of JSON values representing different versions
+/// * `version_list` - A vector of JSON values representing different versions.
+/// * `target_version` - An optional string slice representing the maximum version number to
+///                      include in the consolidation. If `None`, all versions in `version_list`
+///                      will be processed.
 ///
 /// # Returns
-/// * `Result<Value, AlphaDBError>` - A JSON object containing the consolidated default data if successful
+/// * `Result<Value, AlphaDBError>` - A JSON object containing the consolidated default data if successful.
 ///
 /// # Errors
-/// * Returns `AlphaDBError` if there are issues accessing or processing the JSON data
-pub fn consolidate_default_data(version_list: &Vec<Value>) -> Result<Value, AlphaDBError> {
+/// * Returns `AlphaDBError` if there are issues accessing or processing the JSON data,
+///   or if the `target_version` string is not a valid version number format.
+pub fn consolidate_default_data(version_list: &Vec<Value>, target_version: Option<&str>) -> Result<Value, AlphaDBError> {
     let mut default_data = json!({});
 
     for version in version_list.iter() {
+        // If target version is defined and the current version is higher than the target version
+        // consolidation should be stopped
+        if let Some(target_version) = target_version {
+            if parse_version_number(get_json_string(&version["_id"])?)? > parse_version_number(target_version)? {
+                break;
+            }
+        }
+
         if exists_in_object(version, "default_data")? {
             for table in object_iter(&version["default_data"])? {
                 let v = parse_version_number(get_json_string(&version["_id"])?)?;
@@ -75,7 +89,7 @@ mod tests {
     #[test]
     fn test_consolidate_empty_version_list() {
         let version_list = vec![];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(result, json!({}));
     }
 
@@ -89,7 +103,7 @@ mod tests {
                 }
             }
         })];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(result, json!({}));
     }
 
@@ -107,7 +121,7 @@ mod tests {
                 ]
             }
         })];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
@@ -142,7 +156,7 @@ mod tests {
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
@@ -176,7 +190,7 @@ mod tests {
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
@@ -216,7 +230,7 @@ mod tests {
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
@@ -258,7 +272,7 @@ mod tests {
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         // The column "username" doesn't have any renames, so it stays as is
         assert_eq!(
             result,
@@ -299,7 +313,7 @@ mod tests {
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
@@ -328,7 +342,7 @@ mod tests {
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         assert_eq!(
             result,
             json!({
@@ -376,7 +390,7 @@ mod tests {
                 }
             }),
         ];
-        let result = consolidate_default_data(&version_list).unwrap();
+        let result = consolidate_default_data(&version_list, None).unwrap();
         // The column "name" should be renamed through the chain: name -> user_name -> full_name
         assert_eq!(
             result,
@@ -388,4 +402,44 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_consolidate_with_target_version() {
+        let version_list = vec![
+            json!({
+                "_id": "0.0.1",
+                "default_data": {
+                    "users": [
+                        {"id": 1, "name": "Alice"}
+                    ]
+                }
+            }),
+            json!({
+                "_id": "0.0.2",
+                "default_data": {
+                    "users": [
+                        {"id": 2, "name": "Bob"}
+                    ]
+                }
+            }),
+            json!({
+                "_id": "0.0.3",
+                "default_data": {
+                    "users": [
+                        {"id": 3, "name": "Charlie"}
+                    ]
+                }
+            }),
+        ];
+        // Only include up to version 0.0.2
+        let result = consolidate_default_data(&version_list, Some("0.0.2")).unwrap();
+        assert_eq!(
+            result,
+            json!({
+                "users": [
+                    {"id": 1, "name": "Alice"},
+                    {"id": 2, "name": "Bob"}
+                ]
+            })
+        );
+    }
 }

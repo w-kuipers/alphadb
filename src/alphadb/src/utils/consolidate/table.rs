@@ -2,7 +2,7 @@ use serde_json::{json, Value};
 
 use crate::{
     prelude::AlphaDBError,
-    utils::json::{exists_in_object, get_json_object, get_object_keys},
+    utils::{json::{exists_in_object, get_json_object, get_json_string, get_object_keys}, version_number::parse_version_number},
 };
 
 use super::{
@@ -14,17 +14,23 @@ use super::{
 ///
 /// This function processes a list of versions to create a consolidated table definition,
 /// including all columns that have been added through create table or alter table operations.
+/// If a `target_version` is specified, the consolidation will only include versions up to and including
+/// the specified target version.
 ///
 /// # Arguments
-/// * `version_list` - List of version JSON objects containing table definitions
-/// * `table_name` - Name of the table to consolidate
+/// * `version_list` - List of version JSON objects containing table definitions.
+/// * `table_name` - Name of the table to consolidate.
+/// * `target_version` - An optional string slice representing the maximum version number to
+///                      include in the consolidation. If `None`, all relevant versions in `version_list`
+///                      will be processed for the table.
 ///
 /// # Returns
-/// * `Result<Value, AlphaDBError>` - Consolidated table definition as a JSON object
+/// * `Result<Value, AlphaDBError>` - Consolidated table definition as a JSON object.
 ///
 /// # Errors
-/// * Returns `AlphaDBError` if there are issues accessing JSON properties or consolidating columns
-pub fn consolidate_table(version_list: &Vec<Value>, table_name: &str) -> Result<Value, AlphaDBError> {
+/// * Returns `AlphaDBError` if there are issues accessing JSON properties or consolidating columns,
+///   or if the `target_version` string is not a valid version number format.
+pub fn consolidate_table(version_list: &Vec<Value>, table_name: &str, target_version: Option<&str>) -> Result<Value, AlphaDBError> {
     let mut table = json!({});
     let mut columns: Vec<String> = Vec::new();
 
@@ -36,6 +42,14 @@ pub fn consolidate_table(version_list: &Vec<Value>, table_name: &str) -> Result<
 
     // Get all columns that should exist in the latest version of the table
     for version in version_list.iter() {
+        // If target version is defined and the current version is higher than the target version
+        // consolidation should be stopped
+        if let Some(target_version) = target_version {
+            if parse_version_number(get_json_string(&version["_id"])?)? > parse_version_number(target_version)? {
+                break;
+            }
+        }
+
         // Createtable
         if exists_in_object(version, "createtable")? {
             if exists_in_object(&version["createtable"], table_name)? {
@@ -102,7 +116,7 @@ mod consolidate_table_tests {
             "col2": {"type": "TEXT"},
             "col3": {"type": "INTEGER"}
         });
-        assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table").unwrap(), result);
+        assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table", None).unwrap(), result);
     }
 
     #[test]
@@ -118,7 +132,7 @@ mod consolidate_table_tests {
             "renamed_col": {"type": "VARCHAR", "length": 200, "unique": true},
             "new_col": {"type": "INTEGER"}
         });
-        assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table").unwrap(), result);
+        assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table", None).unwrap(), result);
     }
 
     #[test]
@@ -133,7 +147,7 @@ mod consolidate_table_tests {
         let result = json!({
             "col1": {"type": "VARCHAR", "length": 300, "unique": true, "null": true}
         });
-        assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table").unwrap(), result);
+        assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table", None).unwrap(), result);
     }
 
     #[test]
@@ -147,7 +161,7 @@ mod consolidate_table_tests {
         let result = json!({
             "col1": {"type": "INTEGER", "unique": true}
         });
-        assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table").unwrap(), result);
+        assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table", None).unwrap(), result);
     }
 
     #[test]
@@ -161,6 +175,22 @@ mod consolidate_table_tests {
         let result = json!({
             "col2": {"type": "TEXT", "unique": true}
         });
-        assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table").unwrap(), result);
+        assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table", None).unwrap(), result);
+    }
+
+    #[test]
+    fn consolidate_with_target_version() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col1": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"addcolumn": {"col2": {"type": "TEXT"}}}}},
+            {"_id": "0.0.3", "altertable": {"table": {"addcolumn": {"col3": {"type": "INTEGER"}}}}},
+        ]});
+
+        let result = json!({
+            "col1": {"type": "VARCHAR", "length": 200},
+            "col2": {"type": "TEXT"}
+        });
+        // Only include up to version 0.0.2
+        assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table", Some("0.0.2")).unwrap(), result);
     }
 }
