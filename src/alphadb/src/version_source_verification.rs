@@ -13,13 +13,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::utils::consolidate::default_data::consolidate_default_data;
 use crate::utils::consolidate::primary_key::get_primary_key;
+use crate::utils::consolidate::table::consolidate_table;
 use crate::utils::errors::{AlphaDBError, Get, ToVerificationIssue};
 use crate::utils::json::{get_json_object as adb_get_json_object, get_json_string as adb_get_json_string};
 use crate::utils::types::VerificationIssueLevel;
 use crate::utils::version_source::get_version_array;
 use crate::verification::compatibility::{INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE};
-use crate::verification::json::{array_iter, exists_in_object, get_json_object, get_json_string, parse_version_number};
+use crate::verification::json::{array_iter, exists_in_object, get_json_object, get_json_string, object_iter, parse_version_number};
 use serde_json::Value;
 
 #[derive(Debug, Clone)]
@@ -117,7 +119,14 @@ impl VersionSourceVerification {
                                 version_trace: e.version_trace(),
                             }),
                         },
-                        "default_data" => self.default_data(&version, &version_output, version_number),
+                        "default_data" => match self.default_data(&version_output, version_number) {
+                            Ok(v) => v,
+                            Err(e) => self.issues.push(VerificationIssue {
+                                message: e.message(),
+                                level: VerificationIssueLevel::Critical,
+                                version_trace: e.version_trace(),
+                            }),
+                        },
                         _ => {
                             self.issues.push(VerificationIssue {
                                 level: VerificationIssueLevel::High,
@@ -284,7 +293,45 @@ impl VersionSourceVerification {
     }
 
     // TODO
-    pub fn default_data(&mut self, version: &Value, version_output: &str, version_number: Option<&str>) {
+    pub fn default_data(&mut self, version_output: &str, version_number: Option<&str>) -> Result<(), AlphaDBError> {
+        for version in &self.version_list {
+            let version_trace = vec![version_output.to_string(), "default_data".to_string()];
+            let version_number_string = get_json_string(&version["_id"], &mut self.issues, version_trace.clone());
 
+            if !version_number_string.is_empty() {
+                let consolidated_default_data = match consolidate_default_data(&self.version_list, Some(version_number_string)) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        return Err(AlphaDBError {
+                            message: e.message(),
+                            error: e.error(),
+                            version_trace,
+                        });
+                    }
+                };
+
+                for table in object_iter(&consolidated_default_data, &mut self.issues, version_trace.clone()) {
+                    version_trace.clone().push(format!("table:{table}"));
+
+                    let consolidated_table = match consolidate_table(&self.version_list, table, Some(version_number_string)) {
+                        Ok(t) => t,
+                        Err(e) => {
+                            return Err(AlphaDBError {
+                                message: e.message(),
+                                error: e.error(),
+                                version_trace,
+                            });
+                        }
+                    };
+
+                    // Loop over the table columns and check if any of them are required and do not
+                    // have a default value. If the table then does not exist in the default data,
+                    // an issue should be added
+                    for table in object_iter(&consolidated_default_data, &mut self.issues, version_trace.clone()) {}
+                }
+            }
+        }
+
+        Ok(())
     }
 }
