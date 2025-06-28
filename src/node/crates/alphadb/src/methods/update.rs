@@ -35,16 +35,16 @@ pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     };
 
     let version_source = cx.argument::<JsString>(2)?.value(&mut cx);
-    let update_to_version = cx.argument::<JsString>(3)?.value(&mut cx);
+    let target_version = cx.argument::<JsString>(3)?.value(&mut cx);
     let no_data = cx.argument::<JsBoolean>(4)?.value(&mut cx);
     let verify = cx.argument::<JsBoolean>(5)?.value(&mut cx);
     let allowed_error_priority = cx.argument::<JsString>(6)?.value(&mut cx);
 
-    // The TypeScript wrapper allows for update_to_version to be undefined
+    // The TypeScript wrapper allows for target_version to be undefined
     // so it's set to NOVERSION if that is the case
-    let mut update_to_version_processed: Option<&str> = None;
-    if update_to_version != "NOVERSION".to_string() {
-        update_to_version_processed = Some(update_to_version.as_str()); 
+    let mut target_version_processed: Option<&str> = None;
+    if target_version != "NOVERSION".to_string() {
+        target_version_processed = Some(target_version.as_str()); 
     }
 
     // The TypeScript version of the issuelevel is strings, they need to 
@@ -62,7 +62,7 @@ pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
             &db_name,
             connection,
             version_source,
-            update_to_version_processed,
+            target_version_processed,
             no_data,
             verify,
             allowed_error_priority_processed

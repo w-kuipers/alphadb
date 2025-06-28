@@ -17,6 +17,7 @@ use crate::methods::status::{status, StatusError};
 use crate::query::default_data::default_data;
 use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
+use crate::utils::consolidate::default_data::consolidate_default_data;
 use crate::utils::errors::{AlphaDBError, Get};
 use crate::utils::globals::CONFIG_TABLE_NAME;
 use crate::utils::json::{array_iter, get_object_keys, object_iter};
@@ -80,7 +81,7 @@ impl Get for UpdateQueriesError {
 /// * `db_name` - The name of the database to update
 /// * `connection` - Active connection pool to the database
 /// * `version_source` - Complete JSON version source
-/// * `update_to_version` - Optional version number to update to
+/// * `target_version` - Optional version number to update to
 /// * `no_data` - Whether to skip data updates
 ///
 /// # Returns
@@ -88,13 +89,7 @@ impl Get for UpdateQueriesError {
 ///
 /// # Errors
 /// * Returns `UpdateQueriesError` if query generation fails
-pub fn update_queries(
-    db_name: &str,
-    connection: &mut PooledConn,
-    version_source: String,
-    update_to_version: Option<&str>,
-    no_data: bool,
-) -> Result<Vec<Query>, UpdateQueriesError> {
+pub fn update_queries(db_name: &str, connection: &mut PooledConn, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, UpdateQueriesError> {
     let mut queries: Vec<Query> = Vec::new();
     let version_source = parse_version_source_string(version_source)?;
     let versions = get_version_array(&version_source)?;
@@ -148,7 +143,7 @@ pub fn update_queries(
     }
 
     // Get the latest version
-    let latest_version = match update_to_version {
+    let latest_version = match target_version {
         Some(v) => match validate_version_number(v) {
             Ok(v) => v.to_string(),
             Err(_) => {
@@ -222,15 +217,14 @@ pub fn update_queries(
                 });
             }
         }
+    }
 
-        // Add queries to insert default data
-        if no_data == false {
-            if version_keys.contains(&&"default_data".to_string()) {
-                for table in object_iter(&version["default_data"])? {
-                    for item in array_iter(&version["default_data"][table])? {
-                        queries.push(default_data(table, item)?);
-                    }
-                }
+    // Add queries to insert default data
+    if no_data == false {
+        let default_data_object = consolidate_default_data(&versions, target_version)?;
+        for table in object_iter(&default_data_object)? {
+            for item in array_iter(&default_data_object[table])? {
+                queries.push(default_data(table, item)?);
             }
         }
     }

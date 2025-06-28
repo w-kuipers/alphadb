@@ -2,7 +2,6 @@ use serde_json::{json, Value};
 
 use crate::{
     prelude::AlphaDBError,
-    query::default_data::default_data,
     utils::{
         json::{get_object_keys, is_empty_json},
         version_number::get_latest_version,
@@ -52,7 +51,7 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
     // Consolidate tables
     let mut consolidated_versions = json!({});
     for table in tables {
-        let consolidated_table = consolidate_table(versions, table.as_str())?;
+        let consolidated_table = consolidate_table(versions, table.as_str(), None)?;
         consolidated_versions[table] = consolidated_table;
     }
 
@@ -63,7 +62,7 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
     });
 
     // Consolidate default data
-    let default_data = consolidate_default_data(versions)?;
+    let default_data = consolidate_default_data(versions, None)?;
     if !is_empty_json(&default_data) {
         consolidated_version["default_data"] = default_data;
     }
@@ -78,6 +77,10 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
 
 #[cfg(test)]
 mod consolidate_version_source_tests {
+    use std::fs;
+
+    use crate::AlphaDB;
+
     use super::consolidate_version_source;
     use serde_json::json;
 
@@ -196,5 +199,35 @@ mod consolidate_version_source_tests {
             }]
         });
         assert_eq!(consolidate_version_source(version_source).unwrap(), result);
+    }
+
+    #[test]
+    // Update 2 database, one with the original structure, one with the consolidated structure and
+    // verify the databases are identical
+    fn validate_db_structure() {
+        static HOST: &str = "localhost";
+        static USER: &str = "root";
+        static PASSWORD: &str = "test";
+        static DB2: &str = "adb_test2";
+        static DB3: &str = "adb_test3";
+        static PORT: u16 = 333;
+      
+        let version_source = fs::read_to_string("../../assets/test-db-structure.json").expect("Unable to read file");
+        let consolidated_version_source = consolidate_version_source(version_source.clone()).unwrap();
+
+        let mut db2 = AlphaDB::new();
+        let mut db3 = AlphaDB::new();
+
+        db2.connect(HOST, USER, PASSWORD, DB2, PORT).unwrap();
+        db3.connect(HOST, USER, PASSWORD, DB3, PORT).unwrap();
+
+        db2.vacate();
+        db3.vacate();
+
+        db2.init().unwrap();
+        db3.init().unwrap();
+
+        db2.update(version_source, None, false, true, crate::utils::types::ToleratedVerificationIssueLevel::Low).unwrap();
+        db3.update(consolidated_version_source.to_string(), None, false, true, crate::utils::types::ToleratedVerificationIssueLevel::Low).unwrap();
     }
 }
