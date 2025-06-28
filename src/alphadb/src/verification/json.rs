@@ -20,10 +20,31 @@ use serde_json::{Map, Value};
 use crate::utils::errors::{Get, ToVerificationIssue};
 use crate::utils::json::{
     array_iter as adb_array_iter, exists_in_object as adb_exists_in_object, get_json_object as adb_get_json_object, get_json_string as adb_get_json_string,
-    object_iter as adb_object_iter, get_json_boolean as adb_get_json_boolean
+    object_iter as adb_object_iter, get_json_boolean as adb_get_json_boolean, get_object_keys as adb_get_object_keys
 };
 use crate::utils::version_number::parse_version_number as adb_parse_version_number;
 use crate::version_source_verification::VerificationIssue;
+
+/// Get object keys from a serde_json::Value as a vector with strings and catch potential errors as Verification issue
+///
+/// # Arguments
+/// * `object` - The JSON value to get keys from
+///
+/// # Returns
+/// * `Result<Vec<&String>, AlphaDBError>` - Vector of object keys if successful
+///
+/// # Errors
+/// * Returns `AlphaDBError` if the value cannot be converted to an object
+pub fn get_object_keys<'a>(object: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: Vec<String>) -> Vec<&'a String> {
+    match adb_get_object_keys(object) {
+        Ok(v) => v,
+        Err(mut e) => {
+            e.set_version_trace(version_trace);
+            e.to_verification_issue(issues);
+            return Vec::new();
+        }
+    }
+}
 
 /// Verify whether a key exists in serde_json::Value and catch potential errors as Verification issue
 ///

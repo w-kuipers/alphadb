@@ -69,14 +69,24 @@ pub fn consolidate_default_data(version_list: &Vec<Value>, target_version: Optio
 
                         // If the index does not yet exist, append a new item
                         if updated_data.get(index).is_none() {
-                            updated_data.push(version["default_data"][table][iteration].clone());
+                            let item = version["default_data"][table][iteration].clone();
+                            for col in object_iter(&item)? {
+                                let value = item[col].clone();
+                                if value.is_null() || will_column_be_dropped(version_list, col, table, v)? {
+                                    if let Value::Object(ref mut map) = item.clone() {
+                                        map.remove(col);
+                                    }
+                                }
+                            }
+
+                            updated_data.push(item);
                             continue;
                         }
 
                         for col in object_iter(&version["default_data"][table][iteration])? {
                             let value = version["default_data"][table][iteration][col].clone();
 
-                            if value.is_null() {
+                            if value.is_null() || will_column_be_dropped(version_list, col, table, v)? {
                                 if let Value::Object(ref mut map) = updated_data[index] {
                                     map.remove(col);
                                 }
