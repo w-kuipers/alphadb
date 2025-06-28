@@ -20,7 +20,14 @@ CRITICAL: Will not execute.
 class AlphaDB:
     is_connected: bool
 
-    def connect(self, host: str, user: str, password: str, database: str, port: Optional[int] = 3306): ...
+    def connect(
+        self,
+        host: str,
+        user: str,
+        password: str,
+        database: str,
+        port: Optional[int] = 3306,
+    ): ...
     """Connect to a database"""
 
     def init(self): ...
@@ -29,10 +36,19 @@ class AlphaDB:
     def status(self) -> Status: ...
     """Get the databases status"""
 
-    def update_queries(self, version_source: str, update_to_version: Optional[str] = None, no_data=False) -> List[Tuple[str, List[str]]]: ...
+    def update_queries(
+        self, version_source: str, target_version: Optional[str] = None, no_data=False
+    ) -> List[Tuple[str, List[str]]]: ...
     """Generate queries to update the database"""
 
-    def update(self, version_source: str, update_to_version: Optional[str] = None, no_data=False, verify=False, allowed_error_priority: Optional[VerificationIssueLevel] = "LOW"): ...
+    def update(
+        self,
+        version_source: str,
+        target_version: Optional[str] = None,
+        no_data=False,
+        verify=False,
+        allowed_error_priority: Optional[VerificationIssueLevel] = "LOW",
+    ): ...
     """Update the databae"""
 
     def vacate(self): ...

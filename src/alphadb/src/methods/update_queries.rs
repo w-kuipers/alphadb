@@ -80,7 +80,7 @@ impl Get for UpdateQueriesError {
 /// * `db_name` - The name of the database to update
 /// * `connection` - Active connection pool to the database
 /// * `version_source` - Complete JSON version source
-/// * `update_to_version` - Optional version number to update to
+/// * `target_version` - Optional version number to update to
 /// * `no_data` - Whether to skip data updates
 ///
 /// # Returns
@@ -92,7 +92,7 @@ pub fn update_queries(
     db_name: &str,
     connection: &mut PooledConn,
     version_source: String,
-    update_to_version: Option<&str>,
+    target_version: Option<&str>,
     no_data: bool,
 ) -> Result<Vec<Query>, UpdateQueriesError> {
     let mut queries: Vec<Query> = Vec::new();
@@ -148,7 +148,7 @@ pub fn update_queries(
     }
 
     // Get the latest version
-    let latest_version = match update_to_version {
+    let latest_version = match target_version {
         Some(v) => match validate_version_number(v) {
             Ok(v) => v.to_string(),
             Err(_) => {
