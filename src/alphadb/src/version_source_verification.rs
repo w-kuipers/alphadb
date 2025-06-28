@@ -21,7 +21,7 @@ use crate::utils::json::{get_json_float as adb_get_json_float, get_json_int as a
 use crate::utils::types::VerificationIssueLevel;
 use crate::utils::version_source::get_version_array;
 use crate::verification::compatibility::{FLOAT_COLUMNS, INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, INT_COLUMNS, NON_COLUMN_TABLE_KEYS, STRING_COLUMNS};
-use crate::verification::json::{array_iter, exists_in_object, get_json_boolean, get_json_object, get_json_string, object_iter, parse_version_number};
+use crate::verification::json::{array_iter, exists_in_object, get_json_boolean, get_json_object, get_json_string, get_object_keys, object_iter, parse_version_number};
 use serde_json::Value;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -310,7 +310,7 @@ impl VersionSourceVerification {
                 None => 0,
             };
 
-            if  parsed_loop_version_number > parsed_version_number {
+            if parsed_loop_version_number > parsed_version_number {
                 break;
             }
 
@@ -340,6 +340,30 @@ impl VersionSourceVerification {
                     }
                 };
 
+                // Check if the columns specified in the default data exist in the table
+                if let Some(version_number) = version_number {
+                    if loop_version_number == version_number {
+                        for (i, dataset) in array_iter(&consolidated_default_data[table], &mut self.issues, version_trace.clone()).iter().enumerate() {
+                            version_trace.push(format!("item:{i}"));
+                            let columns = get_object_keys(&consolidated_table, &mut self.issues, table_version_trace.clone());
+
+                            for column in object_iter(&dataset, &mut self.issues, version_trace.clone()) {
+                                if !columns.contains(&column) {
+                                    insert_issue(
+                                        &mut self.issues,
+                                        VerificationIssue {
+                                            level: VerificationIssueLevel::Critical,
+                                            message: format!("Default data for column {column} is specified, but the column does not exist in the table."),
+                                            version_trace: version_trace.clone(),
+                                        },
+                                    );
+                                }
+                            }
+                            version_trace.pop();
+                        }
+                    }
+                }
+
                 // Loop over the table columns and check if any of them are required and do not
                 // have a default value. If the column then does not exist in the default data,
                 // an issue should be added
@@ -353,7 +377,7 @@ impl VersionSourceVerification {
                         if !exists_in_object(&consolidated_table[column], "null", &mut self.issues, table_version_trace.clone())
                             || !get_json_boolean(&consolidated_table[column]["null"], &mut self.issues, table_version_trace.clone())
                         {
-                            for (i, default_data) in array_iter(&consolidated_default_data[table], &mut self.issues, table_version_trace.clone())
+                            for (i, dataset) in array_iter(&consolidated_default_data[table], &mut self.issues, table_version_trace.clone())
                                 .iter()
                                 .enumerate()
                             {
@@ -361,7 +385,7 @@ impl VersionSourceVerification {
                                 let col_type = get_json_string(&&consolidated_table[column]["type"], &mut self.issues, table_version_trace.clone());
 
                                 // Check if the default data for the current column exists
-                                if !exists_in_object(&default_data, column, &mut self.issues, version_trace.clone()) {
+                                if !exists_in_object(&dataset, column, &mut self.issues, version_trace.clone()) {
                                     insert_issue(
                                         &mut self.issues,
                                         VerificationIssue {
@@ -377,7 +401,7 @@ impl VersionSourceVerification {
 
                                 // Verify if the specified default data value is the right type
                                 if STRING_COLUMNS.contains(&col_type) {
-                                    if adb_get_json_string(&default_data[column]).is_err() {
+                                    if adb_get_json_string(&dataset[column]).is_err() {
                                         insert_issue(
                                             &mut self.issues,
                                             VerificationIssue {
@@ -389,7 +413,7 @@ impl VersionSourceVerification {
                                     }
                                 }
                                 if INT_COLUMNS.contains(&col_type) {
-                                    if adb_get_json_int(&default_data[column]).is_err() {
+                                    if adb_get_json_int(&dataset[column]).is_err() {
                                         insert_issue(
                                             &mut self.issues,
                                             VerificationIssue {
@@ -401,7 +425,7 @@ impl VersionSourceVerification {
                                     }
                                 }
                                 if FLOAT_COLUMNS.contains(&col_type) {
-                                    if adb_get_json_float(&default_data[column]).is_err() {
+                                    if adb_get_json_float(&dataset[column]).is_err() {
                                         insert_issue(
                                             &mut self.issues,
                                             VerificationIssue {
