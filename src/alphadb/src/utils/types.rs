@@ -20,7 +20,7 @@
 /// Low: Will work, but will not have any effect on the database.
 /// High: Will still work, but might produce a different result than desired.
 /// Critical: Will not execute.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum VerificationIssueLevel {
     /// Low: Will work, but will not have any effect on the database
     Low,

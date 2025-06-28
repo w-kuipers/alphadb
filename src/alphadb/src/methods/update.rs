@@ -68,7 +68,7 @@ impl Get for UpdateError {
 /// * `db_name` - The name of the database to update
 /// * `connection` - Active connection pool to the database
 /// * `version_source` - Complete JSON version source
-/// * `update_to_version` - Optional version number to update to
+/// * `target_version` - Optional version number to update to
 /// * `no_data` - Whether to skip data updates
 /// * `verify` - Whether to verify the update
 /// * `allowed_error_priority` - Level of verification issues to tolerate
@@ -82,7 +82,7 @@ pub fn update(
     db_name: &str,
     connection: &mut PooledConn,
     version_source: String,
-    update_to_version: Option<&str>,
+    target_version: Option<&str>,
     no_data: bool,
     verify: bool,
     _allowed_error_priority: ToleratedVerificationIssueLevel,
@@ -91,7 +91,7 @@ pub fn update(
         // TODO
     }
 
-    let queries = update_queries(db_name, connection, version_source, update_to_version, no_data)?;
+    let queries = update_queries(db_name, connection, version_source, target_version, no_data)?;
 
     for query in queries {
         if let Some(data) = query.data {

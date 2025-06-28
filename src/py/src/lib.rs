@@ -150,11 +150,11 @@ impl AlphaDB {
         })
     }
 
-    #[pyo3(signature = (version_source, update_to_version=None, no_data=false))]
+    #[pyo3(signature = (version_source, target_version=None, no_data=false))]
     fn update_queries(
         &mut self,
         version_source: String,
-        update_to_version: Option<&str>,
+        target_version: Option<&str>,
         no_data: bool, 
     ) -> PyResult<Vec<Query>> {
         let (db_name, connection) =
@@ -168,7 +168,7 @@ impl AlphaDB {
                 db_name,
                 connection,
                 version_source,
-                update_to_version,
+                target_version,
                 no_data
             ) {
                 Ok(queries) => {
@@ -185,11 +185,11 @@ impl AlphaDB {
         })
     }
 
-    #[pyo3(signature = (version_source, update_to_version=None, no_data=false, verify=true, allowed_error_priority=PyToleratedVerificationIssueLevel::Low))]
+    #[pyo3(signature = (version_source, target_version=None, no_data=false, verify=true, allowed_error_priority=PyToleratedVerificationIssueLevel::Low))]
     fn update(
         &mut self,
         version_source: String,
-        update_to_version: Option<String>,
+        target_version: Option<String>,
         no_data: Option<bool>,
         verify: Option<bool>,
         allowed_error_priority: PyToleratedVerificationIssueLevel,
@@ -223,7 +223,7 @@ impl AlphaDB {
             db_name,
             connection,
             version_source,
-            update_to_version.as_deref(),
+            target_version.as_deref(),
             verify,
             no_data,
             allowed_error_priority,

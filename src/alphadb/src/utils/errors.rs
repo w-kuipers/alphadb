@@ -73,7 +73,7 @@ impl Get for AlphaDBError {
     fn error(&self) -> String {
         return self.error.clone();
     }
-    
+
     fn version_trace(&self) -> Vec<String> {
         return self.version_trace.clone();
     }
@@ -85,11 +85,15 @@ impl Get for AlphaDBError {
 
 impl ToVerificationIssue for AlphaDBError {
     fn to_verification_issue(&self, verification_issues: &mut Vec<VerificationIssue>) {
-        verification_issues.push(VerificationIssue {
+        let issue = VerificationIssue {
             message: self.message.clone(),
             level: VerificationIssueLevel::Critical,
-            version_trace: self.version_trace.clone()
-        });
+            version_trace: self.version_trace.clone(),
+        };
+
+        if !verification_issues.contains(&issue) {
+            verification_issues.push(issue);
+        }
     }
 }
 
