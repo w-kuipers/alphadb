@@ -243,6 +243,8 @@ impl VersionSourceVerification {
                 }
 
                 // Do primary key checks
+                // Primary key checks should include checking when a column in changed into a
+                // primary key, the key was unique previously. If not there should be a warning.
             }
         }
 
@@ -440,6 +442,48 @@ impl VersionSourceVerification {
                                 }
 
                                 version_trace.pop();
+                            }
+
+                            // Check if unique values have duplicate data
+                            // TODO right now the issue is generated for every following version as well. Find
+                            // a way to only add the issue once
+                            let primary_key = match get_primary_key(&self.version_list, table, version_number)? {
+                                Some(p) => p,
+                                None => "",
+                            };
+
+                            if primary_key == column
+                                || (exists_in_object(&consolidated_table[column], "unique", &mut self.issues, table_version_trace.clone())
+                                    && get_json_boolean(&consolidated_table[column]["unique"], &mut self.issues, table_version_trace.clone()))
+                            {
+                                let mut column_values: Vec<String> = Vec::new();
+                                for (i, dataset) in array_iter(&consolidated_default_data[table], &mut self.issues, table_version_trace.clone())
+                                    .iter()
+                                    .enumerate()
+                                {
+                                    version_trace.push(format!("item:{i}"));
+                                    let value = dataset[column].to_string();
+
+                                    if column_values.contains(&value) {
+                                        let message = match  primary_key == column {
+                                            true => format!("Column `{column}` is the table's primary key so it's value should be unique, but the value `{value}` is previously specified as default data"),
+                                            false => format!("Column `{column}` has the UNIQUE key, but the value `{value}` is previously specified as default data")
+
+                                        };
+
+                                        insert_issue(
+                                            &mut self.issues,
+                                            VerificationIssue {
+                                                level: VerificationIssueLevel::Critical,
+                                                message: message,
+                                                version_trace: version_trace.clone(),
+                                            },
+                                        );
+                                    }
+
+                                    column_values.push(value);
+                                    version_trace.pop();
+                                }
                             }
                         }
                     }

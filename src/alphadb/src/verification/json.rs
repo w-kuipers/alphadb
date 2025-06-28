@@ -17,10 +17,11 @@ use std::sync::LazyLock;
 
 use serde_json::{Map, Value};
 
+use crate::utils::consolidate::primary_key::get_primary_key as adb_get_primary_key;
 use crate::utils::errors::{Get, ToVerificationIssue};
 use crate::utils::json::{
-    array_iter as adb_array_iter, exists_in_object as adb_exists_in_object, get_json_object as adb_get_json_object, get_json_string as adb_get_json_string,
-    object_iter as adb_object_iter, get_json_boolean as adb_get_json_boolean, get_object_keys as adb_get_object_keys
+    array_iter as adb_array_iter, exists_in_object as adb_exists_in_object, get_json_boolean as adb_get_json_boolean, get_json_object as adb_get_json_object,
+    get_json_string as adb_get_json_string, get_object_keys as adb_get_object_keys, object_iter as adb_object_iter,
 };
 use crate::utils::version_number::parse_version_number as adb_parse_version_number;
 use crate::version_source_verification::VerificationIssue;

@@ -26,20 +26,20 @@ use serde_json::Value;
 /// # Arguments
 /// * `version_list` - List with versions from version_source
 /// * `table_name` - Name of the table to get the primary key for
-/// * `before_version` - Optional version before which to search for the primary key
+/// * `target_version` - Optional version before which to search for the primary key
 ///
 /// # Returns
 /// * `Result<Option<&str>, AlphaDBError>` - The primary key column name if found, None if no primary key exists
 ///
 /// # Errors
 /// * Returns `AlphaDBError` if there are issues parsing version numbers or accessing JSON properties
-pub fn get_primary_key<'a>(version_list: &'a Vec<Value>, table_name: &str, before_version: Option<&str>) -> Result<Option<&'a str>, AlphaDBError> {
+pub fn get_primary_key<'a>(version_list: &'a Vec<Value>, table_name: &str, target_version: Option<&str>) -> Result<Option<&'a str>, AlphaDBError> {
     let mut primary_key: Option<&str> = None;
 
     for version in version_list {
-        // Skip if version is after or equal to before_version
-        if let Some(before_version) = before_version {
-            if parse_version_number(before_version)? <= parse_version_number(get_json_string(&version["_id"])?)? {
+        // Skip if version is after or equal to target_version
+        if let Some(target_version) = target_version {
+            if parse_version_number(target_version)? <= parse_version_number(get_json_string(&version["_id"])?)? {
                 continue;
             }
         }
