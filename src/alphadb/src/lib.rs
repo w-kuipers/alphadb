@@ -99,7 +99,7 @@ impl<'a> AlphaDB<'a> {
     ///
     /// # Arguments
     /// * `version_source` - Complete JSON version source
-    /// * `update_to_version` - Optional version number to update to
+    /// * `target_version` - Optional version number to update to
     /// * `no_data` - Whether to skip data updates
     ///
     /// # Returns
@@ -107,16 +107,16 @@ impl<'a> AlphaDB<'a> {
     ///
     /// # Errors
     /// * Returns `UpdateQueriesError` if query generation fails
-    pub fn update_queries(&mut self, version_source: String, update_to_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, UpdateQueriesError> {
+    pub fn update_queries(&mut self, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, UpdateQueriesError> {
         let (db_name, connection) = get_connection(self.db_name, &mut self.connection)?;
-        return update_queries(db_name, connection, version_source, update_to_version, no_data);
+        return update_queries(db_name, connection, version_source, target_version, no_data);
     }
 
     /// Generate and execute MySQL queries to update the tables
     ///
     /// # Arguments
     /// * `version_source` - Complete JSON version source
-    /// * `update_to_version` - Optional version number to update to
+    /// * `target_version` - Optional version number to update to
     /// * `no_data` - Whether to skip data updates
     /// * `verify` - Whether to verify the update
     /// * `allowed_error_priority` - Level of verification issues to tolerate
@@ -129,7 +129,7 @@ impl<'a> AlphaDB<'a> {
     pub fn update(
         &mut self,
         version_source: String,
-        update_to_version: Option<&str>,
+        target_version: Option<&str>,
         no_data: bool,
         verify: bool,
         allowed_error_priority: ToleratedVerificationIssueLevel,
@@ -139,7 +139,7 @@ impl<'a> AlphaDB<'a> {
             db_name,
             connection,
             version_source,
-            update_to_version,
+            target_version,
             no_data,
             verify,
             allowed_error_priority,
@@ -189,9 +189,9 @@ mod alphadb_tests {
         // Test connect
         let _ = db.connect(HOST, USER, PASSWORD, DATABASE, PORT);
         let _ = db2.connect(HOST, USER, PASSWORD, DATABASE, PORT);
-        println!("{:?}", db.connection);
         assert!(db.connection.is_some());
         assert!(db.is_connected);
+        db.vacate();
 
         let db2_name = db2.db_name.unwrap();
         let mut db2_conn = db2.connection.unwrap();
@@ -212,7 +212,6 @@ mod alphadb_tests {
         // Test update (maybe update later)
         let data = fs::read_to_string("../../assets/test-db-structure.json").expect("Unable to read file");
         let update = db.update(data, None, false, true, ToleratedVerificationIssueLevel::Low);
-		println!("{:?}", update);
         assert!(update.is_ok());
         let status = db.status().unwrap();
         assert_ne!(status.version, Some("0.0.0".to_string()));
