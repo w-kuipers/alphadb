@@ -77,6 +77,7 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
 
 #[cfg(test)]
 mod consolidate_version_source_tests {
+    use mysql::{params, prelude::*, Conn, Error};
     use std::fs;
 
     use crate::AlphaDB;
@@ -211,7 +212,7 @@ mod consolidate_version_source_tests {
         static DB2: &str = "adb_test2";
         static DB3: &str = "adb_test3";
         static PORT: u16 = 333;
-      
+
         let version_source = fs::read_to_string("../../assets/test-db-structure.json").expect("Unable to read file");
         let consolidated_version_source = consolidate_version_source(version_source.clone()).unwrap();
 
@@ -227,7 +228,55 @@ mod consolidate_version_source_tests {
         db2.init().unwrap();
         db3.init().unwrap();
 
-        db2.update(version_source, None, false, true, crate::utils::types::ToleratedVerificationIssueLevel::Low).unwrap();
-        db3.update(consolidated_version_source.to_string(), None, false, true, crate::utils::types::ToleratedVerificationIssueLevel::Low).unwrap();
+        db2.update(version_source, None, false, true, crate::utils::types::ToleratedVerificationIssueLevel::Low)
+            .unwrap();
+        db3.update(
+            consolidated_version_source.to_string(),
+            None,
+            false,
+            true,
+            crate::utils::types::ToleratedVerificationIssueLevel::Low,
+        )
+        .unwrap();
+
+        let url1 = format!("mysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB2}");
+        let url2 = format!("mysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB3}");
+
+        let mut conn1 = Conn::new(url1.as_str()).unwrap();
+
+        let tables1: Vec<String> = conn1
+            .exec_map(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = :schema",
+                params! { "schema" => DB2},
+                |tbl: String| tbl,
+            )
+            .unwrap();
+        let tables2: Vec<String> = conn1
+            .exec_map(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = :schema",
+                params! { "schema" => DB2},
+                |tbl: String| tbl,
+            )
+            .unwrap();
+
+        assert_eq!(tables1, tables2);
+
+        let mut table1_defs: Vec<String> = Vec::new();
+        for table in tables1 {
+            let query = format!("SHOW CREATE TABLE `{}`", table);
+            if let Some((_, ddl)) = conn1.query_first::<(String, String), _>(&query).unwrap() {
+                table1_defs.push(ddl);
+            }
+        }
+
+        let mut table2_defs: Vec<String> = Vec::new();
+        for table in tables2 {
+            let query = format!("SHOW CREATE TABLE `{}`", table);
+            if let Some((_, ddl)) = conn1.query_first::<(String, String), _>(&query).unwrap() {
+                table2_defs.push(ddl);
+            }
+        }
+
+        assert_eq!(table1_defs, table2_defs);
     }
 }
