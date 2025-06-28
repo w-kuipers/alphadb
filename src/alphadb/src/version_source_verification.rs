@@ -341,6 +341,8 @@ impl VersionSourceVerification {
                 };
 
                 // Check if the columns specified in the default data exist in the table
+                // TODO right now the issue is generated for every following version as well. Find
+                // a way to only add the issue once
                 if let Some(version_number) = version_number {
                     if loop_version_number == version_number {
                         for (i, dataset) in array_iter(&consolidated_default_data[table], &mut self.issues, version_trace.clone()).iter().enumerate() {
