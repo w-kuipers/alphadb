@@ -30,7 +30,7 @@
         "table1": [
           {
             "col1": 4,
-            "col2": "test2",
+            "col2": "test",
             "col3": "test",
             "col4": 12
           }
@@ -74,7 +74,7 @@
         "table1": [
           {
             "col1": 3,
-            "col2": "test3",
+            "col2": "test1",
             "col3": "test",
             "col4": 12
           }
@@ -214,7 +214,6 @@
           }
         },
         "table1": {
-          "primary_key": "col4",
           "modifycolumn": {
             "col2": {
               "recreate": false,
@@ -226,7 +225,7 @@
       "default_data": {
         "table1": [
           {
-            "col2": "test2",
+            "col2": "test3",
             "col4": 12,
             "col5": "test"
           }
