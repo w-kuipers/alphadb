@@ -13,10 +13,10 @@ describe("AlphaDB Tests", () => {
 			host: "localhost",
 			user: "root",
 			password: "test",
-			database: "test",
+			database: "adb_test1",
 			port: 333
 		});
-		expect(db.db_name).toEqual("test");
+		expect(db.db_name).toEqual("adb_test1");
 		expect(db.is_connected).toEqual(true);
 	});
 
@@ -32,7 +32,7 @@ describe("AlphaDB Tests", () => {
 		expect(status).toEqual({
 			init: true,
 			version: "0.0.0",
-			name: "test",
+			name: "adb_test1",
 			template: null,
 		});
 	});
@@ -45,7 +45,7 @@ describe("AlphaDB Tests", () => {
 		expect(status).toEqual({
 			init: true,
 			version: "0.2.6",
-			name: "test",
+			name: "adb_test1",
 			template: "test",
 		});
 	});
@@ -57,7 +57,7 @@ describe("AlphaDB Tests", () => {
 		expect(status).toEqual({
 			init: false,
 			version: null,
-			name: "test",
+			name: "adb_test1",
 			template: null,
 		});
 	});

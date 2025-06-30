@@ -7,7 +7,7 @@ db = AlphaDB()
 def test_connect():
     assert not db.is_connected
     db.connect(
-        host="localhost", user="root", password="test", database="test", port=333
+        host="localhost", user="root", password="test", database="adb_test1", port=333
     )
     assert db.is_connected
 
@@ -24,7 +24,7 @@ def test_status():
     assert status == {
         "init": True,
         "version": "0.0.0",
-        "name": "test",
+        "name": "adb_test1",
         "template": None,
     }
 
@@ -39,7 +39,7 @@ def test_update():
     assert status == {
         "init": True,
         "version": "0.2.6",
-        "name": "test",
+        "name": "adb_test1",
         "template": "test",
     }
 
@@ -51,6 +51,6 @@ def test_vacate():
     assert status == {
         "init": False,
         "version": None,
-        "name": "test",
+        "name": "adb_test1",
         "template": None,
     }
