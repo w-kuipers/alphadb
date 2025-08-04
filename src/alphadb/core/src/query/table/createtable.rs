@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::AlphaDBError;
+use crate::utils::errors::AlphaDBError;
 use crate::query::column::definecolumn::definecolumn;
 use crate::utils::error_messages::incomplete_version_object_err;
 use crate::utils::json::{get_json_string, get_json_object, get_object_keys};

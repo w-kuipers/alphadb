@@ -1,8 +1,8 @@
 use serde_json::{json, Value};
 
 use crate::{
-    prelude::AlphaDBError,
     utils::{
+        errors::AlphaDBError,
         json::{array_iter, exists_in_object, get_json_string, object_iter},
         version_number::parse_version_number,
     },

@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use alphadb_core::utils::errors::{AlphaDBError, Get};
 use mysql::*;
 use thiserror::Error;
-use crate::prelude::*;
 
 #[derive(Error, Debug)]
 pub enum ConnectError {
@@ -24,6 +24,16 @@ pub enum ConnectError {
 
     #[error(transparent)]
     MySqlError(#[from] mysql::Error),
+}
+
+impl From<ConnectError> for AlphaDBError {
+    fn from(err: ConnectError) -> Self {
+        AlphaDBError {
+            message: err.message(),
+            error: err.error(),
+            version_trace: err.version_trace(),
+        }
+    }
 }
 
 impl Get for ConnectError {

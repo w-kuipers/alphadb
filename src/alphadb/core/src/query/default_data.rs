@@ -15,7 +15,7 @@
 
 use crate::{
     methods::update_queries::Query,
-    prelude::AlphaDBError,
+    utils::errors::AlphaDBError,
     utils::json::{get_json_boolean, get_json_int, get_json_string, object_iter},
 };
 use serde_json::Value;
@@ -64,7 +64,6 @@ mod default_data_tests {
 
     #[test]
     fn data() {
-        
         let sub = json!({
             "json": "test"
         });

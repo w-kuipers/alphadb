@@ -1,12 +1,10 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
-use crate::{
-    prelude::AlphaDBError,
-    utils::{
-        json::{get_object_keys, is_empty_json},
-        version_number::get_latest_version,
-        version_source::{get_version_array, parse_version_source_string},
-    },
+use crate::utils::{
+    errors::AlphaDBError,
+    json::{get_object_keys, is_empty_json},
+    version_number::get_latest_version,
+    version_source::{get_version_array, parse_version_source_string},
 };
 
 use super::{default_data::consolidate_default_data, table::consolidate_table};
@@ -77,7 +75,7 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
 
 #[cfg(test)]
 mod consolidate_version_source_tests {
-    use mysql::{params, prelude::*, Conn, Error};
+    use mysql::{Conn, Error, params, prelude::*};
     use std::fs;
 
     use crate::AlphaDB;

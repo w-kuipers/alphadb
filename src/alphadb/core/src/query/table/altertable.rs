@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::AlphaDBError;
+use crate::utils::errors::AlphaDBError;
 use crate::query::column::definecolumn::definecolumn;
 use crate::query::column::modifycolumn::modifycolumn;
 use crate::utils::consolidate::column::{consolidate_column, get_column_renames};

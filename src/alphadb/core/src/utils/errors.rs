@@ -96,7 +96,6 @@ impl ToVerificationIssue for AlphaDBError {
         }
     }
 }
-
 impl Default for AlphaDBError {
     fn default() -> Self {
         AlphaDBError {
@@ -106,3 +105,4 @@ impl Default for AlphaDBError {
         }
     }
 }
+

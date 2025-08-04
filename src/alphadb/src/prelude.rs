@@ -1,2 +1,2 @@
-pub use crate::utils::errors::{AlphaDBError, Get};
+pub use alphadb_core::utils::errors::{AlphaDBError, Get};
 pub use crate::AlphaDB;

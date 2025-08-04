@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::{AlphaDBError, Get};
+use crate::utils::errors::{AlphaDBError, Get};
 use crate::utils::error_messages::{incompatible_column_attributes_err, incomplete_version_object_err, simple_err};
 use crate::utils::json::{get_json_float, get_json_int, get_json_string, get_json_value_as_string, get_object_keys};
 use crate::verification::compatibility::{ALLOW_DECIMAL_LENGTH, INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES};

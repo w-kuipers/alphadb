@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use serde_json::Value;
-use crate::{prelude::AlphaDBError, query::column::definecolumn::definecolumn};
+use crate::{utils::errors::AlphaDBError, query::column::definecolumn::definecolumn};
 
 /// **Modify column**
 ///
