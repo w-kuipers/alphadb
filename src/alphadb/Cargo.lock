@@ -57,6 +57,7 @@ dependencies = [
 name = "alphadb-mysql-engine"
 version = "1.0.0"
 dependencies = [
+ "alphadb",
  "alphadb-core",
  "mysql",
  "serde",

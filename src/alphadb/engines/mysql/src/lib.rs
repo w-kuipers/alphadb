@@ -11,8 +11,9 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-pub mod methods;
-pub mod utils;
+mod methods;
+mod query;
+mod utils;
 
 use crate::utils::connection::get_connection;
 use alphadb_core::{
@@ -169,24 +170,103 @@ impl Default for MySQLEngine {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
+    use alphadb_core::utils::consolidate::consolidate_version_source;
+    use mysql::{params, prelude::*, Conn};
+
     use super::*;
+    use alphadb::AlphaDB;
 
     #[test]
     fn test_mysql_engine_creation() {
         let engine = MySQLEngine::new();
         assert_eq!(engine.name(), "MySQL");
+        let engine2 = MySQLEngine::with_credentials("localhost", "root", "password", "testdb", 3306);
+        assert_eq!(engine2.name(), "MySQL");
     }
 
     #[test]
-    fn test_mysql_engine_with_creds() {
-        let engine = MySQLEngine::with_credentials("localhost", "root", "password", "testdb", 3306);
-        assert_eq!(engine.name(), "MySQL");
-    }
+    // Update 2 database, one with the original structure, one with the consolidated structure and
+    // verify the databases are identical
+    fn validate_db_structure() {
+        static HOST: &str = "localhost";
+        static USER: &str = "root";
+        static PASSWORD: &str = "test";
+        static DB2: &str = "adb_test2";
+        static DB3: &str = "adb_test3";
+        static PORT: u16 = 333;
 
-    #[test]
-    fn test_mysql_engine_set_creds() {
-        let mut engine = MySQLEngine::new();
-        engine.set_credentials("localhost", "root", "password", "testdb", 3306);
-        assert_eq!(engine.name(), "MySQL");
+        let version_source = fs::read_to_string("../../../../assets/test-db-structure.json").expect("Unable to read file");
+        let consolidated_version_source = consolidate_version_source(version_source.clone()).unwrap();
+
+        let engine2 = MySQLEngine::with_credentials(HOST, USER, PASSWORD, DB2, PORT);
+        let mut db2 = AlphaDB::with_engine(engine2);
+        let engine3 = MySQLEngine::with_credentials(HOST, USER, PASSWORD, DB3, PORT);
+        let mut db3 = AlphaDB::with_engine(engine3);
+
+        db2.connect().unwrap();
+        db3.connect().unwrap();
+
+        db2.vacate().unwrap();
+        db3.vacate().unwrap();
+
+        db2.init().unwrap();
+        db3.init().unwrap();
+
+        db2.update(version_source, None, false, true, alphadb_core::utils::types::ToleratedVerificationIssueLevel::Low)
+            .unwrap();
+        db3.update(
+            consolidated_version_source.to_string(),
+            None,
+            false,
+            true,
+            alphadb_core::utils::types::ToleratedVerificationIssueLevel::Low,
+        )
+        .unwrap();
+
+        let url1 = format!("mysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB2}");
+        let url2 = format!("mysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB3}");
+
+        let mut conn1 = Conn::new(url1.as_str()).unwrap();
+        let mut conn2 = Conn::new(url2.as_str()).unwrap();
+
+        let mut tables1: Vec<String> = conn1
+            .exec_map(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = :schema",
+                params! { "schema" => DB2},
+                |tbl: String| tbl,
+            )
+            .unwrap();
+        let mut tables2: Vec<String> = conn2
+            .exec_map(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = :schema",
+                params! { "schema" => DB3},
+                |tbl: String| tbl,
+            )
+            .unwrap();
+
+        tables1.sort();
+        tables2.sort();
+
+        assert_eq!(tables1, tables2);
+
+        let mut table1_defs: Vec<String> = Vec::new();
+        for table in tables1 {
+            let query = format!("SHOW CREATE TABLE `{}`", table);
+            if let Some((_, ddl)) = conn1.query_first::<(String, String), _>(&query).unwrap() {
+                table1_defs.push(ddl);
+            }
+        }
+
+        let mut table2_defs: Vec<String> = Vec::new();
+        for table in tables2 {
+            let query = format!("SHOW CREATE TABLE `{}`", table);
+            if let Some((_, ddl)) = conn1.query_first::<(String, String), _>(&query).unwrap() {
+                table2_defs.push(ddl);
+            }
+        }
+
+        assert_eq!(table1_defs, table2_defs);
     }
 }

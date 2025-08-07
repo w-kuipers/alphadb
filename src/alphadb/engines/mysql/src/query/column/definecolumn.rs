@@ -12,11 +12,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::error_messages::{incompatible_column_attributes_err, incomplete_version_object_err, simple_err};
-use crate::utils::errors::{AlphaDBError, Get};
-use crate::utils::json::{get_json_float, get_json_int, get_json_string, get_json_value_as_string, get_object_keys};
-use crate::verification::compatibility::{ALLOW_DECIMAL_LENGTH, INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES};
-use core::{f64, fmt};
+use alphadb_core::query::column::definecolumn::DefineColumn;
+use alphadb_core::utils::error_messages::{incompatible_column_attributes_err, incomplete_version_object_err, simple_err};
+use alphadb_core::utils::errors::{AlphaDBError, Get};
+use alphadb_core::utils::json::{get_json_float, get_json_int, get_json_string, get_json_value_as_string, get_object_keys};
+use alphadb_core::verification::compatibility::{ALLOW_DECIMAL_LENGTH, INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES};
+use core::f64;
 use serde_json::Value;
 
 /// **Define column**
@@ -27,8 +28,8 @@ use serde_json::Value;
 /// - table_name: Name of the table to be created
 /// - column_name: Name of the column to be defined
 /// - version: Current version in version source loop
-pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String, version: &str) -> Result<Option<String>, AlphaDBError> {
-    let mut query = String::new();
+pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String, version: &str) -> Result<Option<DefineColumn>, AlphaDBError> {
+    let mut query = DefineColumn::new();
     let column_keys = get_object_keys(column_data);
     let version_trace = Vec::from([version, table_name, column_name]);
 
@@ -103,39 +104,39 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             return Err(simple_err(format!("Column type '{}' is not (yet) supported", column_type).as_str(), version_trace));
         }
 
-        query = format!("{column_name} {column_type}");
+        query.datatype(column_type);
+        query.name(column_name);
 
         if length != -1.0 {
-            query = format!("{query}({length})");
+            let length_string = length.to_string();
+            let length_str = length_string.as_str();
+            query.size(length_str);
         }
 
         if null {
-            query = format!("{query} NULL");
+            query.attribute("null");
         } else {
-            query = format!("{query} NOT NULL");
+            query.attribute("not null");
         }
 
         if unique {
-            query = format!("{query} UNIQUE");
+            query.attribute("unique");
         }
 
-        // Default values should contain quotes for strings
         if let Some(d) = default {
-            if d.parse::<f64>().is_ok() {
-                query = format!("{query} DEFAULT {}", d);
-            } else {
-                // MySQL default functions and keywords should not contain quotes
+            query.default(d.as_str());
+
+            // MySQL default functions and keywords should not contain quotes
+            if d.parse::<f64>().is_err() {
                 let sql_functions = ["CURRENT_TIMESTAMP", "NOW()", "CURRENT_DATE", "CURRENT_TIME", "LOCALTIME", "LOCALTIMESTAMP", "NULL"];
                 if sql_functions.iter().any(|&func| d.to_uppercase() == func) || (d.to_uppercase().contains("(") && d.to_uppercase().contains(")")) {
-                    query = format!("{query} DEFAULT {}", d);
-                } else {
-                    query = format!("{query} DEFAULT '{}'", d);
+                    query.default_raw(true);
                 }
             }
         }
 
         if auto_increment {
-            query = format!("{query} AUTO_INCREMENT");
+            query.attribute("auto_increment");
         }
     } else {
         return Ok(None);
@@ -144,7 +145,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
     return Ok(Some(query));
 }
 
-#[cfg(test)]
+// #[cfg(test)]
 mod definecolumn_tests {
     use super::definecolumn;
     use serde_json::json;
@@ -201,7 +202,7 @@ mod definecolumn_tests {
         let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
         println!("{:?}", q);
         assert!(q.is_ok());
-        assert_eq!(q.unwrap().unwrap(), "col VARCHAR NOT NULL DEFAULT 'test'");
+        assert_eq!(q.unwrap().unwrap().to_string(), "col VARCHAR NOT NULL DEFAULT 'test'");
     }
 
     // AUTO_INCREMENT with NULL
@@ -227,92 +228,5 @@ mod definecolumn_tests {
 
         assert!(q.is_err());
         assert_eq!(q.unwrap_err().message, "Column type 'not-working' is not (yet) supported");
-    }
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub struct DefineColumn {
-    name: String,
-    attributes: Vec<String>,
-    default: String,
-    default_raw: bool,
-    column_type: String,
-    size: String,
-}
-
-impl DefineColumn {
-    pub fn new() -> Self {
-        Self {
-            name: "".to_string(),
-            column_type: "".to_string(),
-            size: "".to_string(),
-            attributes: Vec::new(),
-            default: "".to_string(),
-            default_raw: false,
-        }
-    }
-
-    // The name is always at the start of the query part
-    pub fn name(&mut self, name: &str) {
-        self.name = name.to_string();
-    }
-
-    // Column type
-    pub fn datatype(&mut self, value: &str) {
-        self.column_type = value.to_string();
-    }
-
-    // Column size/length
-    pub fn size(&mut self, value: &str) {
-        self.size = value.to_string();
-    }
-
-    // Attributes can be appended
-    pub fn attribute(&mut self, attribute: &str) {
-        self.attributes.push(attribute.to_string());
-    }
-
-    // Default value
-    pub fn default(&mut self, value: &str) {
-        self.default = value.to_string();
-    }
-
-    /// Set to TRUE if the default value should NOT be wrapped in quotes ('')
-    pub fn default_raw(&mut self, value: bool) {
-        self.default_raw = value;
-    }
-
-    pub fn to_string(&self) -> String {
-        let mut query = format!("{} {}", self.name, self.column_type.to_uppercase());
-
-        if !self.size.is_empty() {
-            query = format!("{query}({})", self.size);
-        }
-
-        for attr in &self.attributes {
-            query = format!("{query} {}", attr.to_uppercase());
-        }
-
-        if !self.default.is_empty() {
-            if self.default_raw {
-                query = format!("{query} DEFAULT {}", self.default);
-            } else {
-                query = format!("{query} DEFAULT '{}'", self.default);
-            }
-        }
-
-        return query;
-    }
-}
-
-impl fmt::Display for DefineColumn {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.to_string().fmt(f)
-    }
-}
-
-impl fmt::Debug for DefineColumn {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("DefineColumn").field(&self.to_string()).finish()
     }
 }

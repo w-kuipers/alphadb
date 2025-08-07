@@ -17,7 +17,6 @@ use std::sync::LazyLock;
 
 use serde_json::{Map, Value};
 
-use crate::utils::consolidate::primary_key::get_primary_key as adb_get_primary_key;
 use crate::utils::errors::{Get, ToVerificationIssue};
 use crate::utils::json::{
     array_iter as adb_array_iter, exists_in_object as adb_exists_in_object, get_json_boolean as adb_get_json_boolean, get_json_object as adb_get_json_object,
