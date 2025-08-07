@@ -13,16 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::errors::AlphaDBError;
-use crate::utils::globals::CONFIG_TABLE_NAME;
+use alphadb_core::method_types::Check;
+use alphadb_core::utils::errors::AlphaDBError;
+use alphadb_core::utils::globals::CONFIG_TABLE_NAME;
 use mysql::{prelude::*, PooledConn};
 use thiserror::Error;
-
-#[derive(Debug)]
-pub struct Check {
-    pub check: bool,
-    pub version: Option<String>,
-}
 
 #[derive(Error, Debug)]
 pub enum CheckError {

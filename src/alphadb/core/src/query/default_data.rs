@@ -14,9 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    methods::update_queries::Query,
-    utils::errors::AlphaDBError,
-    utils::json::{get_json_boolean, get_json_int, get_json_string, object_iter},
+    method_types::Query, utils::{errors::AlphaDBError, json::{get_json_boolean, get_json_int, get_json_string, object_iter}}
 };
 use serde_json::Value;
 

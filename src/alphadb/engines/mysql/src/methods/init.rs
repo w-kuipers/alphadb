@@ -14,52 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::utils::check::check;
-use crate::utils::errors::{AlphaDBError, Get};
-use crate::utils::globals::CONFIG_TABLE_NAME;
+use crate::utils::errors::AlphaDBMysqlError;
+use alphadb_core::method_types::Init;
+use alphadb_core::utils::globals::CONFIG_TABLE_NAME;
 use mysql::prelude::*;
 use mysql::*;
-use thiserror::Error;
-
-pub enum Init {
-    AlreadyInitialized,
-    Success,
-}
-
-#[derive(Error, Debug)]
-pub enum InitError {
-    #[error(transparent)]
-    AlphaDbError(#[from] AlphaDBError),
-
-    #[error(transparent)]
-    MySqlError(#[from] mysql::Error),
-}
-
-impl Get for InitError {
-    fn message(&self) -> String {
-        match self {
-            InitError::AlphaDbError(e) => e.message(),
-            InitError::MySqlError(e) => format!("MySQL Error: {:?}", e),
-        }
-    }
-    fn error(&self) -> String {
-        match self {
-            InitError::AlphaDbError(e) => e.error(),
-            InitError::MySqlError(_) => String::new(),
-        }
-    }
-    fn version_trace(&self) -> Vec<String> {
-        match self {
-            InitError::AlphaDbError(e) => return e.version_trace.clone(),
-            InitError::MySqlError(_) => return Vec::new(),
-        }
-    }
-    fn set_version_trace(&mut self, version_trace: Vec<String>) {
-        match self {
-            InitError::AlphaDbError(e) => e.set_version_trace(version_trace),
-            InitError::MySqlError(_) => (),
-        }
-    }
-}
 
 /// Initialize the database with configuration table
 ///
@@ -72,7 +31,7 @@ impl Get for InitError {
 ///
 /// # Errors
 /// * Returns `InitError` if initialization fails
-pub fn init(db_name: &str, connection: &mut PooledConn) -> Result<Init, InitError> {
+pub fn init(db_name: &str, connection: &mut PooledConn) -> Result<Init, AlphaDBMysqlError> {
     // Check if the table is already initialized
     let checked = check(db_name, connection);
 

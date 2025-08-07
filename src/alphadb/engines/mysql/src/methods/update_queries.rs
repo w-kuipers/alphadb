@@ -13,67 +13,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::methods::status::{status, StatusError};
-use crate::query::default_data::default_data;
-use crate::query::table::altertable::altertable;
-use crate::query::table::createtable::createtable;
-use crate::utils::consolidate::default_data::consolidate_default_data;
-use crate::utils::errors::{AlphaDBError, Get};
-use crate::utils::globals::CONFIG_TABLE_NAME;
-use crate::utils::json::{array_iter, get_object_keys, object_iter};
-use crate::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
-use crate::utils::version_source::{get_version_array, parse_version_source_string};
+use crate::methods::status;
+use crate::utils::errors::AlphaDBMysqlError;
+use alphadb_core::query::default_data::default_data;
+use alphadb_core::query::table::altertable::altertable;
+use alphadb_core::query::table::createtable::createtable;
+use alphadb_core::utils::consolidate::default_data::consolidate_default_data;
+use alphadb_core::utils::errors::AlphaDBError;
+use alphadb_core::utils::globals::CONFIG_TABLE_NAME;
+use alphadb_core::utils::json::{array_iter, get_object_keys, object_iter};
+use alphadb_core::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
+use alphadb_core::utils::version_source::{get_version_array, parse_version_source_string};
+use alphadb_core::method_types::Query;
 use mysql::*;
-use thiserror::Error;
-
-#[derive(Debug, Clone)]
-pub struct Query {
-    pub query: String,
-    pub data: Option<Vec<String>>,
-}
-
-#[derive(Error, Debug)]
-pub enum UpdateQueriesError {
-    #[error(transparent)]
-    AlphaDbError(#[from] AlphaDBError),
-
-    #[error(transparent)]
-    MySqlError(#[from] mysql::Error),
-
-    #[error(transparent)]
-    StatusError(#[from] StatusError),
-}
-
-impl Get for UpdateQueriesError {
-    fn message(&self) -> String {
-        match self {
-            UpdateQueriesError::AlphaDbError(e) => e.message(),
-            UpdateQueriesError::StatusError(e) => e.message(),
-            UpdateQueriesError::MySqlError(e) => format!("MySQL Error: {:?}", e),
-        }
-    }
-    fn error(&self) -> String {
-        match self {
-            UpdateQueriesError::AlphaDbError(e) => e.error(),
-            UpdateQueriesError::StatusError(e) => e.error(),
-            UpdateQueriesError::MySqlError(_) => String::from(""),
-        }
-    }
-    fn version_trace(&self) -> Vec<String> {
-        match self {
-            UpdateQueriesError::AlphaDbError(e) => return e.version_trace.clone(),
-            UpdateQueriesError::StatusError(_) => return Vec::new(),
-            UpdateQueriesError::MySqlError(_) => return Vec::new(),
-        }
-    }
-    fn set_version_trace(&mut self, version_trace: Vec<String>) {
-        match self {
-            UpdateQueriesError::AlphaDbError(e) => e.set_version_trace(version_trace),
-            UpdateQueriesError::StatusError(_) => (),
-            UpdateQueriesError::MySqlError(_) => (),
-        }
-    }
-}
 
 /// Generate MySQL queries to update the tables
 ///
@@ -85,11 +37,11 @@ impl Get for UpdateQueriesError {
 /// * `no_data` - Whether to skip data updates
 ///
 /// # Returns
-/// * `Result<Vec<Query>, UpdateQueriesError>` - Vector of update queries
+/// * `Result<Vec<Query>, AlphaDBMysqlError>` - Vector of update queries
 ///
 /// # Errors
-/// * Returns `UpdateQueriesError` if query generation fails
-pub fn update_queries(db_name: &str, connection: &mut PooledConn, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, UpdateQueriesError> {
+/// * Returns `AlphaDBMysqlError` if query generation fails
+pub fn update_queries(db_name: &str, connection: &mut PooledConn, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, AlphaDBMysqlError> {
     let mut queries: Vec<Query> = Vec::new();
     let version_source = parse_version_source_string(version_source)?;
     let versions = get_version_array(&version_source)?;

@@ -1,5 +1,4 @@
 // Copyright (C) 2024 Wibo Kuipers
-//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -13,8 +12,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pub mod methods;
+pub mod utils;
 
-use alphadb_core::{engine::AlphaDBEngine, utils::errors::AlphaDBError};
+use crate::utils::connection::get_connection;
+use alphadb_core::{
+    engine::AlphaDBEngine,
+    method_types::{Init, Query, Status},
+    utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel},
+};
 use mysql::PooledConn;
 use thiserror::Error;
 
@@ -93,7 +98,6 @@ impl AlphaDBEngine for MySQLEngine {
     }
 
     fn connect(&mut self, db_name: &mut Option<String>, is_connected: &mut bool) -> Result<(), AlphaDBError> {
-        // Check if connection parameters are set
         let host = self.host.as_ref().ok_or(MySQLEngineError::ConnectionParamsNotSet)?;
         let user = self.user.as_ref().ok_or(MySQLEngineError::ConnectionParamsNotSet)?;
         let password = self.password.as_ref().ok_or(MySQLEngineError::ConnectionParamsNotSet)?;
@@ -102,12 +106,58 @@ impl AlphaDBEngine for MySQLEngine {
 
         // Establish connection to database using the stored parameters
         self.connection = Some(methods::connect::connect(host, user, password, database, port)?);
-
-        // Set the database name and connection status
         *db_name = Some(database.to_string());
         *is_connected = true;
 
         Ok(())
+    }
+
+    fn init(&mut self, db_name: &mut Option<String>) -> Result<Init, AlphaDBError> {
+        let (db_name, connection) = get_connection(db_name, &mut self.connection)?;
+        return match methods::init(db_name, connection) {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.into()),
+        };
+    }
+
+    fn status(&mut self, db_name: &mut Option<String>) -> Result<Status, AlphaDBError> {
+        let (db_name, connection) = get_connection(db_name, &mut self.connection)?;
+        return match methods::status(db_name, connection) {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.into()),
+        };
+    }
+
+    fn update_queries(&mut self, db_name: &mut Option<String>, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, AlphaDBError> {
+        let (db_name, connection) = get_connection(db_name, &mut self.connection)?;
+        return match methods::update_queries(db_name, connection, version_source, target_version, no_data) {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.into()),
+        };
+    }
+
+    fn update(
+        &mut self,
+        db_name: &mut Option<String>,
+        version_source: String,
+        target_version: Option<&str>,
+        no_data: bool,
+        verify: bool,
+        tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
+    ) -> Result<(), AlphaDBError> {
+        let (db_name, connection) = get_connection(db_name, &mut self.connection)?;
+        return match methods::update(&db_name, connection, version_source, target_version, no_data, verify, tolerated_verification_issue_level) {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.into()),
+        };
+    }
+
+    fn vacate(&mut self, db_name: &mut Option<String>) -> Result<(), AlphaDBError> {
+        let (_, connection) = get_connection(db_name, &mut self.connection)?;
+        return match methods::vacate(connection) {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.into()),
+        };
     }
 }
 
@@ -128,13 +178,13 @@ mod tests {
     }
 
     #[test]
-    fn test_mysql_engine_with_params() {
+    fn test_mysql_engine_with_creds() {
         let engine = MySQLEngine::with_credentials("localhost", "root", "password", "testdb", 3306);
         assert_eq!(engine.name(), "MySQL");
     }
 
     #[test]
-    fn test_mysql_engine_set_params() {
+    fn test_mysql_engine_set_creds() {
         let mut engine = MySQLEngine::new();
         engine.set_credentials("localhost", "root", "password", "testdb", 3306);
         assert_eq!(engine.name(), "MySQL");

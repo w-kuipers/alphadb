@@ -13,55 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use alphadb_core::utils::errors::{AlphaDBError, Get};
 use mysql::*;
-use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum ConnectError {
-    #[error(transparent)]
-    AlphaDbError(#[from] AlphaDBError),
-
-    #[error(transparent)]
-    MySqlError(#[from] mysql::Error),
-}
-
-impl From<ConnectError> for AlphaDBError {
-    fn from(err: ConnectError) -> Self {
-        AlphaDBError {
-            message: err.message(),
-            error: err.error(),
-            version_trace: err.version_trace(),
-        }
-    }
-}
-
-impl Get for ConnectError {
-    fn message(&self) -> String {
-        match self {
-            ConnectError::AlphaDbError(e) => e.message(),
-            ConnectError::MySqlError(e) => format!("MySQL Error: {:?}", e),
-        }
-    }
-    fn error(&self) -> String {
-        match self {
-            ConnectError::AlphaDbError(e) => e.error(),
-            ConnectError::MySqlError(_) => String::new(),
-        }
-    }
-    fn version_trace(&self) -> Vec<String> {
-        match self {
-            ConnectError::AlphaDbError(e) => return e.version_trace.clone(),
-            ConnectError::MySqlError(_) => return Vec::new(),
-        }
-    }
-    fn set_version_trace(&mut self, version_trace: Vec<String>) {
-        match self {
-            ConnectError::AlphaDbError(e) => e.set_version_trace(version_trace),
-            ConnectError::MySqlError(_) => (),
-        }
-    }
-}
+use crate::utils::errors::AlphaDBMysqlError;
 
 /// Create a connection pool to the database and return it.
 ///
@@ -70,7 +24,7 @@ impl Get for ConnectError {
 /// - password: User password for the database
 /// - database: Database name
 /// - port: MySQL port
-pub fn connect(host: &str, user: &str, password: &str, database: &str, port: u16) -> Result<PooledConn, ConnectError> {
+pub fn connect(host: &str, user: &str, password: &str, database: &str, port: u16) -> Result<PooledConn, AlphaDBMysqlError> {
     let url = format!("mysql://{}:{}@{}:{}/{}", user, password, host, port, database);
 
     let pool = Pool::new(&url[..])?;

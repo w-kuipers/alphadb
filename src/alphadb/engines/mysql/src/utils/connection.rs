@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::errors::AlphaDBError;
+use alphadb_core::utils::errors::AlphaDBError;
 use mysql::PooledConn;
 
 /// Helper function for the AlphaDB lib. Unwraps the db_name and connection
@@ -29,22 +29,26 @@ use mysql::PooledConn;
 /// # Errors
 /// * Returns `AlphaDBError` if no active database connection exists
 /// * Returns `AlphaDBError` if no database name is provided
-pub fn get_connection<'a>(db_name: Option<&'a str>, connection: &'a mut Option<PooledConn>) -> Result<(&'a str, &'a mut PooledConn), AlphaDBError> {
+pub fn get_connection<'a>(db_name: &'a mut Option<String>, connection: &'a mut Option<PooledConn>) -> Result<(&'a mut String, &'a mut PooledConn), AlphaDBError> {
     let connection = match connection {
         Some(c) => c,
-        None => return Err(AlphaDBError {
-            message: "No active database connection".to_string(),
-            ..Default::default()
-        })
+        None => {
+            return Err(AlphaDBError {
+                message: "No active database connection".to_string(),
+                ..Default::default()
+            })
+        }
     };
 
     let db_name = match db_name {
         Some(db) => db,
-        None => return Err(AlphaDBError {
-            message: "No connection seems to be active. db_name does not have a value".to_string(),
-            ..Default::default()
-        })
+        None => {
+            return Err(AlphaDBError {
+                message: "No connection seems to be active. db_name does not have a value".to_string(),
+                ..Default::default()
+            })
+        }
     };
-    
+
     return Ok((db_name, connection));
 }
