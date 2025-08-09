@@ -114,13 +114,13 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         }
 
         if null {
-            query.attribute("null");
+            query.constraint("null");
         } else {
-            query.attribute("not null");
+            query.constraint("not null");
         }
 
         if unique {
-            query.attribute("unique");
+            query.constraint("unique");
         }
 
         if let Some(d) = default {
@@ -136,7 +136,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         }
 
         if auto_increment {
-            query.attribute("auto_increment");
+            query.constraint("auto_increment");
         }
     } else {
         return Ok(None);

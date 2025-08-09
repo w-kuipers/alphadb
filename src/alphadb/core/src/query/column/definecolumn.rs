@@ -233,7 +233,7 @@ mod definecolumn_tests {
 #[derive(Clone, PartialEq, Eq)]
 pub struct DefineColumn {
     name: String,
-    attributes: Vec<String>,
+    contstraints: Vec<String>,
     default: String,
     default_raw: bool,
     column_type: String,
@@ -246,40 +246,46 @@ impl DefineColumn {
             name: "".to_string(),
             column_type: "".to_string(),
             size: "".to_string(),
-            attributes: Vec::new(),
+            contstraints: Vec::new(),
             default: "".to_string(),
             default_raw: false,
         }
     }
 
-    // The name is always at the start of the query part
-    pub fn name(&mut self, name: &str) {
+    /// The name is always at the start of the query part
+    pub fn name(&mut self, name: &str) -> &Self {
         self.name = name.to_string();
+        self
     }
 
-    // Column type
-    pub fn datatype(&mut self, value: &str) {
+    /// Column type
+    pub fn datatype(&mut self, value: &str) -> &Self {
         self.column_type = value.to_string();
+        self
     }
 
-    // Column size/length
-    pub fn size(&mut self, value: &str) {
+    /// Column size/length
+    pub fn size(&mut self, value: &str) -> &Self {
         self.size = value.to_string();
+        self
     }
 
-    // Attributes can be appended
-    pub fn attribute(&mut self, attribute: &str) {
-        self.attributes.push(attribute.to_string());
+    /// Attributes can be appended
+    pub fn constraint(&mut self, constraint: &str) -> &Self {
+        self.contstraints.push(constraint.to_string());
+        self
     }
 
-    // Default value
-    pub fn default(&mut self, value: &str) {
+    /// Default value
+    pub fn default(&mut self, value: &str) -> &Self {
         self.default = value.to_string();
+        self
     }
 
     /// Set to TRUE if the default value should NOT be wrapped in quotes ('')
-    pub fn default_raw(&mut self, value: bool) {
+    pub fn default_raw(&mut self, value: bool) -> &Self {
         self.default_raw = value;
+        self
     }
 
     pub fn to_string(&self) -> String {
@@ -289,7 +295,7 @@ impl DefineColumn {
             query = format!("{query}({})", self.size);
         }
 
-        for attr in &self.attributes {
+        for attr in &self.contstraints {
             query = format!("{query} {}", attr.to_uppercase());
         }
 
@@ -316,3 +322,4 @@ impl fmt::Debug for DefineColumn {
         f.debug_tuple("DefineColumn").field(&self.to_string()).finish()
     }
 }
+

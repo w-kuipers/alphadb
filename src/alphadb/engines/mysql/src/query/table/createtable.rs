@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use alphadb_core::query::build::StructureQuery;
 use alphadb_core::utils::error_messages::incomplete_version_object_err;
 use alphadb_core::utils::errors::AlphaDBError;
 use alphadb_core::utils::json::{get_json_object, get_json_string, get_object_keys};
@@ -31,50 +32,58 @@ use crate::query::column::definecolumn::definecolumn;
 ///
 /// # Errors
 /// * Returns `AlphaDBError` if table definition is invalid
-pub fn createtable(version_source: &serde_json::Value, table_name: &str, version: &str) -> Result<String, AlphaDBError> {
-    let table_data = &version_source["createtable"][table_name];
-    let mut column_queries = String::new();
+pub fn createtable(version: &serde_json::Value, table_name: &str, version_number: &str) -> Result<String, AlphaDBError> {
+    let table_data = &version["createtable"][table_name];
+
+    let mut query = StructureQuery::createtable();
+    query.table(table_name);
 
     for (column_name, column_value) in get_json_object(&table_data)? {
-        if let Some(column) = definecolumn(column_value, table_name, column_name, version)? {
-            if column_queries != "" {
-                column_queries = format!("{column_queries}, {}", column);
-            } else {
-                column_queries = format!("{}", column);
-            }
+        if let Some(column) = definecolumn(column_value, table_name, column_name, version_number)? {
+            query.addcolumn::<String>(column);
         }
     }
 
-    let mut query = format!("CREATE TABLE {table_name} ({}", column_queries.as_str());
     let table_keys = get_object_keys(&table_data)?;
 
     if table_keys.iter().any(|&i| i == "primary_key") {
-        query = format!("{query}, PRIMARY KEY ({})", get_json_string(&table_data["primary_key"])?);
+        query.constraint(format!("PRIMARY KEY ({})", get_json_string(&table_data["primary_key"])?));
     }
 
     if table_keys.iter().any(|&i| i == "foreign_key") {
         let foreign_key = get_json_object(&table_data["foreign_key"])?;
         let foreign_key_keys = foreign_key.keys().collect::<Vec<&String>>();
 
-        if !foreign_key_keys.iter().any(|&i| i == "key") {
-            return Err(incomplete_version_object_err("key", Vec::from([version, table_name, "foreign_key"])));
+        if !foreign_key_keys.iter().any(|&i| i == "from") {
+            return Err(incomplete_version_object_err("from", Vec::from([version_number, table_name, "foreign_key"])));
+        }
+
+        if !foreign_key_keys.iter().any(|&i| i == "to") {
+            return Err(incomplete_version_object_err("to", Vec::from([version_number, table_name, "foreign_key"])));
         }
 
         if !foreign_key_keys.iter().any(|&i| i == "references") {
-            return Err(incomplete_version_object_err("references", Vec::from([version, table_name, "foreign_key"])));
+            return Err(incomplete_version_object_err("references", Vec::from([version_number, table_name, "foreign_key"])));
         }
+
+        let mut foreign_key_string = format!("FOREIGN KEY ({}) REFERENCES {} ({})", get_json_string(&foreign_key["from"])?, 
+            get_json_string(&foreign_key["references"])?,
+            get_json_string(&foreign_key["to"])?
+        );
 
         if foreign_key_keys.iter().any(|&i| i == "on_delete") {
-            query = format!(
-                "{query}, FOREIGN KEY ({}) REFERENCES {} ({}) ON DELETE CASCADE",
-                get_json_string(&foreign_key["key"])?,
-                get_json_string(&foreign_key["references"])?,
-                get_json_string(&foreign_key["key"])?
-            );
+            foreign_key_string = format!("{foreign_key_string} ON DELETE {}", get_json_string(&foreign_key["on_delete"])?.to_uppercase());
         }
+
+        if foreign_key_keys.iter().any(|&i| i == "on_update") {
+            foreign_key_string = format!("{foreign_key_string} ON UPDATE {}", get_json_string(&foreign_key["on_update"])?.to_uppercase());
+        }
+
+        query.constraint(foreign_key_string);
     }
 
-    return Ok(query + ") ENGINE = InnoDB;");
+    query.options("ENGINE = InnoDB");
+    return Ok(query.build());
 }
 
 #[cfg(test)]
@@ -97,7 +106,7 @@ mod createtable_tests {
         let q = createtable(column, "table", "0.0.1");
 
         assert!(q.is_err());
-        assert_eq!(q.unwrap_err().message, "Missing required key 'key'.");
+        assert_eq!(q.unwrap_err().message, "Missing required key 'from'.");
     }
 
     // Foreign key missing references
@@ -107,7 +116,8 @@ mod createtable_tests {
             "createtable": {
                 "table": {
                     "foreign_key": {
-                        "key": "test"
+                        "from": "test",
+                        "to": "test"
                     }
                 }
             }
@@ -130,7 +140,8 @@ mod createtable_tests {
                     "col1": {"type": "VARCHAR", "length": 30, "unique": true},
                     "foreign_key": {
                         "references": "other_table",
-                        "key": "key",
+                        "from": "key",
+                        "to": "key",
                         "on_delete": "cascade",
                     },
                 }
