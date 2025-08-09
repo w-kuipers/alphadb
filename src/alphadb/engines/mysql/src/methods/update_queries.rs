@@ -16,7 +16,7 @@
 use crate::methods::status;
 use crate::utils::errors::AlphaDBMysqlError;
 use alphadb_core::query::default_data::default_data;
-use alphadb_core::query::table::altertable::altertable;
+use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
 use alphadb_core::utils::consolidate::default_data::consolidate_default_data;
 use alphadb_core::utils::errors::AlphaDBError;

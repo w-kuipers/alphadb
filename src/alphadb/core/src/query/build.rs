@@ -26,7 +26,7 @@ pub struct StructureQuery {
     table: Option<String>,
     constraints: Vec<String>,
     options: Vec<String>,
-    addcolumns: Vec<DefineColumn>,
+    definitions: Vec<DefineColumn>,
 }
 
 impl Default for StructureQuery {
@@ -34,7 +34,7 @@ impl Default for StructureQuery {
         Self {
             method: StructureQueryMethod::Createtable,
             table: None,
-            addcolumns: Vec::new(),
+            definitions: Vec::new(),
             constraints: Vec::new(),
             options: Vec::new(),
         }
@@ -56,8 +56,8 @@ impl StructureQuery {
         }
     }
 
-    pub fn addcolumn<S: Into<String>>(&mut self, column_definition: DefineColumn) -> &Self {
-        self.addcolumns.push(column_definition);
+    pub fn definition(&mut self, column_definition: DefineColumn) -> &Self {
+        self.definitions.push(column_definition);
         self
     }
 
@@ -88,10 +88,17 @@ impl StructureQuery {
             query = format!("{query} {table}");
         }
 
+        let mut column_definitions = self.definitions.iter().map(ToString::to_string).collect::<Vec<_>>();
+        column_definitions.extend(self.constraints.clone());
+
+        // Column definitions for createtable method have to be wrapped in parentheses
         if self.method == StructureQueryMethod::Createtable {
-            let mut column_definitions = self.addcolumns.iter().map(ToString::to_string).collect::<Vec<_>>();
-            column_definitions.extend(self.constraints.clone());
             query = format!("{query} ({})", column_definitions.join(", "));
+        }
+
+        // Column definitions for altertable method should not be wrapped in parentheses
+        if self.method == StructureQueryMethod::Altertable {
+            query = format!("{query} {}", column_definitions.join(", "));
         }
 
         if !self.options.is_empty() {
@@ -100,6 +107,6 @@ impl StructureQuery {
 
         query.push(';');
 
-        return query;
+        return query.clone();
     }
 }

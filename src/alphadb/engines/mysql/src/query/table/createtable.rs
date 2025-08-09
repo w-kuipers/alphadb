@@ -40,7 +40,7 @@ pub fn createtable(version: &serde_json::Value, table_name: &str, version_number
 
     for (column_name, column_value) in get_json_object(&table_data)? {
         if let Some(column) = definecolumn(column_value, table_name, column_name, version_number)? {
-            query.addcolumn::<String>(column);
+            query.definition(column);
         }
     }
 
