@@ -13,13 +13,93 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{
-    method_types::Query, utils::{errors::AlphaDBError, json::{get_json_boolean, get_json_int, get_json_string, object_iter}}
+use crate::utils::{
+    errors::AlphaDBError,
+    json::{get_json_boolean, get_json_int, get_json_string, object_iter},
 };
 use serde_json::Value;
 
-pub fn default_data(table_name: &str, item: &Value) -> Result<Query, AlphaDBError> {
-    let mut keys = String::new();
+/// A container for parsed database column data.
+///
+/// `DefaultData` holds the results of parsing JSON data into database-compatible
+/// format. It contains parallel vectors of column names and their corresponding
+/// values, with automatic type conversion and null filtering applied.
+///
+/// # Fields
+///
+/// - `columns`: A vector of column names extracted from JSON object keys
+/// - `values`: A vector of string representations of the corresponding values
+///
+/// # Lifetime
+///
+/// The struct has a lifetime parameter `'a` that ties the column names to the
+/// source JSON data, allowing for zero-copy string references where possible.
+///
+/// # Usage
+///
+/// This struct is typically created by the `parse_default_data` function rather
+/// than constructed manually. The parallel structure of the `columns` and `values`
+/// vectors ensures that `columns[i]` corresponds to `values[i]`.
+pub struct DefaultData<'a> {
+    /// Column names extracted from JSON object keys
+    pub columns: Vec<&'a str>,
+    /// String representations of the corresponding values
+    pub values: Vec<String>,
+}
+
+/// Parses JSON data into database-compatible column names and values.
+///
+/// This function extracts key-value pairs from a JSON object and converts them
+/// into a format suitable for database operations. It handles automatic type
+/// conversion from JSON types to string representations and filters out null values.
+///
+/// # Type Conversion
+///
+/// - **Boolean**: `true` becomes `"true"`, `false` becomes `"false"`
+/// - **Number**: Converted to string representation using `to_string()`
+/// - **String**: Used as-is
+/// - **Null**: Filtered out (not included in results)
+///
+/// # Parameters
+///
+/// - `item`: A reference to a JSON `Value` that should be an object
+///
+/// # Returns
+///
+/// Returns a `Result` containing:
+/// - `Ok(DefaultData)`: Successfully parsed data with columns and values
+/// - `Err(AlphaDBError)`: If parsing fails or the JSON structure is invalid
+///
+/// # Errors
+///
+/// This function can return errors in the following cases:
+/// - The input JSON is not an object
+/// - JSON value extraction fails for supported types
+/// - Internal JSON utility functions encounter errors
+///
+/// # Examples
+///
+/// ```rust
+/// use serde_json::json;
+/// use alphadb_core::query::default_data::parse_default_data;
+///
+/// let user_data = json!({
+///     "username": "alice",
+///     "user_id": 42,
+///     "is_admin": false,
+///     "profile_image": null,
+///     "email": "alice@example.com"
+/// });
+///
+/// let result = parse_default_data(&user_data).unwrap();
+/// 
+/// // Result contains:
+/// // columns: ["username", "user_id", "is_admin", "email"]
+/// // values: ["alice", "42", "false", "alice@example.com"]
+/// // Note: profile_image is excluded because it's null
+/// ```
+pub fn parse_default_data<'a>(item: &'a Value) -> Result<DefaultData<'a>, AlphaDBError> {
+    let mut keys: Vec<&str> = Vec::new();
     let mut values: Vec<String> = Vec::new();
 
     for key in object_iter(item)? {
@@ -27,7 +107,7 @@ pub fn default_data(table_name: &str, item: &Value) -> Result<Query, AlphaDBErro
             continue;
         }
 
-        keys = format!("{},{}", keys, key);
+        keys.push(key);
 
         if item[key].is_boolean() {
             if get_json_boolean(&item[key])? {
@@ -42,41 +122,5 @@ pub fn default_data(table_name: &str, item: &Value) -> Result<Query, AlphaDBErro
         }
     }
 
-    // Remove leading comma
-    let mut keys = keys.chars();
-    keys.next();
-
-    let q = format!(
-        "INSERT INTO `{table_name}` ({}) VALUES ({});",
-        keys.as_str(),
-        values.iter().map(|_| "?").collect::<Vec<_>>().join(",")
-    );
-
-    return Ok(Query { query: q, data: Some(values) });
-}
-
-#[cfg(test)]
-mod default_data_tests {
-    use super::default_data;
-    use serde_json::json;
-
-    #[test]
-    fn data() {
-        let sub = json!({
-            "json": "test"
-        });
-
-        let test_item = json!({
-            "col1": "value1",
-            "col2": 1,
-            "col3": null,
-            "col4": true,
-            "col5": false,
-            "col6": sub.to_string(),
-        });
-
-        let q = default_data("test", &test_item).unwrap();
-        assert_eq!(q.query, "INSERT INTO `test` (col1,col2,col4,col5,col6) VALUES (?,?,?,?,?);");
-        assert_eq!(q.data.unwrap(), Vec::from(["value1", "1", "true", "false", &sub.to_string()]));
-    }
+    return Ok(DefaultData { values, columns: keys });
 }

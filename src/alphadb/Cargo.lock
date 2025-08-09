@@ -47,7 +47,6 @@ dependencies = [
 name = "alphadb-core"
 version = "0.1.0"
 dependencies = [
- "mysql",
  "serde",
  "serde_json",
  "thiserror",
