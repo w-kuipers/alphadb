@@ -200,7 +200,6 @@ mod definecolumn_tests {
             "default": "test",
         });
         let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
-        println!("{:?}", q);
         assert!(q.is_ok());
         assert_eq!(q.unwrap().unwrap().to_string(), "col VARCHAR NOT NULL DEFAULT 'test'");
     }

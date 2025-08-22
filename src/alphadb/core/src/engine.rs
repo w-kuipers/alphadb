@@ -37,3 +37,9 @@ pub trait AlphaDBEngine {
     /// Remove all tables from the database
     fn vacate(&mut self, db_name: &mut Option<String>) -> Result<(), AlphaDBError>;
 }
+
+// Base engine trait that all extensions must implement
+pub trait AlphaDBEngine {
+    /// Remove all tables from the database
+    fn vacate(&mut self, db_name: &mut Option<String>) -> Result<(), AlphaDBError>;
+}

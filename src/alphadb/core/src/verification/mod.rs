@@ -15,3 +15,4 @@
 
 pub mod compatibility;
 pub mod json;
+pub mod issue;

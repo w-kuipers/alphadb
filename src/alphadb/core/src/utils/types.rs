@@ -13,23 +13,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// **Verification issue level**
-///
-/// Version source verifictaion generates issues of three priorities.
-///
-/// Low: Will work, but will not have any effect on the database.
-/// High: Will still work, but might produce a different result than desired.
-/// Critical: Will not execute.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum VerificationIssueLevel {
-    /// Low: Will work, but will not have any effect on the database
-    Low,
-    /// High: Will still work, but might produce a different result than desired.
-    High,
-    /// Critical: Will not execute.
-    Critical,
-}
-
 /// ** Allowed verification issue level**
 ///
 /// Matches VerificationIssueLevel, but adds an additional value: All.

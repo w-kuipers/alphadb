@@ -13,27 +13,28 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub enum Init {
-    AlreadyInitialized,
-    Success,
+use alphadb_core::verification::issue::VerificationIssue;
+use serde_json::Value;
+
+pub struct Verification {
+    version_source: Value,
+    issues: Vec<VerificationIssue>,
+    version_list: Vec<Value>,
 }
 
-#[derive(Debug)]
-pub struct Check {
-    pub check: bool,
-    pub version: Option<String>,
-}
-
-#[derive(Debug)]
-pub struct Status {
-    pub init: bool,
-    pub version: Option<String>,
-    pub name: String,
-    pub template: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Query {
-    pub query: String,
-    pub data: Option<Vec<String>>,
+impl<E: AlphaDBVerificationEngine> Verification<E> {
+    /// Create a new Verification instance with an engine
+    ///
+    /// # Arguments
+    /// * `engine` - The engine instance to use
+    ///
+    /// # Returns
+    /// * `Verification<'a, E>` - New Verification instance with the specified engine
+    pub fn with_engine(engine: E) -> AlphaDB<E> {
+        AlphaDB {
+            db_name: None,
+            is_connected: false,
+            engine,
+        }
+    }
 }

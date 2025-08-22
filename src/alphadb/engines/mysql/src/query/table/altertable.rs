@@ -112,7 +112,6 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
                 for column in array_iter(&table_data["altertable"][table_name]["dropcolumn"])? {
                     let mut definition = DefineColumn::new();
                     definition.method("DROP COLUMN").name(get_json_string(column)?);
-                    println!("a{}a", column.to_string());
                     query.definition(definition);
                 }
             }

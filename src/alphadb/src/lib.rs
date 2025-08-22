@@ -6,22 +6,24 @@
 // (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty ofprintln
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-pub mod prelude;
 pub mod core;
+pub mod prelude;
+pub mod verification;
 
 pub mod engine {
     #[cfg(feature = "mysql")]
     pub use alphadb_mysql_engine::*;
 }
 
+pub use verification::VersionSourceVerification;
+
 use crate::prelude::AlphaDBError;
-// pub use alphadb_core::methods::update::{update, UpdateError};
 use alphadb_core::{
     engine::AlphaDBEngine,
     method_types::{Init, Query, Status},
@@ -150,66 +152,3 @@ impl<'a, E: AlphaDBEngine> AlphaDB<E> {
         self.engine.vacate(&mut self.db_name)
     }
 }
-
-// #[cfg(test)]
-// mod alphadb_tests {
-//     use super::*;
-//     use crate::utils::check::check;
-//     use std::fs;
-//
-//     static HOST: &str = "localhost";
-//     static USER: &str = "root";
-//     static PASSWORD: &str = "test";
-//     static DATABASE: &str = "adb_test1";
-//     static PORT: u16 = 333;
-//
-//     #[test]
-//     fn test_alphadb() {
-//         let mut db = AlphaDB::new();
-//         let mut db2 = AlphaDB::new();
-//         assert!(db.connection.is_none());
-//         assert!(!db.is_connected);
-//
-//         // Test connect
-//         let _ = db.connect(HOST, USER, PASSWORD, DATABASE, PORT);
-//         let _ = db2.connect(HOST, USER, PASSWORD, DATABASE, PORT);
-//         assert!(db.connection.is_some());
-//         assert!(db.is_connected);
-//         db.vacate();
-//
-//         let db2_name = db2.db_name.unwrap();
-//         let mut db2_conn = db2.connection.unwrap();
-//
-//         // Test init
-//         let _ = db.init();
-//         let checked = check(db2_name, &mut db2_conn).unwrap();
-//         assert_eq!(checked.check, true);
-//         assert_eq!(checked.version, Some("0.0.0".to_string()));
-//
-//         // Test status
-//         let status = db.status().unwrap();
-//         assert_eq!(status.init, true);
-//         assert_eq!(status.version, Some("0.0.0".to_string()));
-//         assert_eq!(status.name, DATABASE);
-//         assert_eq!(status.template, None);
-//
-//         // Test update (maybe update later)
-//         let data = fs::read_to_string("../../assets/test-db-structure.json").expect("Unable to read file");
-//         let update = db.update(data, None, false, true, ToleratedVerificationIssueLevel::Low);
-//         assert!(update.is_ok());
-//         let status = db.status().unwrap();
-//         assert_ne!(status.version, Some("0.0.0".to_string()));
-//
-//         // Test vacate
-//         db.vacate();
-//         let checked = check(db2_name, &mut db2_conn).unwrap();
-//         assert_eq!(checked.check, false);
-//         assert_eq!(checked.version, None);
-//
-//         let status = db.status().unwrap();
-//         assert_eq!(status.init, false);
-//         assert_eq!(status.version, None);
-//         assert_eq!(status.name, DATABASE);
-//         assert_eq!(status.template, None);
-//     }
-// }
