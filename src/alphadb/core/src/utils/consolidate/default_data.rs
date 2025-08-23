@@ -5,7 +5,7 @@ use crate::{
         errors::AlphaDBError,
         json::{array_iter, exists_in_object, get_json_string, object_iter},
         version_number::parse_version_number,
-    },
+    }, verification::issue::VersionTrace,
 };
 
 use super::column::{get_column_renames, will_column_be_dropped};
@@ -61,7 +61,7 @@ pub fn consolidate_default_data(version_list: &Vec<Value>, target_version: Optio
                                 return Err(AlphaDBError {
                                     message: format!("Default data keys should serve as an index and '{}' could not be parsed as an integer", iteration),
                                     error: "invalid-default-data-index".to_string(),
-                                    version_trace: Vec::from([version_number.to_string(), "default_data".to_string(), table.to_string()]),
+                                    version_trace: VersionTrace::from([version_number.to_string(), "default_data".to_string(), table.to_string()]),
                                     ..Default::default()
                                 })
                             }

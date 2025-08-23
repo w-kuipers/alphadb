@@ -31,18 +31,108 @@ pub enum VerificationIssueLevel {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VersionTrace {
+    trace: Vec<String>,
+}
+
+impl VersionTrace {
+    pub fn new() -> Self {
+        Self {
+            trace: Vec::new(),
+        }
+    }
+
+    pub fn from_vec(trace: Vec<String>) -> Self {
+        Self { trace }
+    }
+
+    pub fn from_string(trace_item: String) -> Self {
+        Self {
+            trace: Vec::from([trace_item])
+        }
+    }
+
+    pub fn from<T>(value: T) -> Self 
+    where 
+        T: Into<Vec<String>>
+    {
+        Self { 
+            trace: value.into() 
+        }
+    }
+
+    pub fn push(&mut self, value: String) {
+        self.trace.push(value);
+    }
+
+    pub fn pop(&mut self) -> Option<String> {
+        self.trace.pop()
+    }
+
+    pub fn clone(&self) -> VersionTrace {
+        VersionTrace {
+            trace: self.trace.clone()
+        }
+    }
+
+    pub fn to_vec(&self) -> Vec<String> {
+        self.trace.clone()
+    }
+
+    pub fn as_slice(&self) -> &[String] {
+        &self.trace
+    }
+
+    pub fn with_item(&self, item: String) -> VersionTrace {
+        let mut new_trace = self.trace.clone();
+        new_trace.push(item);
+        VersionTrace::from_vec(new_trace)
+    }
+
+    pub fn with_items(&self, items: Vec<String>) -> VersionTrace {
+        let mut new_trace = self.trace.clone();
+        new_trace.extend(items);
+        VersionTrace::from_vec(new_trace)
+    }
+
+    pub fn len(&self) -> usize {
+        self.trace.len()
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<'_, String> {
+        self.trace.iter()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.trace.is_empty()
+    }
+}
+
+impl From<Vec<String>> for VersionTrace {
+    fn from(trace: Vec<String>) -> Self {
+        Self::from_vec(trace)
+    }
+}
+
+impl From<VersionTrace> for Vec<String> {
+    fn from(version_trace: VersionTrace) -> Self {
+        version_trace.trace
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerificationIssue {
     pub level: VerificationIssueLevel,
     pub message: String,
-    pub version_trace: Vec<String>,
+    pub version_trace: VersionTrace,
 }
 
 pub trait IssueCollection {
-    fn insert_issue(&mut self, issue: VerificationIssue);
+    fn add(&mut self, issue: VerificationIssue);
 }
 
 impl IssueCollection for Vec<VerificationIssue> {
-    fn insert_issue(&mut self, issue: VerificationIssue) {
+    fn add(&mut self, issue: VerificationIssue) {
         if !self.contains(&issue) {
             self.push(issue);
         }

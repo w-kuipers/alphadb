@@ -13,23 +13,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::version_source_verification::VerificationIssue;
+use crate::verification::issue::{VerificationIssue, VerificationIssueLevel, VersionTrace};
 use thiserror::Error;
-
-use super::types::VerificationIssueLevel;
 
 #[derive(Debug, Error)]
 pub struct AlphaDBError {
     pub message: String,
     pub error: String,
-    pub version_trace: Vec<String>,
+    pub version_trace: VersionTrace
 }
 
 pub trait Get {
     fn message(&self) -> String;
     fn error(&self) -> String;
-    fn version_trace(&self) -> Vec<String>;
-    fn set_version_trace(&mut self, version_trace: Vec<String>);
+    fn version_trace(&self) -> &VersionTrace;
+    fn set_version_trace(&mut self, version_trace: VersionTrace);
 }
 
 pub trait ToVerificationIssue {
@@ -42,7 +40,7 @@ impl std::fmt::Display for AlphaDBError {
     }
 }
 
-pub fn get_version_trace_string(version_trace: &Vec<String>) -> String {
+pub fn get_version_trace_string(version_trace: &VersionTrace) -> String {
     let mut version_trace_string = String::new();
 
     if version_trace.len() > 0 {
@@ -74,11 +72,11 @@ impl Get for AlphaDBError {
         return self.error.clone();
     }
 
-    fn version_trace(&self) -> Vec<String> {
-        return self.version_trace.clone();
+    fn version_trace(&self) -> &VersionTrace {
+        return &self.version_trace;
     }
 
-    fn set_version_trace(&mut self, version_trace: Vec<String>) {
+    fn set_version_trace(&mut self, version_trace: VersionTrace) {
         self.version_trace = version_trace;
     }
 }
@@ -101,8 +99,7 @@ impl Default for AlphaDBError {
         AlphaDBError {
             message: String::new(),
             error: String::new(),
-            version_trace: Vec::new(),
+            version_trace: VersionTrace::new(),
         }
     }
 }
-

@@ -24,3 +24,5 @@ mysql = ["dep:alphadb-mysql-engine"]
 alphadb-core = { path = "core" }
 alphadb-mysql-engine = { path = "engines/mysql", optional = true }
 mysql = "25.0.1"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"

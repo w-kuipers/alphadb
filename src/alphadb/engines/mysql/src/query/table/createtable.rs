@@ -17,6 +17,7 @@ use alphadb_core::query::build::StructureQuery;
 use alphadb_core::utils::error_messages::incomplete_version_object_err;
 use alphadb_core::utils::errors::AlphaDBError;
 use alphadb_core::utils::json::{get_json_object, get_json_string, get_object_keys};
+use alphadb_core::verification::issue::VersionTrace;
 
 use crate::query::column::definecolumn::definecolumn;
 
@@ -53,17 +54,18 @@ pub fn createtable(version: &serde_json::Value, table_name: &str, version_number
     if table_keys.iter().any(|&i| i == "foreign_key") {
         let foreign_key = get_json_object(&table_data["foreign_key"])?;
         let foreign_key_keys = foreign_key.keys().collect::<Vec<&String>>();
+        let version_trace = VersionTrace::from([version_number.to_string(), table_name.to_string(), "foreign_key".to_string()]);
 
         if !foreign_key_keys.iter().any(|&i| i == "from") {
-            return Err(incomplete_version_object_err("from", Vec::from([version_number, table_name, "foreign_key"])));
+            return Err(incomplete_version_object_err("from", version_trace));
         }
 
         if !foreign_key_keys.iter().any(|&i| i == "to") {
-            return Err(incomplete_version_object_err("to", Vec::from([version_number, table_name, "foreign_key"])));
+            return Err(incomplete_version_object_err("to", version_trace));
         }
 
         if !foreign_key_keys.iter().any(|&i| i == "references") {
-            return Err(incomplete_version_object_err("references", Vec::from([version_number, table_name, "foreign_key"])));
+            return Err(incomplete_version_object_err("references", version_trace));
         }
 
         let mut foreign_key_string = format!("FOREIGN KEY ({}) REFERENCES {} ({})", get_json_string(&foreign_key["from"])?, 

@@ -17,6 +17,7 @@ use alphadb_core::utils::error_messages::{incompatible_column_attributes_err, in
 use alphadb_core::utils::errors::{AlphaDBError, Get};
 use alphadb_core::utils::json::{get_json_float, get_json_int, get_json_string, get_json_value_as_string, get_object_keys};
 use alphadb_core::verification::compatibility::{ALLOW_DECIMAL_LENGTH, INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES};
+use alphadb_core::verification::issue::VersionTrace;
 use core::f64;
 use serde_json::Value;
 
@@ -31,7 +32,7 @@ use serde_json::Value;
 pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String, version: &str) -> Result<Option<DefineColumn>, AlphaDBError> {
     let mut query = DefineColumn::new();
     let column_keys = get_object_keys(column_data);
-    let version_trace = Vec::from([version, table_name, column_name]);
+    let version_trace = VersionTrace::from([version.to_string(), table_name.to_string(), column_name.to_string()]);
 
     // If iteration is not an object, it is not a column, so it should be processed later
     if let Ok(column_keys) = column_keys {
@@ -62,7 +63,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             }
 
             if null {
-                return Err(incompatible_column_attributes_err("AUTO_INCREMENT", "NULL", Vec::from([version, table_name, column_name])));
+                return Err(incompatible_column_attributes_err("AUTO_INCREMENT", "NULL", version_trace));
             }
 
             auto_increment = true;
@@ -141,14 +142,11 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
     } else {
         return Ok(None);
     }
-
     return Ok(Some(query));
 }
 
 // #[cfg(test)]
 mod definecolumn_tests {
-    use super::definecolumn;
-    use serde_json::json;
 
     // Don't generate query for foreign key
     #[test]

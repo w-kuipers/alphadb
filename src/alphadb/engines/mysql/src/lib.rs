@@ -14,15 +14,17 @@
 mod methods;
 pub mod query; // Make private later
 mod utils;
+pub mod verification;
 
 use crate::utils::connection::get_connection;
 use alphadb_core::{
     engine::AlphaDBEngine,
     method_types::{Init, Query, Status},
-    utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel},
+    utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel}, verification::issue::VersionTrace,
 };
 use mysql::PooledConn;
 use thiserror::Error;
+pub use verification::MySQLVerificationEngine;
 
 #[derive(Error, Debug)]
 pub enum MySQLEngineError {
@@ -37,7 +39,7 @@ impl From<MySQLEngineError> for AlphaDBError {
         AlphaDBError {
             message: err.to_string(),
             error: format!("{:?}", err),
-            version_trace: Vec::new(),
+            version_trace: VersionTrace::new(),
         }
     }
 }

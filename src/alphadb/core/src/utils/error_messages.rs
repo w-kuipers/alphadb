@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::errors::AlphaDBError;
+use crate::verification::issue::VersionTrace;
 
 pub const DB_CONFIG_NO_VERSION: &str =
     "There seems to be an issue with the database config. It is initialized, but does not return a valid version. Please manually check the configuration table in your database.";
@@ -24,21 +25,21 @@ pub const DB_CONFIG_NO_VERSION: &str =
 ///
 /// - message: The error message
 /// - version_trace: Version trace
-pub fn simple_err(message: &str, version_trace: Vec<&str>) -> AlphaDBError {
+pub fn simple_err(message: &str, version_trace: VersionTrace) -> AlphaDBError {
     return AlphaDBError {
         message: message.to_string(),
-        version_trace: version_trace.iter().map(|&s| s.to_string()).collect(),
+        version_trace,
         ..Default::default()
     };
 }
 
 /// - key: Missing object key
 /// - version_trace: Version trace
-pub fn incomplete_version_object_err(key: &str, version_trace: Vec<&str>) -> AlphaDBError {
+pub fn incomplete_version_object_err(key: &str, version_trace: VersionTrace) -> AlphaDBError {
     return AlphaDBError {
         message: format!("Missing required key '{key}'."),
         error: "incomplete-version-object".to_string(),
-        version_trace: version_trace.iter().map(|&s| s.to_string()).collect(),
+        version_trace,
         ..Default::default()
     };
 }
@@ -46,11 +47,11 @@ pub fn incomplete_version_object_err(key: &str, version_trace: Vec<&str>) -> Alp
 /// - attribute1: The incompatible MySQL column attribute
 /// - attribute2: The incompatible MySQL column attribute
 /// - version_trace: Version trace
-pub fn incompatible_column_attributes_err(attribute1: &str, attribute2: &str, version_trace: Vec<&str>) -> AlphaDBError {
+pub fn incompatible_column_attributes_err(attribute1: &str, attribute2: &str, version_trace: VersionTrace) -> AlphaDBError {
     return AlphaDBError {
         message: format!("Column attributes '{attribute1}' and '{attribute2}' are not compatible."),
         error: "incompatible-version-attributes".to_string(),
-        version_trace: version_trace.iter().map(|&s| s.to_string()).collect(),
+        version_trace,
         ..Default::default()
     };
 }

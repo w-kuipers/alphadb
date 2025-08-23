@@ -13,7 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use alphadb_core::utils::errors::{AlphaDBError, Get};
+use alphadb_core::{
+    utils::errors::{AlphaDBError, Get},
+    verification::issue::VersionTrace,
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -21,8 +24,17 @@ pub enum AlphaDBMysqlError {
     #[error(transparent)]
     AlphaDBError(#[from] AlphaDBError),
 
-    #[error(transparent)]
-    MySqlError(#[from] mysql::Error),
+    #[error("MySQL Error: {error}")]
+    MySqlError { error: mysql::Error, version_trace: VersionTrace },
+}
+
+impl From<mysql::Error> for AlphaDBMysqlError {
+    fn from(error: mysql::Error) -> Self {
+        AlphaDBMysqlError::MySqlError {
+            error,
+            version_trace: VersionTrace::new(),
+        }
+    }
 }
 
 impl From<AlphaDBMysqlError> for AlphaDBError {
@@ -30,7 +42,7 @@ impl From<AlphaDBMysqlError> for AlphaDBError {
         AlphaDBError {
             message: err.message(),
             error: err.error(),
-            version_trace: err.version_trace(),
+            version_trace: err.version_trace().clone(),
         }
     }
 }
@@ -39,25 +51,25 @@ impl Get for AlphaDBMysqlError {
     fn message(&self) -> String {
         match self {
             AlphaDBMysqlError::AlphaDBError(e) => e.message(),
-            AlphaDBMysqlError::MySqlError(e) => format!("MySQL Error: {:?}", e),
+            AlphaDBMysqlError::MySqlError { error, .. } => format!("MySQL Error: {:?}", error),
         }
     }
     fn error(&self) -> String {
         match self {
             AlphaDBMysqlError::AlphaDBError(e) => e.error(),
-            AlphaDBMysqlError::MySqlError(_) => String::new(),
+            AlphaDBMysqlError::MySqlError { .. } => String::new(),
         }
     }
-    fn version_trace(&self) -> Vec<String> {
+    fn version_trace(&self) -> &VersionTrace {
         match self {
-            AlphaDBMysqlError::AlphaDBError(e) => return e.version_trace.clone(),
-            AlphaDBMysqlError::MySqlError(_) => return Vec::new(),
+            AlphaDBMysqlError::AlphaDBError(e) => &e.version_trace,
+            AlphaDBMysqlError::MySqlError { version_trace, .. } => version_trace,
         }
     }
-    fn set_version_trace(&mut self, version_trace: Vec<String>) {
+    fn set_version_trace(&mut self, new_version_trace: VersionTrace) {
         match self {
-            AlphaDBMysqlError::AlphaDBError(e) => e.set_version_trace(version_trace),
-            AlphaDBMysqlError::MySqlError(_) => (),
+            AlphaDBMysqlError::AlphaDBError(e) => e.set_version_trace(new_version_trace),
+            AlphaDBMysqlError::MySqlError { version_trace, .. } => *version_trace = new_version_trace,
         }
     }
 }

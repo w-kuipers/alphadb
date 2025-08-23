@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::errors::AlphaDBError;
+use crate::{utils::errors::AlphaDBError, verification::issue::VersionTrace};
 
 /// Validate if a string can be used as a version number.
 /// This will return true when the string can be converted to an integer. Any dots will be
@@ -33,7 +33,7 @@ pub fn validate_version_number(version_number: &str) -> Result<bool, AlphaDBErro
         Err(_) => Err(AlphaDBError {
             message: format!("'{}' is not a valid version number", version_number),
             error: "invalid-version-number".to_string(),
-            version_trace: Vec::from([version_number.to_string()]),
+            version_trace: VersionTrace::from([version_number.to_string()]),
             ..Default::default()
         }
         .into()),
@@ -56,7 +56,7 @@ pub fn parse_version_number(version_number: &str) -> Result<u32, AlphaDBError> {
         Err(_) => Err(AlphaDBError {
             message: format!("'{}' is not a valid version number. It can not be parsed to an integer", version_number),
             error: "invalid-version-number".to_string(),
-            version_trace: Vec::from([version_number.to_string()]),
+            version_trace: VersionTrace::from([version_number.to_string()]),
             ..Default::default()
         }
         .into()),
@@ -78,7 +78,7 @@ pub fn get_latest_version(versions: &Vec<serde_json::Value>) -> Result<String, A
     for (i, version) in versions.iter().enumerate() {
         let version = version["_id"].as_str().ok_or(AlphaDBError {
             message: format!("No version number specified"),
-            version_trace: Vec::from([format!("index {}", i)]),
+            version_trace: VersionTrace::from([format!("index {}", i)]),
             error: "missing-version-number".to_string(),
             ..Default::default()
         })?;

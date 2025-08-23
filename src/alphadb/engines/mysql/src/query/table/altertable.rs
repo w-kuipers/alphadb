@@ -21,6 +21,7 @@ use alphadb_core::utils::errors::AlphaDBError;
 use alphadb_core::utils::json::{array_iter, exists_in_object, get_json_string, object_iter};
 use alphadb_core::utils::version_number::parse_version_number;
 use alphadb_core::utils::version_source::get_version_array;
+use alphadb_core::verification::issue::VersionTrace;
 use serde_json::{json, Value};
 
 /// Generate a MySQL altertable query
@@ -56,7 +57,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
         } else {
             return Err(AlphaDBError {
                 message: "Version does not contain a version number".to_string(),
-                version_trace: Vec::from([format!("index {}", c)]),
+                version_trace: VersionTrace::from([format!("index {}", c)]),
                 ..Default::default()
             });
         }

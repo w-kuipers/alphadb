@@ -41,6 +41,8 @@ dependencies = [
  "alphadb-core",
  "alphadb-mysql-engine",
  "mysql",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -21,7 +21,7 @@ pub mod engine {
     pub use alphadb_mysql_engine::*;
 }
 
-pub use verification::VersionSourceVerification;
+pub use verification::AlphaDBVerification;
 
 use crate::prelude::AlphaDBError;
 use alphadb_core::{

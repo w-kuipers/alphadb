@@ -25,6 +25,7 @@ use alphadb_core::utils::json::{array_iter, get_object_keys, object_iter};
 use alphadb_core::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
 use alphadb_core::utils::version_source::{get_version_array, parse_version_source_string};
 use alphadb_core::method_types::Query;
+use alphadb_core::verification::issue::VersionTrace;
 use mysql::*;
 
 /// Generate MySQL queries to update the tables
@@ -102,7 +103,7 @@ pub fn update_queries(db_name: &str, connection: &mut PooledConn, version_source
                 return Err(AlphaDBError {
                     message: format!("'{}' is not a valid version number", v),
                     error: "invalid-version-number".to_string(),
-                    version_trace: Vec::from([v.to_string()]),
+                    version_trace: VersionTrace::from([v.to_string()]),
                     ..Default::default()
                 }
                 .into())
@@ -131,7 +132,7 @@ pub fn update_queries(db_name: &str, connection: &mut PooledConn, version_source
             None => {
                 return Err(AlphaDBError {
                     message: format!("Missing a version number"),
-                    version_trace: Vec::from([format!(" index {i}")]),
+                    version_trace: VersionTrace::from([format!(" index {i}")]),
                     ..Default::default()
                 }
                 .into());

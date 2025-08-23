@@ -18,9 +18,9 @@ use crate::utils::consolidate::primary_key::get_primary_key;
 use crate::utils::consolidate::table::consolidate_table;
 use crate::utils::errors::{AlphaDBError, Get, ToVerificationIssue};
 use crate::utils::json::{get_json_float as adb_get_json_float, get_json_int as adb_get_json_int, get_json_object as adb_get_json_object, get_json_string as adb_get_json_string};
-use crate::utils::types::VerificationIssueLevel;
 use crate::utils::version_source::get_version_array;
 use crate::verification::compatibility::{FLOAT_COLUMNS, INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, INT_COLUMNS, NON_COLUMN_TABLE_KEYS, STRING_COLUMNS};
+use crate::verification::issue::VerificationIssueLevel;
 use crate::verification::json::{array_iter, exists_in_object, get_json_boolean, get_json_object, get_json_string, get_object_keys, object_iter, parse_version_number};
 use serde_json::Value;
 
