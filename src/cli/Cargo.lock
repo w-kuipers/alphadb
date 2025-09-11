@@ -74,7 +74,10 @@ name = "alphadb"
 version = "1.0.0-dev16"
 dependencies = [
  "alphadb-core",
+ "alphadb-mysql-engine",
  "mysql",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -105,6 +108,17 @@ dependencies = [
 name = "alphadb-core"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "alphadb-mysql-engine"
+version = "1.0.0"
+dependencies = [
+ "alphadb-core",
+ "mysql",
  "serde",
  "serde_json",
  "thiserror",

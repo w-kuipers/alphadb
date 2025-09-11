@@ -41,6 +41,65 @@ pub trait AlphaDBEngine {
     fn vacate(&mut self, db_name: &mut Option<String>) -> Result<(), AlphaDBError>;
 }
 
+impl<T: AlphaDBEngine + ?Sized> AlphaDBEngine for Box<T> {
+    fn name(&self) -> &str {
+        (**self).name()
+    }
+
+    fn version(&self) -> &str {
+        (**self).version()
+    }
+
+    fn connect(
+        &mut self,
+        db_name: &mut Option<String>,
+        is_connected: &mut bool,
+    ) -> Result<(), AlphaDBError> {
+        (**self).connect(db_name, is_connected)
+    }
+
+    fn init(&mut self, db_name: &mut Option<String>) -> Result<Init, AlphaDBError> {
+        (**self).init(db_name)
+    }
+
+    fn status(&mut self, db_name: &mut Option<String>) -> Result<Status, AlphaDBError> {
+        (**self).status(db_name)
+    }
+
+    fn update_queries(
+        &mut self,
+        db_name: &mut Option<String>,
+        version_source: String,
+        target_version: Option<&str>,
+        no_data: bool,
+    ) -> Result<Vec<Query>, AlphaDBError> {
+        (**self).update_queries(db_name, version_source, target_version, no_data)
+    }
+
+    fn update(
+        &mut self,
+        db_name: &mut Option<String>,
+        version_source: String,
+        target_version: Option<&str>,
+        no_data: bool,
+        verify: bool,
+        allowed_error_priority: ToleratedVerificationIssueLevel,
+    ) -> Result<(), AlphaDBError> {
+        (**self).update(
+            db_name,
+            version_source,
+            target_version,
+            no_data,
+            verify,
+            allowed_error_priority,
+        )
+    }
+
+    fn vacate(&mut self, db_name: &mut Option<String>) -> Result<(), AlphaDBError> {
+        (**self).vacate(db_name)
+    }
+}
+
 // Base engine trait that all verification engines must implement
 pub trait AlphaDBVerificationEngine {
     // fn verify_column_definition(table: &String);

@@ -14,13 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{error, utils::title};
-use alphadb::{AlphaDB, Init};
+use alphadb::{core::method_types::Init, prelude::AlphaDBEngine, AlphaDB};
 use colored::Colorize;
 
 /// Initialize the database
 ///
 /// - db: AlphaDB instance  
-pub fn init(db: &mut AlphaDB) {
+pub fn init(db: &mut AlphaDB<Box<dyn AlphaDBEngine>>) {
     title("Initialize");
 
     let init = match db.init() {

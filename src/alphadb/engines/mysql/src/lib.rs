@@ -11,8 +11,9 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 mod methods;
-pub mod query; // Make private later
+mod query;
 mod utils;
 pub mod verification;
 
@@ -20,7 +21,8 @@ use crate::utils::connection::get_connection;
 use alphadb_core::{
     engine::AlphaDBEngine,
     method_types::{Init, Query, Status},
-    utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel}, verification::issue::VersionTrace,
+    utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel},
+    verification::issue::VersionTrace,
 };
 use mysql::PooledConn;
 use thiserror::Error;

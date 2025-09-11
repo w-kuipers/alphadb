@@ -17,8 +17,8 @@ use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
 use crate::error;
 use crate::utils::title;
-use alphadb::prelude::*;
-use alphadb::{utils::types::ToleratedVerificationIssueLevel, AlphaDB};
+use alphadb::prelude::{AlphaDBEngine, ToleratedVerificationIssueLevel, Get};
+use alphadb::AlphaDB;
 use colored::Colorize;
 use std::fs;
 use std::path::PathBuf;
@@ -29,7 +29,7 @@ use std::path::PathBuf;
 /// - db: AlphaDB instance  
 pub fn update(
     config: &Config,
-    db: &mut AlphaDB,
+    db: &mut AlphaDB<Box<dyn AlphaDBEngine>>,
     nodata: bool,
     noverify: bool,
     tolerated_verification_level: String,

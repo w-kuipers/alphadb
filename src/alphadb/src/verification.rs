@@ -13,15 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+pub use alphadb_core::verification::issue::{IssueCollection, VerificationIssue, VerificationIssueLevel, VersionTrace};
+
 use alphadb_core::{
     engine::AlphaDBVerificationEngine,
     utils::errors::{AlphaDBError, Get, ToVerificationIssue},
     utils::json::{get_json_object as adb_get_json_object, get_json_string as adb_get_json_string},
     utils::version_source::get_version_array,
-    verification::{
-        issue::{IssueCollection, VerificationIssue, VerificationIssueLevel, VersionTrace},
-        json::{array_iter, exists_in_object, get_json_object, get_json_string, parse_version_number},
-    },
+    verification::json::{array_iter, exists_in_object, get_json_object, get_json_string, parse_version_number},
 };
 use serde_json::Value;
 
@@ -155,11 +154,7 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
         }
     }
 
-    fn createtable(
-        &mut self,
-        createtable: Value,
-        version_output: &str,
-    ) -> Result<(), AlphaDBError> {
+    fn createtable(&mut self, createtable: Value, version_output: &str) -> Result<(), AlphaDBError> {
         let mut version_trace = VersionTrace::new();
         version_trace.push(version_output.to_string());
         version_trace.push("createtable".to_string());

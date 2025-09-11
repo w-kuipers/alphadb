@@ -19,9 +19,9 @@ pub mod verification;
 pub mod engine {
     #[cfg(feature = "mysql")]
     pub use alphadb_mysql_engine::*;
-}
 
-pub use verification::AlphaDBVerification;
+    pub use alphadb_core::engine::{AlphaDBEngine, AlphaDBVerificationEngine};
+}
 
 use crate::prelude::AlphaDBError;
 use alphadb_core::{
@@ -44,6 +44,14 @@ impl AlphaDB<()> {
             db_name: None,
             is_connected: false,
             engine: (),
+        }
+    }
+
+    pub fn set_engine<E: AlphaDBEngine>(&mut self, engine: E) -> AlphaDB<E> {
+        AlphaDB {
+            db_name: None,
+            is_connected: false,
+            engine,
         }
     }
 }
