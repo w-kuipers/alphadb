@@ -27,7 +27,7 @@ pub trait Get {
     fn message(&self) -> String;
     fn error(&self) -> String;
     fn version_trace(&self) -> &VersionTrace;
-    fn set_version_trace(&mut self, version_trace: VersionTrace);
+    fn set_version_trace(&mut self, version_trace: &VersionTrace);
 }
 
 pub trait ToVerificationIssue {
@@ -76,8 +76,8 @@ impl Get for AlphaDBError {
         return &self.version_trace;
     }
 
-    fn set_version_trace(&mut self, version_trace: VersionTrace) {
-        self.version_trace = version_trace;
+    fn set_version_trace(&mut self, version_trace: &VersionTrace) {
+        self.version_trace = version_trace.clone();
     }
 }
 

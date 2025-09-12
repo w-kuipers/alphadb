@@ -91,17 +91,17 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
 
                     if exists_in_object(table_block, "modifycolumn")? {
                         if exists_in_object(&table_block["modifycolumn"], version_column_name)? {
-                            mutable_table_data["altertable"][table_name]["modifycolumn"][version_column_name]["a_i"] = Value::Bool(true);
+                            mutable_table_data["altertable"][table_name]["modifycolumn"][version_column_name]["auto_increment"] = Value::Bool(true);
                         } else {
                             mutable_table_data["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
                                 "recreate": false,
-                                "a_i": false
+                                "auto_increment": false
                             });
                         }
                     } else {
                         mutable_table_data["altertable"][table_name]["modifycolumn"][version_column_name] = json!({
                             "recreate": false,
-                            "a_i": false
+                            "auto_increment": false
                         });
                     }
                 }
@@ -214,7 +214,7 @@ mod altertable_tests {
         let column = &json!({
             "name": "test",
             "version": [
-                {"_id": "0.0.1", "createtable": {"table": {"primary_key": "col", "col": {"type": "INT", "a_i": true}}}},
+                {"_id": "0.0.1", "createtable": {"table": {"primary_key": "col", "col": {"type": "INT", "auto_increment": true}}}},
                 {"_id": "0.0.2", "altertable": {"table": {"primary_key": null}}},
             ]
         });

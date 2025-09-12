@@ -9,7 +9,7 @@
           "col1": {
             "type": "INT",
             "length": 7,
-            "a_i": true
+            "auto_increment": true
           },
           "col2": {
             "type": "VARCHAR",
@@ -23,6 +23,9 @@
           "col4": {
             "type": "INT",
             "length": 7
+          },
+          "col5": {
+            "length": 7
           }
         }
       }
@@ -34,9 +37,14 @@
           "primary_key": "nothing",
           "col1": {
             "type": "INT",
-            "a_i": true
+            "auto_increment": true
           },
           "col2": {
+            "type": "VARCHAR",
+            "length": 100,
+            "default": "default value"
+          },
+          "col3": {
             "type": "VARCHAR",
             "length": 100,
             "default": "default value"
@@ -51,7 +59,7 @@
         "table3": {
           "col1": {
             "type": "INT",
-            "a_i": true,
+            "auto_increment": true,
             "null": true,
             "unique": true
           },
@@ -70,7 +78,7 @@
           "primary_key": "thecol1",
           "thecol1": {
             "type": "INT",
-            "a_i": true
+            "auto_increment": true
           },
           "thecol2": {
             "type": "VARCHAR",
@@ -112,7 +120,7 @@
             },
             "col1": {
               "type": "INT",
-              "a_i": true,
+              "auto_increment": true,
               "length": 11
             }
           }
@@ -198,6 +206,14 @@
       "altertable": {
         "table4": {
           "primary_key": "thecol1"
+        }
+      }
+    },
+    {
+      "_id": "0.2.7",
+      "altertable": {
+        "table4": {
+			"recreate": true
         }
       }
     }

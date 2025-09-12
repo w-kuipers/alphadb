@@ -137,7 +137,7 @@ mod createtable_tests {
                     "primary_key": "id",
                     "id": {
                         "type": "INT",
-                        "a_i": true,
+                        "auto_increment": true,
                     },
                     "col1": {"type": "VARCHAR", "length": 30, "unique": true},
                     "foreign_key": {

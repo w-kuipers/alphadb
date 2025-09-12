@@ -35,7 +35,7 @@ use crate::verification::issue::{VerificationIssue, VersionTrace};
 ///
 /// # Errors
 /// * Returns `AlphaDBError` if the value cannot be converted to an object
-pub fn get_object_keys<'a>(object: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: VersionTrace) -> Vec<&'a String> {
+pub fn get_object_keys<'a>(object: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> Vec<&'a String> {
     match adb_get_object_keys(object) {
         Ok(v) => v,
         Err(mut e) => {
@@ -56,7 +56,7 @@ pub fn get_object_keys<'a>(object: &'a serde_json::Value, issues: &mut Vec<Verif
 ///
 /// # Returns
 /// * `bool` - True if key exists, false otherwise
-pub fn exists_in_object(object: &serde_json::Value, key: &str, issues: &mut Vec<VerificationIssue>, version_trace: VersionTrace) -> bool {
+pub fn exists_in_object(object: &serde_json::Value, key: &str, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> bool {
     match adb_exists_in_object(object, key) {
         Ok(v) => v,
         Err(mut e) => {
@@ -77,7 +77,7 @@ pub fn exists_in_object(object: &serde_json::Value, key: &str, issues: &mut Vec<
 ///
 /// # Returns
 /// * `bool` - True if key exists, false otherwise
-pub fn get_json_boolean(object: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: VersionTrace) -> bool {
+pub fn get_json_boolean(object: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> bool {
     match adb_get_json_boolean(object) {
         Ok(v) => v,
         Err(mut e) => {
@@ -97,7 +97,7 @@ pub fn get_json_boolean(object: &serde_json::Value, issues: &mut Vec<Verificatio
 ///
 /// # Returns
 /// * `Map<String, Value>` - The JSON object if successful, empty map otherwise
-pub fn get_json_object(object: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: VersionTrace) -> Map<String, Value> {
+pub fn get_json_object(object: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> Map<String, Value> {
     match adb_get_json_object(object) {
         Ok(v) => v.clone(),
         Err(mut e) => {
@@ -117,7 +117,7 @@ pub fn get_json_object(object: &serde_json::Value, issues: &mut Vec<Verification
 ///
 /// # Returns
 /// * `&'a str` - The string value if successful, empty string otherwise
-pub fn get_json_string<'a>(string: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: VersionTrace) -> &'a str {
+pub fn get_json_string<'a>(string: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> &'a str {
     match adb_get_json_string(string) {
         Ok(v) => v,
         Err(mut e) => {
@@ -137,7 +137,7 @@ pub fn get_json_string<'a>(string: &'a serde_json::Value, issues: &mut Vec<Verif
 ///
 /// # Returns
 /// * `bool` - True if object is empty, false otherwise
-pub fn object_is_empty(object: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: VersionTrace) -> bool {
+pub fn object_is_empty(object: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> bool {
     match adb_get_json_object(object) {
         Ok(v) => v.is_empty(),
         Err(mut e) => {
@@ -157,7 +157,7 @@ pub fn object_is_empty(object: &serde_json::Value, issues: &mut Vec<Verification
 ///
 /// # Returns
 /// * `Vec<serde_json::Value>` - Vector of array values if successful, empty vector otherwise
-pub fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: VersionTrace) -> Vec<serde_json::Value> {
+pub fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> Vec<serde_json::Value> {
     match adb_array_iter(array) {
         Ok(v) => v.clone(),
         Err(mut e) => {
@@ -177,7 +177,7 @@ pub fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>
 ///
 /// # Returns
 /// * `serde_json::map::Keys<'a>` - Iterator over object keys if successful, empty iterator otherwise
-pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: VersionTrace) -> serde_json::map::Keys<'a> {
+pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> serde_json::map::Keys<'a> {
     static EMPTY_MAP: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock::new(|| serde_json::Map::new());
 
     match adb_object_iter(object) {
@@ -199,7 +199,7 @@ pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<Verificat
 ///
 /// # Returns
 /// * `i32` - Parsed version number if successful, 0 otherwise
-pub fn parse_version_number(version_number: &str, issues: &mut Vec<VerificationIssue>, version_trace: VersionTrace) -> i32 {
+pub fn parse_version_number(version_number: &str, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> i32 {
     match adb_parse_version_number(version_number) {
         Ok(v) => v as i32,
         Err(mut e) => {

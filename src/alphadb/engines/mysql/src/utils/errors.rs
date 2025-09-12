@@ -66,10 +66,12 @@ impl Get for AlphaDBMysqlError {
             AlphaDBMysqlError::MySqlError { version_trace, .. } => version_trace,
         }
     }
-    fn set_version_trace(&mut self, new_version_trace: VersionTrace) {
+    fn set_version_trace(&mut self, new_version_trace: &VersionTrace) {
         match self {
             AlphaDBMysqlError::AlphaDBError(e) => e.set_version_trace(new_version_trace),
-            AlphaDBMysqlError::MySqlError { version_trace, .. } => *version_trace = new_version_trace,
+            AlphaDBMysqlError::MySqlError { version_trace, .. } => {
+                *version_trace = new_version_trace.clone();
+            }
         }
     }
 }

@@ -16,10 +16,12 @@ use alphadb_core::query::column::definecolumn::DefineColumn;
 use alphadb_core::utils::error_messages::{incompatible_column_attributes_err, incomplete_version_object_err, simple_err};
 use alphadb_core::utils::errors::{AlphaDBError, Get};
 use alphadb_core::utils::json::{get_json_float, get_json_int, get_json_string, get_json_value_as_string, get_object_keys};
-use alphadb_core::verification::compatibility::{ALLOW_DECIMAL_LENGTH, INCOMPATIBLE_W_AI, INCOMPATIBLE_W_UNIQUE, SUPPORTED_COLUMN_TYPES};
+use alphadb_core::verification::compatibility::{check_column_attributes_compatibility, check_column_type_compatibility};
 use alphadb_core::verification::issue::VersionTrace;
 use core::f64;
 use serde_json::Value;
+
+use crate::verification::compatibility::{ALLOW_DECIMAL_LENGTH, COLUMN_ATTRIBUTE_COMPATIBILITY_RULES, COLUMN_TYPE_COMPATIBILITY_RULES, SUPPORTED_COLUMN_TYPES};
 
 /// **Define column**
 ///
@@ -55,27 +57,39 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             }
         }
 
+        // Verify column type compatibility against all column keys
+        for rule in COLUMN_TYPE_COMPATIBILITY_RULES {
+            if !check_column_type_compatibility(column_type, &rule, &column_keys) {
+                return Err(incompatible_column_attributes_err(
+                    rule.attribute.to_uppercase().as_str(),
+                    format!("type=={column_type}").as_str(),
+                    version_trace,
+                ));
+            }
+        }
+
+        // Verify column attribute compatibility against all other attributes
+        for rule in COLUMN_ATTRIBUTE_COMPATIBILITY_RULES {
+            if let Err(incompatible_keys) = check_column_attributes_compatibility(&rule, &column_keys) {
+                for key in incompatible_keys {
+                    return Err(incompatible_column_attributes_err(
+                        rule.attribute.to_uppercase().as_str(),
+                        key.to_uppercase().as_str(),
+                        version_trace,
+                    ));
+                }
+            }
+        }
+
         // Check column type compatibility with AUTO_INCREMENT
         let mut auto_increment = false;
-        if column_keys.iter().any(|&i| i == "a_i") {
-            if INCOMPATIBLE_W_AI.iter().any(|&i| i == column_type.to_lowercase()) {
-                return Err(incompatible_column_attributes_err("AUTO_INCREMENT", format!("type=={column_type}").as_str(), version_trace));
-            }
-
-            if null {
-                return Err(incompatible_column_attributes_err("AUTO_INCREMENT", "NULL", version_trace));
-            }
-
+        if column_keys.iter().any(|&i| i == "auto_increment") {
             auto_increment = true;
         }
 
         // Check column type compatibility with UNIQUE
         let mut unique = false;
         if column_keys.iter().any(|&i| i == "unique") {
-            if INCOMPATIBLE_W_UNIQUE.iter().any(|&i| i == column_type.to_lowercase()) {
-                return Err(incompatible_column_attributes_err("UNIQUE", format!("type=={column_type}").as_str(), version_trace));
-            }
-
             if column_data["unique"] == true {
                 unique = true;
             }
@@ -147,6 +161,8 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
 
 // #[cfg(test)]
 mod definecolumn_tests {
+    use super::definecolumn;
+    use serde_json::json;
 
     // Don't generate query for foreign key
     #[test]
@@ -159,7 +175,7 @@ mod definecolumn_tests {
     #[test]
     fn no_type() {
         let column = &json!({
-            "a_i": true
+            "auto_increment": true
         });
         let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
         assert!(q.is_err());
@@ -171,7 +187,7 @@ mod definecolumn_tests {
     fn ai_and_type() {
         let column = &json!({
             "type": "VARCHAR",
-            "a_i": true
+            "auto_increment": true
         });
         let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
         assert!(q.is_err());
@@ -208,7 +224,7 @@ mod definecolumn_tests {
         let column = &json!({
             "type": "INT",
             "null": true,
-            "a_i": true
+            "auto_increment": true
         });
         let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
         assert!(q.is_err());

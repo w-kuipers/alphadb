@@ -1,4 +1,4 @@
-// Copyright (C) 2024 Wibo Kuipers
+// Copyright (C) 2025 Wibo Kuipers
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,26 +13,63 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// All columns supported by AlphaDB
-pub const SUPPORTED_COLUMN_TYPES: [&str; 10] = ["INT", "TINYINT", "BIGINT", "TEXT", "LONGTEXT", "FLOAT", "DECIMAL", "VARCHAR", "DATETIME", "JSON"];
+use crate::verification::issue::{VerificationIssue, VerificationIssueLevel, VersionTrace};
 
-/// All column types that should take a string value as inserted data
-pub const FLOAT_COLUMNS: [&str; 2] = ["FLOAT", "DECIMAL"];
+/// Compatibility rule for type-attribute incompatibilities
+pub struct ColumnCompatibilityRule {
+    pub incompatible: &'static [&'static str],
+    pub attribute: &'static str,
+}
 
-/// All column types that should take a string value as inserted data
-pub const INT_COLUMNS: [&str; 4] = ["INT", "TINYINT", "BIGINT", "DATETIME"];
+/// Helper function to check type incompatibilities with specific attributes
+pub fn verify_column_type_compatibility(
+    issues: &mut Vec<VerificationIssue>,
+    checking_type: &str,
+    rules: &[ColumnCompatibilityRule],
+    column_keys: &[&String],
+    version_trace: &VersionTrace,
+) {
+    for rule in rules {
+        if !check_column_type_compatibility(checking_type, rule, column_keys) {
+            issues.push(VerificationIssue {
+                level: VerificationIssueLevel::Critical,
+                message: format!("Column type {} is incompatible with attribute {}", checking_type, rule.attribute.to_uppercase()),
+                version_trace: version_trace.clone(),
+            });
+        }
+    }
+}
 
-/// All column types that should take a string value as inserted data
-pub const STRING_COLUMNS: [&str; 4] = ["TEXT", "LONGTEXT", "VARCHAR", "DATETIME"];
+pub fn column_contains_type(column_keys: &Vec<&String>, recreate: bool) -> bool {
+    if !column_keys.contains(&&"type".to_string()) {
+        if !column_keys.contains(&&"recreate".to_string()) || recreate == true {
+            return false;
+        }
+    }
 
-/// All column types that are incompatible with the AUTO_INCREMENT setting
-pub const INCOMPATIBLE_W_AI: [&str; 6] = ["varchar", "text", "longtext", "datetime", "decimal", "json"];
+    return true;
+}
 
-/// All column types that are incompatible with the UNIQUE key
-pub const INCOMPATIBLE_W_UNIQUE: [&str; 1] = ["json"];
+pub fn check_column_type_compatibility(checking_type: &str, rule: &ColumnCompatibilityRule, column_keys: &[&String]) -> bool {
+    if rule.incompatible.contains(&checking_type.to_lowercase().as_str()) && column_keys.contains(&&String::from(rule.attribute)) {
+        return false;
+    }
 
-/// All the MySQL column types that allow a decimal length value
-pub const ALLOW_DECIMAL_LENGTH: [&str; 3] = ["decimal", "float", "double"];
+    return true;
+}
 
-/// All the version source table keys that do not represent a column
-pub const NON_COLUMN_TABLE_KEYS: [&str; 1] = ["primary_key"];
+pub fn check_column_attributes_compatibility<'a>(rule: &'a ColumnCompatibilityRule, column_keys: &'a [&String]) -> Result<(), Vec<&'a str>> {
+    let mut incompatible_keys: Vec<&str> = Vec::new();
+    if column_keys.contains(&&rule.attribute.to_string()) {
+        for incompatible in rule.incompatible {
+            if column_keys.contains(&&incompatible.to_string()) {
+                incompatible_keys.push(incompatible);
+            }
+        }
+    }
+
+    if !incompatible_keys.is_empty() {
+        return Err(incompatible_keys);
+    }
+    return Ok(());
+}

@@ -37,9 +37,7 @@ pub struct VersionTrace {
 
 impl VersionTrace {
     pub fn new() -> Self {
-        Self {
-            trace: Vec::new(),
-        }
+        Self { trace: Vec::new() }
     }
 
     pub fn from_vec(trace: Vec<String>) -> Self {
@@ -47,17 +45,16 @@ impl VersionTrace {
     }
 
     pub fn from_string(trace_item: String) -> Self {
-        Self {
-            trace: Vec::from([trace_item])
-        }
+        Self { trace: Vec::from([trace_item]) }
     }
 
-    pub fn from<T>(value: T) -> Self 
-    where 
-        T: Into<Vec<String>>
+    pub fn from<T>(value: T) -> Self
+    where
+        T: IntoIterator,
+        T::Item: Into<String>,
     {
-        Self { 
-            trace: value.into() 
+        Self {
+            trace: value.into_iter().map(Into::into).collect(),
         }
     }
 
@@ -70,9 +67,7 @@ impl VersionTrace {
     }
 
     pub fn clone(&self) -> VersionTrace {
-        VersionTrace {
-            trace: self.trace.clone()
-        }
+        VersionTrace { trace: self.trace.clone() }
     }
 
     pub fn to_vec(&self) -> Vec<String> {

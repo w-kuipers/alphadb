@@ -17,10 +17,13 @@ pub use alphadb_core::verification::issue::{IssueCollection, VerificationIssue, 
 
 use alphadb_core::{
     engine::AlphaDBVerificationEngine,
-    utils::errors::{AlphaDBError, Get, ToVerificationIssue},
-    utils::json::{get_json_object as adb_get_json_object, get_json_string as adb_get_json_string},
-    utils::version_source::get_version_array,
-    verification::json::{array_iter, exists_in_object, get_json_object, get_json_string, parse_version_number},
+    utils::{
+        consolidate::primary_key::get_primary_key,
+        errors::{AlphaDBError, Get, ToVerificationIssue},
+        json::{get_json_object as adb_get_json_object, get_json_string as adb_get_json_string},
+        version_source::get_version_array,
+    },
+    verification::json::{array_iter, exists_in_object, get_json_object, get_json_string, object_iter, parse_version_number},
 };
 use serde_json::Value;
 
@@ -64,7 +67,7 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
     /// Will Return true if no issues are found, else it will return a
     /// list with all issues and their levels.
     pub fn verify(&mut self) -> Result<(), Vec<VerificationIssue>> {
-        if !exists_in_object(&self.version_source, "name", &mut self.issues, VersionTrace::new()) {
+        if !exists_in_object(&self.version_source, "name", &mut self.issues, &VersionTrace::new()) {
             self.issues.add(VerificationIssue {
                 level: VerificationIssueLevel::Critical,
                 message: String::from("No rootlevel name specified"),
@@ -72,46 +75,53 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
             });
         }
 
-        if !exists_in_object(&self.version_source, "version", &mut self.issues, VersionTrace::new()) {
+        if !exists_in_object(&self.version_source, "version", &mut self.issues, &VersionTrace::new()) {
             self.issues.add(VerificationIssue {
                 level: VerificationIssueLevel::Low,
                 message: String::from("This version source does not contain any versions"),
                 version_trace: VersionTrace::new(),
             });
         } else {
-            for (i, version) in array_iter(&self.version_source["version"], &mut self.issues, VersionTrace::from(["versions".to_string()]))
+            for (i, version) in array_iter(&self.version_source["version"], &mut self.issues, &VersionTrace::from(["versions".to_string()]))
                 .iter()
                 .enumerate()
             {
                 let mut version_output = format!("index {i}");
                 let mut version_number: Option<&str> = None;
+                let mut version_trace = VersionTrace::from([version_output.clone()]);
 
-                if !exists_in_object(version, "_id", &mut self.issues, VersionTrace::new()) {
+                if !exists_in_object(version, "_id", &mut self.issues, &version_trace) {
                     self.issues.add(VerificationIssue {
                         level: VerificationIssueLevel::Critical,
                         message: format!("Missing a version number"),
-                        version_trace: VersionTrace::from([format!("index {i}")]),
+                        version_trace: VersionTrace::new(),
                     });
                 } else {
                     match adb_get_json_string(&version["_id"]) {
                         Ok(v) => {
-                            if parse_version_number(v, &mut self.issues, VersionTrace::from([version_output.clone()])) > -1 {
+                            if parse_version_number(v, &mut self.issues, &version_trace) > -1 {
                                 version_output = v.to_string();
                                 version_number = Some(v);
+
+                                // Reset the version trace to use the actual version number now
+                                // that we have one
+                                version_trace.pop();
+                                version_trace.push(version_output.clone());
                             }
                         }
 
                         Err(mut e) => {
-                            e.set_version_trace(VersionTrace::from([version_output.clone()]));
+                            e.set_version_trace(&version_trace);
                             e.to_verification_issue(&mut self.issues);
                         }
                     }
                 }
 
-                for method in version.as_object().unwrap().keys() {
+                // for method in version.as_object().unwrap().keys() {
+                for method in object_iter(version, &mut self.issues, &version_trace) {
                     match method.as_str() {
                         "_id" => continue,
-                        "createtable" => match self.createtable(version["createtable"].clone(), &version_output) {
+                        "createtable" => match self.createtable(&version["createtable"], &version_output) {
                             Ok(v) => v,
                             Err(e) => self.issues.add(VerificationIssue {
                                 message: e.message(),
@@ -119,14 +129,14 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                                 version_trace: e.version_trace().clone(),
                             }),
                         },
-                        // "altertable" => match self.altertable(version["altertable"].clone(), &version_output, version_number) {
-                        //     Ok(v) => v,
-                        //     Err(e) => self.issues.add(VerificationIssue {
-                        //         message: e.message(),
-                        //         level: VerificationIssueLevel::Critical,
-                        //         version_trace: e.version_trace().clone(),
-                        //     }),
-                        // },
+                        "altertable" => match self.altertable(&version["altertable"], &version_output, version_number) {
+                            Ok(v) => v,
+                            Err(e) => self.issues.add(VerificationIssue {
+                                message: e.message(),
+                                level: VerificationIssueLevel::Critical,
+                                version_trace: e.version_trace().clone(),
+                            }),
+                        },
                         // "default_data" => match self.default_data(&version_output, version_number) {
                         //     Ok(v) => v,
                         //     Err(e) => self.issues.add(VerificationIssue {
@@ -154,7 +164,7 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
         }
     }
 
-    fn createtable(&mut self, createtable: Value, version_output: &str) -> Result<(), AlphaDBError> {
+    fn createtable(&mut self, createtable: &Value, version_output: &str) -> Result<(), AlphaDBError> {
         let mut version_trace = VersionTrace::new();
         version_trace.push(version_output.to_string());
         version_trace.push("createtable".to_string());
@@ -174,14 +184,14 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                 for table in ct.keys() {
                     version_trace.push(table.to_string());
 
-                    for column in get_json_object(&ct[table], &mut self.issues, version_trace.clone()).keys() {
+                    for column in get_json_object(&ct[table], &mut self.issues, &version_trace).keys() {
                         version_trace.push(column.to_string());
 
                         if column == "primary_key" {
-                            let pk = get_json_string(&ct[table][column], &mut self.issues, version_trace.clone());
+                            let pk = get_json_string(&ct[table][column], &mut self.issues, &version_trace);
 
                             // Check if the primary key exists as a column in the table
-                            if !exists_in_object(&ct[table], pk, &mut self.issues, version_trace.clone()) {
+                            if !exists_in_object(&ct[table], pk, &mut self.issues, &version_trace) {
                                 self.issues.push(VerificationIssue {
                                     level: VerificationIssueLevel::Critical,
                                     message: format!("Primary key '{pk}' does not match any column name"),
@@ -200,8 +210,64 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                 }
             }
             Err(mut e) => {
-                e.set_version_trace(version_trace.clone());
+                e.set_version_trace(&version_trace);
                 e.to_verification_issue(&mut self.issues);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Verify a single altertable block
+    pub fn altertable(&mut self, altertable: &Value, version_output: &str, version_number: Option<&str>) -> Result<(), AlphaDBError> {
+        if altertable.as_object().unwrap().is_empty() {
+            self.issues.push(VerificationIssue {
+                level: VerificationIssueLevel::Low,
+                message: format!("Does not contain any data"),
+                version_trace: VersionTrace::from([version_output, "altertable"]),
+            });
+
+            return Ok(());
+        }
+
+        for table in altertable.as_object().unwrap().keys() {
+            // Modifycolumn
+            if altertable[table].as_object().unwrap().keys().any(|a| a == "modifycolumn") {
+                for (column_name, column) in altertable[table]["modifycolumn"].as_object().unwrap() {
+                    self.engine
+                        .verify_column_compatibility(&mut self.issues, table.as_str(), column_name, &column, "altertable", version_output);
+                }
+            }
+
+            // Dropcolumn
+            if altertable[table].as_object().unwrap().keys().any(|a| a == "dropcolumn") {
+                // Without a valid version number it's not possible to determine the primary key
+                if version_number.is_some() {
+                    let primary_key = get_primary_key(&self.version_list, table, version_number)?;
+
+                    for dropcol in altertable[table]["dropcolumn"].as_array().unwrap() {
+                        if let Some(dropcol) = dropcol.as_str() {
+                            if let Some(primary_key) = primary_key {
+                                if dropcol == primary_key {
+                                    self.issues.push(VerificationIssue {
+                                        level: VerificationIssueLevel::Low,
+                                        message: format!("Column {dropcol} is the tables current primary key"),
+                                        version_trace: VersionTrace::from([
+                                            version_output.to_string(),
+                                            "altertable".to_string(),
+                                            format!("table:{table}"),
+                                            "dropcolumn".to_string(),
+                                        ]),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Do primary key checks
+                // Primary key checks should include checking when a column in changed into a
+                // primary key, the key was unique previously. If not there should be a warning.
             }
         }
 
