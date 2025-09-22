@@ -13,7 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::verification::issue::{VerificationIssue, VerificationIssueLevel, VersionTrace};
+use serde_json::Value;
+
+use crate::{
+    utils::consolidate::column::get_column_type,
+    verification::issue::{VerificationIssue, VerificationIssueLevel, VersionTrace},
+};
 
 /// Compatibility rule for type-attribute incompatibilities
 pub struct ColumnCompatibilityRule {
@@ -40,14 +45,14 @@ pub fn verify_column_type_compatibility(
     }
 }
 
-pub fn column_contains_type(column_keys: &Vec<&String>, recreate: bool) -> bool {
-    if !column_keys.contains(&&"type".to_string()) {
-        if !column_keys.contains(&&"recreate".to_string()) || recreate == true {
-            return false;
-        }
-    }
-
-    return true;
+pub fn column_contains_type(version_list: &Vec<Value>, column_name: &str, table_name: &str, version: u32) -> bool {
+    return match get_column_type(version_list, column_name, table_name, version) {
+        Ok(column_type) => column_type.is_some(),
+        // If the function returns an error, it has likely already been adressed earlier in the
+        // verification process, this function should not create additional issues as they will be
+        // solved by solving earlier ones.
+        Err(_) => true,
+    };
 }
 
 pub fn check_column_type_compatibility(checking_type: &str, rule: &ColumnCompatibilityRule, column_keys: &[&String]) -> bool {

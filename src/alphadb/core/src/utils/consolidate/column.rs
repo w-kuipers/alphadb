@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::json::{array_iter, get_json_string};
+use crate::utils::json::{array_iter, get_json_string, get_object_keys};
 use crate::utils::version_number::parse_version_number;
 use crate::utils::{errors::AlphaDBError, json::exists_in_object};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Debug, PartialEq)]
 pub struct ColumnRename {
@@ -47,8 +47,6 @@ pub fn consolidate_column(version_list: &Vec<Value>, column_name: &str, table_na
     let version_list_cloned = version_list.clone();
 
     for version in version_list_cloned {
-        let _v = parse_version_number(get_json_string(&version["_id"])?)?;
-
         // If the column is renamed, get hystorical column name for current version
         for rename in rename_data.iter().rev() {
             if parse_version_number(get_json_string(&version["_id"])?)? <= rename.rename_version {
@@ -290,6 +288,84 @@ pub fn will_column_be_dropped(version_list: &Vec<Value>, column_name: &str, tabl
     }
 
     Ok(false)
+}
+
+pub fn get_column_type(version_list: &Vec<Value>, column_name: &str, table_name: &str, version: u32) -> Result<Option<String>, AlphaDBError> {
+    let mut column_type: Option<String> = None;
+    let mut version_column_name = column_name;
+    let rename_data = get_column_renames(version_list, column_name, table_name, "DESC")?;
+
+    for version in version_list {
+        // If the column is renamed, get hystorical column name for current version
+        for rename in rename_data.iter().rev() {
+            if parse_version_number(get_json_string(&version["_id"])?)? <= rename.rename_version {
+                version_column_name = &rename.old_name;
+                break;
+            } else {
+                version_column_name = column_name;
+            }
+        }
+
+        if exists_in_object(version, "createtable")? {
+            if exists_in_object(&version["createtable"], table_name)? {
+                if exists_in_object(&version["createtable"][table_name], version_column_name)? {
+                    // If the type is not present when the column is created, the column will have
+                    // no type, even when it's later added in an altertable statement. A column
+                    // should never be able to be created without a type
+                    if !exists_in_object(&version["createtable"][table_name][version_column_name], "type")? {
+                        return Ok(None);
+                    }
+                }
+            }
+        }
+
+        if exists_in_object(version, "altertable")? {
+            if exists_in_object(&version["altertable"], table_name)? {
+                let table_keys = get_object_keys(&version["altertable"][table_name])?;
+
+                // Modify column
+                if table_keys.contains(&&"modifycolumn".to_string()) {
+                    if exists_in_object(&version["table"][table_name]["modifycolumn"], version_column_name)? {
+                        let modification = &version["altertable"][table_name]["modifycolumn"][version_column_name];
+                        let has_type = exists_in_object(&version["altertable"][table_name]["modifycolumn"][version_column_name], "type")?;
+
+                        // When a column is supposed to be completely recreated and no type is
+                        // present, the table will have no type, even when it's later added in an
+                        // altertable statement. A column should never be able to be created
+                        // without a type
+                        if !has_type && exists_in_object(modification, "recreate")? && modification["recreate"] == true {
+                            return Ok(None);
+                        }
+
+                        if has_type {
+                            column_type = Some(get_json_string(&version["altertable"][table_name]["modifycolumn"][version_column_name]["type"])?.to_string());
+                        }
+                    }
+                }
+
+                // Drop column
+                if table_keys.contains(&&"dropcolumn".to_string()) {
+                    if exists_in_object(&version["table"][table_name]["dropcolumn"], version_column_name)? {
+                        column_type = None;
+                    }
+                }
+
+                // Add column
+                if table_keys.contains(&&"addcolumn".to_string()) {
+                    if exists_in_object(&version["table"][table_name]["addcolumn"], version_column_name)? {
+                        // If the type is not present when the column is created, the column will have
+                        // no type, even when it's later added in an altertable statement. A column
+                        // should never be able to be created without a type
+                        if !exists_in_object(&version["createtable"][table_name][version_column_name], "type")? {
+                            return Ok(None);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return Ok(column_type);
 }
 
 #[cfg(test)]

@@ -13,10 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use alphadb_core::verification::{
-    compatibility::{check_column_attributes_compatibility, column_contains_type, verify_column_type_compatibility, ColumnCompatibilityRule},
-    issue::{VerificationIssue, VerificationIssueLevel, VersionTrace},
-    json::{get_json_boolean, get_json_string, get_object_keys},
+use alphadb_core::{
+    utils::errors::AlphaDBError,
+    utils::version_number::parse_version_number,
+    verification::{
+        compatibility::{check_column_attributes_compatibility, column_contains_type, verify_column_type_compatibility, ColumnCompatibilityRule},
+        issue::{VerificationIssue, VerificationIssueLevel, VersionTrace},
+        json::{get_json_boolean, get_json_string, get_object_keys},
+    },
 };
 use serde_json::Value;
 
@@ -55,7 +59,15 @@ pub const COLUMN_ATTRIBUTE_COMPATIBILITY_RULES: [ColumnCompatibilityRule; 1] = [
     attribute: "auto_increment",
 }];
 
-pub fn verify_column_compatibility(issues: &mut Vec<VerificationIssue>, table: &str, column: &str, data: &Value, method: &str, version: &str) {
+pub fn verify_column_compatibility(
+    version_list: &Vec<Value>,
+    issues: &mut Vec<VerificationIssue>,
+    table: &str,
+    column: &str,
+    data: &Value,
+    method: &str,
+    version: &str,
+) -> Result<(), AlphaDBError> {
     let version_trace = VersionTrace::from([version.to_string(), method.to_string(), format!("table:{table}"), format!("column:{column}")]);
     let data_keys = get_object_keys(data, issues, &version_trace);
 
@@ -72,20 +84,22 @@ pub fn verify_column_compatibility(issues: &mut Vec<VerificationIssue>, table: &
         }
     }
 
-    let recreate = match data["recreate"].is_null() {
-        true => false,
-        false => get_json_boolean(&data["recreate"], issues, &version_trace),
-    };
+    // let recreate = match data["recreate"].is_null() {
+    //     true => false,
+    //     false => get_json_boolean(&data["recreate"], issues, &version_trace),
+    // };
 
     // If a column type is not defined, we can not check the types compatibility
-    if !column_contains_type(&data_keys, recreate) {
+    if !column_contains_type(version_list, column, table, parse_version_number(version)?) {
         issues.push(VerificationIssue {
             level: VerificationIssueLevel::Critical,
             message: format!("Does not contain a column type"),
-            version_trace: version_trace.clone(),
+            version_trace: version_trace,
         });
     } else {
         let column_type = get_json_string(&data["type"], issues, &version_trace);
         verify_column_type_compatibility(issues, column_type, &COLUMN_TYPE_COMPATIBILITY_RULES, &data_keys, &version_trace);
     }
+
+    Ok(())
 }

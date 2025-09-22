@@ -13,7 +13,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::verification::compatibility::verify_column_compatibility;
-use alphadb_core::{engine::AlphaDBVerificationEngine, verification::issue::VerificationIssue};
+use alphadb_core::{engine::AlphaDBVerificationEngine, utils::errors::AlphaDBError, verification::issue::VerificationIssue};
 use serde_json::Value;
 
 /// MySQL-specific engine for AlphaDB
@@ -33,7 +33,16 @@ impl AlphaDBVerificationEngine for MySQLVerificationEngine {
     //     println!("Engine specific tasks");
     // }
 
-    fn verify_column_compatibility(&mut self, issues: &mut Vec<VerificationIssue>, table: &str, column: &str, data: &Value, method: &str, version: &str) {
-        verify_column_compatibility(issues, table, column, data, method, version);
+    fn verify_column_compatibility(
+        &mut self,
+        version_list: &Vec<Value>,
+        issues: &mut Vec<VerificationIssue>,
+        table: &str,
+        column: &str,
+        data: &Value,
+        method: &str,
+        version: &str,
+    ) -> Result<(), AlphaDBError> {
+        verify_column_compatibility(version_list, issues, table, column, data, method, version)
     }
 }

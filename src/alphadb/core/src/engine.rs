@@ -50,11 +50,7 @@ impl<T: AlphaDBEngine + ?Sized> AlphaDBEngine for Box<T> {
         (**self).version()
     }
 
-    fn connect(
-        &mut self,
-        db_name: &mut Option<String>,
-        is_connected: &mut bool,
-    ) -> Result<(), AlphaDBError> {
+    fn connect(&mut self, db_name: &mut Option<String>, is_connected: &mut bool) -> Result<(), AlphaDBError> {
         (**self).connect(db_name, is_connected)
     }
 
@@ -66,13 +62,7 @@ impl<T: AlphaDBEngine + ?Sized> AlphaDBEngine for Box<T> {
         (**self).status(db_name)
     }
 
-    fn update_queries(
-        &mut self,
-        db_name: &mut Option<String>,
-        version_source: String,
-        target_version: Option<&str>,
-        no_data: bool,
-    ) -> Result<Vec<Query>, AlphaDBError> {
+    fn update_queries(&mut self, db_name: &mut Option<String>, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, AlphaDBError> {
         (**self).update_queries(db_name, version_source, target_version, no_data)
     }
 
@@ -85,14 +75,7 @@ impl<T: AlphaDBEngine + ?Sized> AlphaDBEngine for Box<T> {
         verify: bool,
         allowed_error_priority: ToleratedVerificationIssueLevel,
     ) -> Result<(), AlphaDBError> {
-        (**self).update(
-            db_name,
-            version_source,
-            target_version,
-            no_data,
-            verify,
-            allowed_error_priority,
-        )
+        (**self).update(db_name, version_source, target_version, no_data, verify, allowed_error_priority)
     }
 
     fn vacate(&mut self, db_name: &mut Option<String>) -> Result<(), AlphaDBError> {
@@ -104,6 +87,15 @@ impl<T: AlphaDBEngine + ?Sized> AlphaDBEngine for Box<T> {
 pub trait AlphaDBVerificationEngine {
     // fn verify_column_definition(table: &String);
     // fn verify_column_compatibility(&mut self, table: &str, column: &String, data: &Value, version: &str);
-    fn verify_column_compatibility(&mut self, issues: &mut Vec<VerificationIssue>, table_name: &str, column_name: &str, data: &Value, method: &str, version_output: &str);
+    fn verify_column_compatibility(
+        &mut self,
+        version_list: &Vec<Value>,
+        issues: &mut Vec<VerificationIssue>,
+        table_name: &str,
+        column_name: &str,
+        data: &Value,
+        method: &str,
+        version_output: &str,
+    ) -> Result<(), AlphaDBError>;
     // pub fn column_compatibility(&mut self, table_name: &str, column_name: &str, data: Value, method: &str, version_output: &str) {
 }
