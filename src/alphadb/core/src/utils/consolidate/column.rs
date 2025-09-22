@@ -290,47 +290,71 @@ pub fn will_column_be_dropped(version_list: &Vec<Value>, column_name: &str, tabl
     Ok(false)
 }
 
+/// Get the column type for a specific column at a given version.
+///
+/// This function traverses the version list to determine what type a column has
+/// at a specific version, taking into account column creation, modifications,
+/// renames, drops, and additions across different versions.
+///
+/// # Arguments
+/// * `version_list` - List of versions from version source containing column modifications
+/// * `column_name` - Name of the column to get the type for
+/// * `table_name` - Name of the table containing the column
+/// * `version` - The version number to check the column type at
+///
+/// # Returns
+/// * `Result<Option<String>, AlphaDBError>` - The column type as a string if it exists, None if column doesn't exist or has no type
+///
+/// # Errors
+/// * Returns `AlphaDBError` if there are issues parsing version numbers or JSON values
 pub fn get_column_type(version_list: &Vec<Value>, column_name: &str, table_name: &str, version: u32) -> Result<Option<String>, AlphaDBError> {
     let mut column_type: Option<String> = None;
-    let mut version_column_name = column_name;
+    let mut version_column_name: &str;
     let rename_data = get_column_renames(version_list, column_name, table_name, "DESC")?;
 
-    for version in version_list {
-        // If the column is renamed, get hystorical column name for current version
+    for version_entry in version_list {
+        let current_version = parse_version_number(get_json_string(&version_entry["_id"])?)?;
+        
+        if current_version > version {
+            continue;
+        }
+
+        // If the column is renamed, get historical column name for current version
+        version_column_name = column_name;
         for rename in rename_data.iter().rev() {
-            if parse_version_number(get_json_string(&version["_id"])?)? <= rename.rename_version {
+            if current_version <= rename.rename_version {
                 version_column_name = &rename.old_name;
                 break;
-            } else {
-                version_column_name = column_name;
             }
         }
 
-        if exists_in_object(version, "createtable")? {
-            if exists_in_object(&version["createtable"], table_name)? {
-                if exists_in_object(&version["createtable"][table_name], version_column_name)? {
+        if exists_in_object(version_entry, "createtable")? {
+            if exists_in_object(&version_entry["createtable"], table_name)? {
+                if exists_in_object(&version_entry["createtable"][table_name], version_column_name)? {
                     // If the type is not present when the column is created, the column will have
                     // no type, even when it's later added in an altertable statement. A column
                     // should never be able to be created without a type
-                    if !exists_in_object(&version["createtable"][table_name][version_column_name], "type")? {
+                    if !exists_in_object(&version_entry["createtable"][table_name][version_column_name], "type")? {
                         return Ok(None);
                     }
+                    
+                    column_type = Some(get_json_string(&version_entry["createtable"][table_name][version_column_name]["type"])?.to_string());
                 }
             }
         }
 
-        if exists_in_object(version, "altertable")? {
-            if exists_in_object(&version["altertable"], table_name)? {
-                let table_keys = get_object_keys(&version["altertable"][table_name])?;
+        if exists_in_object(version_entry, "altertable")? {
+            if exists_in_object(&version_entry["altertable"], table_name)? {
+                let table_keys = get_object_keys(&version_entry["altertable"][table_name])?;
 
                 // Modify column
                 if table_keys.contains(&&"modifycolumn".to_string()) {
-                    if exists_in_object(&version["table"][table_name]["modifycolumn"], version_column_name)? {
-                        let modification = &version["altertable"][table_name]["modifycolumn"][version_column_name];
-                        let has_type = exists_in_object(&version["altertable"][table_name]["modifycolumn"][version_column_name], "type")?;
+                    if exists_in_object(&version_entry["altertable"][table_name]["modifycolumn"], version_column_name)? {
+                        let modification = &version_entry["altertable"][table_name]["modifycolumn"][version_column_name];
+                        let has_type = exists_in_object(&version_entry["altertable"][table_name]["modifycolumn"][version_column_name], "type")?;
 
                         // When a column is supposed to be completely recreated and no type is
-                        // present, the table will have no type, even when it's later added in an
+                        // present, the column will have no type, even when it's later added in an
                         // altertable statement. A column should never be able to be created
                         // without a type
                         if !has_type && exists_in_object(modification, "recreate")? && modification["recreate"] == true {
@@ -338,27 +362,29 @@ pub fn get_column_type(version_list: &Vec<Value>, column_name: &str, table_name:
                         }
 
                         if has_type {
-                            column_type = Some(get_json_string(&version["altertable"][table_name]["modifycolumn"][version_column_name]["type"])?.to_string());
+                            column_type = Some(get_json_string(&version_entry["altertable"][table_name]["modifycolumn"][version_column_name]["type"])?.to_string());
                         }
                     }
                 }
 
                 // Drop column
                 if table_keys.contains(&&"dropcolumn".to_string()) {
-                    if exists_in_object(&version["table"][table_name]["dropcolumn"], version_column_name)? {
+                    if exists_in_object(&version_entry["altertable"][table_name]["dropcolumn"], version_column_name)? {
                         column_type = None;
                     }
                 }
 
                 // Add column
                 if table_keys.contains(&&"addcolumn".to_string()) {
-                    if exists_in_object(&version["table"][table_name]["addcolumn"], version_column_name)? {
-                        // If the type is not present when the column is created, the column will have
+                    if exists_in_object(&version_entry["altertable"][table_name]["addcolumn"], version_column_name)? {
+                        // If the type is not present when the column is added, the column will have
                         // no type, even when it's later added in an altertable statement. A column
                         // should never be able to be created without a type
-                        if !exists_in_object(&version["createtable"][table_name][version_column_name], "type")? {
+                        if !exists_in_object(&version_entry["altertable"][table_name]["addcolumn"][version_column_name], "type")? {
                             return Ok(None);
                         }
+                        
+                        column_type = Some(get_json_string(&version_entry["altertable"][table_name]["addcolumn"][version_column_name]["type"])?.to_string());
                     }
                 }
             }
@@ -600,4 +626,218 @@ mod column_drop_tests {
     //                                                                                           // Before any drops
     //     assert_eq!(will_column_be_dropped(&version_array, "col", "table", 1).unwrap(), false);
     // }
+}
+
+#[cfg(test)]
+mod get_column_type_tests {
+    use super::get_column_type;
+    use crate::utils::version_source::get_version_array;
+    use serde_json::json;
+
+    #[test]
+    fn basic_column_type() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}}
+        ]});
+
+        let result = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 1).unwrap();
+        assert_eq!(result, Some("VARCHAR".to_string()));
+    }
+
+    #[test]
+    fn column_type_at_specific_version() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"modifycolumn": {"col": {"type": "TEXT", "recreate": false}}}}},
+            {"_id": "0.0.3", "altertable": {"table": {"modifycolumn": {"col": {"type": "INT", "recreate": false}}}}}
+        ]});
+
+        // Check type at version 1 (should be VARCHAR)
+        let result_v1 = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 1).unwrap();
+        assert_eq!(result_v1, Some("VARCHAR".to_string()));
+
+        // Check type at version 2 (should be TEXT)
+        let result_v2 = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 2).unwrap();
+        assert_eq!(result_v2, Some("TEXT".to_string()));
+
+        // Check type at version 3 (should be INT)
+        let result_v3 = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 3).unwrap();
+        assert_eq!(result_v3, Some("INT".to_string()));
+    }
+
+    #[test]
+    fn column_type_with_rename() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"old_col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"renamecolumn": {"old_col": "new_col"}}}},
+            {"_id": "0.0.3", "altertable": {"table": {"modifycolumn": {"new_col": {"type": "TEXT", "recreate": false}}}}}
+        ]});
+
+        // Check original column name at version 1
+        let result_old = get_column_type(get_version_array(&versions).unwrap(), "old_col", "table", 1).unwrap();
+        assert_eq!(result_old, Some("VARCHAR".to_string()));
+
+        // Check new column name at version 3
+        let result_new = get_column_type(get_version_array(&versions).unwrap(), "new_col", "table", 3).unwrap();
+        assert_eq!(result_new, Some("TEXT".to_string()));
+
+        // Check new column name at version 2 (should still be VARCHAR)
+        let result_new_v2 = get_column_type(get_version_array(&versions).unwrap(), "new_col", "table", 2).unwrap();
+        assert_eq!(result_new_v2, Some("VARCHAR".to_string()));
+    }
+
+    #[test]
+    fn column_type_after_drop() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"dropcolumn": ["col"]}}}
+        ]});
+
+        // Check type before drop
+        let result_before = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 1).unwrap();
+        assert_eq!(result_before, Some("VARCHAR".to_string()));
+
+        // Check type after drop
+        let result_after = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 2).unwrap();
+        assert_eq!(result_after, None);
+    }
+
+    #[test]
+    fn column_type_with_addcolumn() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col1": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"addcolumn": {"col2": {"type": "INT", "length": 11}}}}}
+        ]});
+
+        // Check original column type
+        let result_col1 = get_column_type(get_version_array(&versions).unwrap(), "col1", "table", 2).unwrap();
+        assert_eq!(result_col1, Some("VARCHAR".to_string()));
+
+        // Check added column type
+        let result_col2 = get_column_type(get_version_array(&versions).unwrap(), "col2", "table", 2).unwrap();
+        assert_eq!(result_col2, Some("INT".to_string()));
+
+        // Check added column doesn't exist at version 1
+        let result_col2_v1 = get_column_type(get_version_array(&versions).unwrap(), "col2", "table", 1).unwrap();
+        assert_eq!(result_col2_v1, None);
+    }
+
+    #[test]
+    fn column_type_recreate_with_type() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"modifycolumn": {"col": {"type": "INT", "recreate": true}}}}}
+        ]});
+
+        let result = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 2).unwrap();
+        assert_eq!(result, Some("INT".to_string()));
+    }
+
+    #[test]
+    fn column_type_recreate_without_type() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"modifycolumn": {"col": {"recreate": true, "length": 300}}}}}
+        ]});
+
+        let result = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 2).unwrap();
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn column_type_created_without_type() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"length": 200}}}}
+        ]});
+
+        let result = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 1).unwrap();
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn column_type_added_without_type() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col1": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"addcolumn": {"col2": {"length": 11}}}}}
+        ]});
+
+        let result = get_column_type(get_version_array(&versions).unwrap(), "col2", "table", 2).unwrap();
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn column_type_nonexistent_column() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}}
+        ]});
+
+        let result = get_column_type(get_version_array(&versions).unwrap(), "nonexistent", "table", 1).unwrap();
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn column_type_nonexistent_table() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}}
+        ]});
+
+        let result = get_column_type(get_version_array(&versions).unwrap(), "col", "nonexistent", 1).unwrap();
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn column_type_drop_and_readd() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"dropcolumn": ["col"]}}},
+            {"_id": "0.0.3", "altertable": {"table": {"addcolumn": {"col": {"type": "INT", "length": 11}}}}}
+        ]});
+
+        // Check type before drop
+        let result_v1 = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 1).unwrap();
+        assert_eq!(result_v1, Some("VARCHAR".to_string()));
+
+        // Check type after drop
+        let result_v2 = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 2).unwrap();
+        assert_eq!(result_v2, None);
+
+        // Check type after readd
+        let result_v3 = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 3).unwrap();
+        assert_eq!(result_v3, Some("INT".to_string()));
+    }
+
+    #[test]
+    fn column_type_multiple_renames() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"renamecolumn": {"col": "renamed"}}}},
+            {"_id": "0.0.3", "altertable": {"table": {"modifycolumn": {"renamed": {"type": "TEXT", "recreate": false}}}}},
+            {"_id": "0.0.4", "altertable": {"table": {"renamecolumn": {"renamed": "final_name"}}}},
+            {"_id": "0.0.5", "altertable": {"table": {"modifycolumn": {"final_name": {"type": "INT", "recreate": false}}}}}
+        ]});
+
+        // Check final name at final version
+        let result_final = get_column_type(get_version_array(&versions).unwrap(), "final_name", "table", 5).unwrap();
+        assert_eq!(result_final, Some("INT".to_string()));
+
+        // Check intermediate name at intermediate version
+        let result_renamed = get_column_type(get_version_array(&versions).unwrap(), "renamed", "table", 3).unwrap();
+        assert_eq!(result_renamed, Some("TEXT".to_string()));
+
+        // Check original name at original version
+        let result_original = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 1).unwrap();
+        assert_eq!(result_original, Some("VARCHAR".to_string()));
+    }
+
+    #[test]
+    fn column_type_modify_without_recreate() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "VARCHAR", "length": 200}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"modifycolumn": {"col": {"length": 300, "recreate": false}}}}}
+        ]});
+
+        // Type should remain VARCHAR since recreate is false and no new type is specified
+        let result = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 2).unwrap();
+        assert_eq!(result, Some("VARCHAR".to_string()));
+    }
 }

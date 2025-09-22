@@ -14,8 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use alphadb_core::{
-    utils::errors::AlphaDBError,
-    utils::version_number::parse_version_number,
+    utils::{consolidate::column::get_column_type, errors::AlphaDBError, version_number::parse_version_number},
     verification::{
         compatibility::{check_column_attributes_compatibility, column_contains_type, verify_column_type_compatibility, ColumnCompatibilityRule},
         issue::{VerificationIssue, VerificationIssueLevel, VersionTrace},
@@ -84,21 +83,46 @@ pub fn verify_column_compatibility(
         }
     }
 
-    // let recreate = match data["recreate"].is_null() {
-    //     true => false,
-    //     false => get_json_boolean(&data["recreate"], issues, &version_trace),
-    // };
-
     // If a column type is not defined, we can not check the types compatibility
-    if !column_contains_type(version_list, column, table, parse_version_number(version)?) {
+    let column_type = match get_column_type(version_list, column, table, parse_version_number(version)?) {
+        Ok(ct) => ct,
+        Err(_) => {
+            // The get_column_type function could error because of an issue that has already been
+            // adressed earlier in the verification process, this function should not create
+            // additional issues as they will be solved by solving the earlier ones.
+            // We can check the type in a less reliable way here.
+            let recreate = match data["recreate"].is_boolean() {
+                true => get_json_boolean(&data["recreate"], issues, &version_trace),
+                false => false,
+            };
+
+            let mut ct = Some(String::from(""));
+
+            if !data_keys.contains(&&"type".to_string()) {
+                if !data_keys.contains(&&"recreate".to_string()) || recreate == false {
+                    ct = Some("".to_string());
+                }
+            } else if data["type"].is_null() {
+                ct = Some("".to_string());
+            } else {
+                let column_type = get_json_string(&data["type"], issues, &version_trace);
+                ct = Some(column_type.to_string());
+            }
+
+            ct
+        }
+    };
+
+    if let Some(column_type) = column_type {
+        if !column_type.is_empty() {
+            verify_column_type_compatibility(issues, &column_type, &COLUMN_TYPE_COMPATIBILITY_RULES, &data_keys, &version_trace);
+        }
+    } else {
         issues.push(VerificationIssue {
             level: VerificationIssueLevel::Critical,
             message: format!("Does not contain a column type"),
             version_trace: version_trace,
         });
-    } else {
-        let column_type = get_json_string(&data["type"], issues, &version_trace);
-        verify_column_type_compatibility(issues, column_type, &COLUMN_TYPE_COMPATIBILITY_RULES, &data_keys, &version_trace);
     }
 
     Ok(())
