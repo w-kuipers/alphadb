@@ -96,13 +96,13 @@ pub fn verify_column_compatibility(
                 false => false,
             };
 
-            let mut ct = Some(String::from(""));
+            let mut ct = None;
 
             if !data_keys.contains(&&"type".to_string()) {
-                if !data_keys.contains(&&"recreate".to_string()) || recreate == false {
+                if method != "createtable" && (!data_keys.contains(&&"recreate".to_string()) || recreate == false) {
                     ct = Some("".to_string());
                 }
-            } else if data["type"].is_null() {
+            } else if method != "createtable" && data["type"].is_null() {
                 ct = Some("".to_string());
             } else {
                 let column_type = get_json_string(&data["type"], issues, &version_trace);
