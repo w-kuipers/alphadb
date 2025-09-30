@@ -220,7 +220,6 @@ pub struct ActiveConnection {
 /// * `Option<ActiveConnection>` - The active connection if one exists, None otherwise
 pub fn get_active_connection() -> Option<ActiveConnection> {
     let sessions_content = get_config_content::<DbSessions>();
-    println!("{:?}", sessions_content);
     if sessions_content.is_none() {
         return None;
     }

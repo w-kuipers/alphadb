@@ -29,10 +29,6 @@ impl MySQLVerificationEngine {
 }
 
 impl AlphaDBVerificationEngine for MySQLVerificationEngine {
-    // fn verify_engine_specific(&mut self, table: &str, column: &str, data: &Value, method: &str, version: &str) {
-    //     println!("Engine specific tasks");
-    // }
-
     fn verify_column_compatibility(
         &mut self,
         version_list: &Vec<Value>,

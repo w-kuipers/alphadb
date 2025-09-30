@@ -99,7 +99,7 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                 } else {
                     match adb_get_json_string(&version["_id"]) {
                         Ok(v) => {
-                            if parse_version_number(v, &mut self.issues, &version_trace) > -1 {
+                            if parse_version_number(v, &mut self.issues, &version_trace) > 0 {
                                 version_output = v.to_string();
                                 version_number = Some(v);
 
@@ -198,12 +198,20 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                                     version_trace: version_trace.clone(),
                                 });
                             }
+
                             version_trace.pop();
                             continue;
                         }
 
-                        self.engine
-                            .verify_column_compatibility(&self.version_list, &mut self.issues, table.as_str(), column, &createtable[table][column].clone(), "createtable", version_output)?;
+                        self.engine.verify_column_compatibility(
+                            &self.version_list,
+                            &mut self.issues,
+                            table.as_str(),
+                            column,
+                            &createtable[table][column].clone(),
+                            "createtable",
+                            version_output,
+                        )?;
                         version_trace.pop();
                     }
                     version_trace.pop();
@@ -240,7 +248,6 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
             // Modifycolumn
             if table_keys.contains(&&"modifycolumn".to_string()) {
                 for (column_name, column) in altertable[table]["modifycolumn"].as_object().unwrap() {
-                    println!("{column}");
                     self.engine
                         .verify_column_compatibility(&self.version_list, &mut self.issues, table.as_str(), column_name, &column, "altertable", version_output)?;
                 }
@@ -248,9 +255,25 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
 
             // Dropcolumn
             if table_keys.contains(&&"dropcolumn".to_string()) {
+                version_trace.push("dropcolumn".to_string());
+
                 // Without a valid version number it's not possible to determine the primary key
                 if version_number.is_some() {
-                    let primary_key = get_primary_key(&self.version_list, table, version_number)?;
+                    let primary_key = match get_primary_key(&self.version_list, table, version_number) {
+                        Ok(vs) => vs,
+                        Err(e) => {
+                            // This error is already added as an issue earlier
+                            if e.error() != "invalid-version-number" {
+                                self.issues.push(VerificationIssue {
+                                    level: VerificationIssueLevel::High,
+                                    message: e.message(),
+                                    version_trace: version_trace.clone(),
+                                });
+                            }
+
+                            None
+                        }
+                    };
 
                     for dropcol in altertable[table]["dropcolumn"].as_array().unwrap() {
                         if let Some(dropcol) = dropcol.as_str() {
@@ -275,11 +298,17 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                 // Do primary key checks
                 // Primary key checks should include checking when a column in changed into a
                 // primary key, the key was unique previously. If not there should be a warning.
+
+                version_trace.pop();
             }
 
             version_trace.pop();
         }
 
+        Ok(())
+    }
+
+    pub fn default_data(&mut self, version_output: &str, version_number: Option<&str>) -> Result<(), AlphaDBError> {
         Ok(())
     }
 }
