@@ -18,12 +18,13 @@ pub use alphadb_core::verification::issue::{IssueCollection, VerificationIssue, 
 use alphadb_core::{
     engine::AlphaDBVerificationEngine,
     utils::{
-        consolidate::primary_key::get_primary_key,
+        consolidate::{default_data::consolidate_default_data, primary_key::get_primary_key, table::consolidate_table},
         errors::{AlphaDBError, Get, ToVerificationIssue},
-        json::{get_json_object as adb_get_json_object, get_json_string as adb_get_json_string},
+        json::{get_json_float as adb_get_json_float, get_json_int as adb_get_json_int, get_json_object as adb_get_json_object, get_json_string as adb_get_json_string},
+        version_number::parse_version_number as adb_parse_version_number,
         version_source::get_version_array,
     },
-    verification::json::{array_iter, exists_in_object, get_json_object, get_json_string, get_object_keys, object_iter, parse_version_number},
+    verification::json::{array_iter, exists_in_object, get_json_boolean, get_json_object, get_json_string, get_object_keys, object_iter, parse_version_number},
 };
 use serde_json::Value;
 
@@ -309,6 +310,185 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
     }
 
     pub fn default_data(&mut self, version_output: &str, version_number: Option<&str>) -> Result<(), AlphaDBError> {
+        let mut version_trace = VersionTrace::from([version_output, "default_data"]);
+        let mut table_version_trace = VersionTrace::from([version_output.to_string()]);
+
+        for version in &self.version_list {
+            let parsed_version_number = match version_number {
+                Some(v) => parse_version_number(v, &mut self.issues, &VersionTrace::from([v.to_string()])),
+                None => 0,
+            };
+
+            // Should only process the versions up to the current version
+            let loop_version_number = get_json_string(&version["_id"], &mut self.issues, &version_trace);
+            match adb_parse_version_number(loop_version_number) {
+                Ok(vn) => {
+                    if vn > parsed_version_number {
+                        break;
+                    }
+                }
+
+                // When the version number cannot be parsed, proccessing the version would be
+                // useless as we cannot reliable determine if the version is preceding or following
+                // the current version
+                Err(_) => {
+                    break;
+                }
+            }
+
+            let consolidated_default_data = match consolidate_default_data(&self.version_list, version_number) {
+                Ok(c) => c,
+                Err(e) => {
+                    return Err(AlphaDBError {
+                        message: e.message(),
+                        error: e.error(),
+                        version_trace,
+                    });
+                }
+            };
+
+            for table in object_iter(&consolidated_default_data, &mut self.issues, &version_trace) {
+                version_trace.push(format!("table:{table}"));
+                table_version_trace.push(format!("table:{table}"));
+
+                let consolidated_table = match consolidate_table(&self.version_list, table, Some(loop_version_number)) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        return Err(AlphaDBError {
+                            message: e.message(),
+                            error: e.error(),
+                            version_trace,
+                        });
+                    }
+                };
+
+                // Check if the columns specified in the default data exist in the table
+                if let Some(version_number) = version_number {
+                    if loop_version_number == version_number {
+                        for (i, dataset) in array_iter(&consolidated_default_data[table], &mut self.issues, &version_trace).iter().enumerate() {
+                            version_trace.push(format!("item:{i}"));
+                            let columns = get_object_keys(&consolidated_table, &mut self.issues, &table_version_trace);
+
+                            for column in object_iter(&dataset, &mut self.issues, &version_trace) {
+                                if !columns.contains(&column) {
+                                    self.issues.push(VerificationIssue {
+                                        level: VerificationIssueLevel::Critical,
+                                        message: format!("Default data for column {column} is specified, but the column does not exist in the table."),
+                                        version_trace: version_trace.clone(),
+                                    });
+                                }
+                            }
+                            version_trace.pop();
+                        }
+                    }
+                }
+
+                // Loop over the table columns and check if any of them are required and do not
+                // have a default value
+                for column in object_iter(&consolidated_table, &mut self.issues, &table_version_trace) {
+                    version_trace.push(format!("column:{column}"));
+                    table_version_trace.push(format!("column:{column}"));
+
+                    if !E::NON_COLUMN_TABLE_KEYS.contains(&column.as_str()) {
+                        // If the column is not allowed to have a NULL value, default data is
+                        // required to be present
+                        if !exists_in_object(&consolidated_table[column], "null", &mut self.issues, &table_version_trace)
+                            || !get_json_boolean(&consolidated_table[column]["null"], &mut self.issues, &table_version_trace)
+                        {
+                            for (i, dataset) in array_iter(&consolidated_default_data[table], &mut self.issues, &table_version_trace).iter().enumerate() {
+                                version_trace.push(format!("item:{i}"));
+                                let col_type = get_json_string(&&consolidated_table[column]["type"], &mut self.issues, &table_version_trace);
+
+                                // Check if the default data for the current column exists
+                                if !exists_in_object(&dataset, column, &mut self.issues, &version_trace) {
+                                    self.issues.push(VerificationIssue {
+                                        level: VerificationIssueLevel::Critical,
+                                        message: format!("Column {column} is not allowed to be NULL, so default data is required to be specified."),
+                                        version_trace: version_trace.clone(),
+                                    });
+
+                                    version_trace.pop();
+                                    continue;
+                                }
+
+                                // Verify if the specified default data value is the right type
+                                if E::STRING_COLUMNS.contains(&col_type) {
+                                    if adb_get_json_string(&dataset[column]).is_err() {
+                                        self.issues.push(VerificationIssue {
+                                            level: VerificationIssueLevel::Critical,
+                                            message: format!("Default data for column type `{col_type}` is required to be of type string"),
+                                            version_trace: version_trace.clone(),
+                                        });
+                                    }
+                                }
+                                if E::INT_COLUMNS.contains(&col_type) {
+                                    if adb_get_json_int(&dataset[column]).is_err() {
+                                        self.issues.push(VerificationIssue {
+                                            level: VerificationIssueLevel::Critical,
+                                            message: format!("Default data for column type `{col_type}` is required to be of type int"),
+                                            version_trace: version_trace.clone(),
+                                        });
+                                    }
+                                }
+                                if E::FLOAT_COLUMNS.contains(&col_type) {
+                                    if adb_get_json_float(&dataset[column]).is_err() {
+                                        self.issues.push(VerificationIssue {
+                                            level: VerificationIssueLevel::Critical,
+                                            message: format!("Default data for column type `{col_type}` is required to be of type float"),
+                                            version_trace: version_trace.clone(),
+                                        });
+                                    }
+                                }
+
+                                version_trace.pop();
+                            }
+
+                            // Check if unique values have duplicate data
+                            // TODO right now the issue is generated for every following version as well. Find
+                            // a way to only add the issue once
+                            let primary_key = match get_primary_key(&self.version_list, table, version_number)? {
+                                Some(p) => p,
+                                None => "",
+                            };
+
+                            if primary_key == column
+                                || (exists_in_object(&consolidated_table[column], "unique", &mut self.issues, &table_version_trace)
+                                    && get_json_boolean(&consolidated_table[column]["unique"], &mut self.issues, &table_version_trace))
+                            {
+                                let mut column_values: Vec<String> = Vec::new();
+                                for (i, dataset) in array_iter(&consolidated_default_data[table], &mut self.issues, &table_version_trace).iter().enumerate() {
+                                    version_trace.push(format!("item:{i}"));
+                                    let value = dataset[column].to_string();
+
+                                    if column_values.contains(&value) {
+                                        let message = match  primary_key == column {
+                                            true => format!("Column `{column}` is the table's primary key so it's value should be unique, but the value `{value}` is previously specified as default data"),
+                                            false => format!("Column `{column}` has the UNIQUE key, but the value `{value}` is previously specified as default data")
+
+                                        };
+
+                                        self.issues.push(VerificationIssue {
+                                            level: VerificationIssueLevel::Critical,
+                                            message: message,
+                                            version_trace: version_trace.clone(),
+                                        });
+                                    }
+
+                                    column_values.push(value);
+                                    version_trace.pop();
+                                }
+                            }
+                        }
+                    }
+
+                    version_trace.pop();
+                    table_version_trace.pop();
+                }
+                version_trace.pop();
+                table_version_trace.pop();
+            }
+        }
+
         Ok(())
     }
 }

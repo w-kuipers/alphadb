@@ -29,6 +29,11 @@ impl MySQLVerificationEngine {
 }
 
 impl AlphaDBVerificationEngine for MySQLVerificationEngine {
+    const NON_COLUMN_TABLE_KEYS: &'static [&'static str] = &["primary_key"];
+    const INT_COLUMNS: &'static [&'static str] = &["INT", "TINYINT", "BIGINT", "DATETIME"];
+    const STRING_COLUMNS: &'static [&'static str] = &["TEXT", "LONGTEXT", "VARCHAR", "DATETIME"];
+    const FLOAT_COLUMNS: &'static [&'static str] = &["FLOAT", "DECIMAL"];
+
     fn verify_column_compatibility(
         &mut self,
         version_list: &Vec<Value>,

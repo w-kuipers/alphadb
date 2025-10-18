@@ -85,8 +85,15 @@ impl<T: AlphaDBEngine + ?Sized> AlphaDBEngine for Box<T> {
 
 // Base engine trait that all verification engines must implement
 pub trait AlphaDBVerificationEngine {
-    // fn verify_column_definition(table: &String);
-    // fn verify_column_compatibility(&mut self, table: &str, column: &String, data: &Value, version: &str);
+    /// All the version source table keys that do not represent a column
+    const NON_COLUMN_TABLE_KEYS: &'static [&'static str];
+    /// All column types that should take a float value as inserted data
+    const FLOAT_COLUMNS: &'static [&'static str];
+    /// All column types that should take an integer value as inserted data
+    const INT_COLUMNS: &'static [&'static str];
+    /// All column types that should take a string value as inserted data
+    const STRING_COLUMNS: &'static [&'static str];
+
     fn verify_column_compatibility(
         &mut self,
         version_list: &Vec<Value>,
@@ -97,5 +104,4 @@ pub trait AlphaDBVerificationEngine {
         method: &str,
         version_output: &str,
     ) -> Result<(), AlphaDBError>;
-    // pub fn column_compatibility(&mut self, table_name: &str, column_name: &str, data: Value, method: &str, version_output: &str) {
 }

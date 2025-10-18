@@ -26,20 +26,8 @@ use serde_json::Value;
 /// All columns supported by AlphaDB for MySQL
 pub const SUPPORTED_COLUMN_TYPES: [&str; 10] = ["INT", "TINYINT", "BIGINT", "TEXT", "LONGTEXT", "FLOAT", "DECIMAL", "VARCHAR", "DATETIME", "JSON"];
 
-/// All column types that should take a float value as inserted data
-pub const FLOAT_COLUMNS: [&str; 2] = ["FLOAT", "DECIMAL"];
-
-/// All column types that should take a integer value as inserted data
-pub const INT_COLUMNS: [&str; 4] = ["INT", "TINYINT", "BIGINT", "DATETIME"];
-
-/// All column types that should take a string value as inserted data
-pub const STRING_COLUMNS: [&str; 4] = ["TEXT", "LONGTEXT", "VARCHAR", "DATETIME"];
-
 /// All the MySQL column types that allow a decimal length value
 pub const ALLOW_DECIMAL_LENGTH: [&str; 3] = ["decimal", "float", "double"];
-
-/// All the version source table keys that do not represent a column
-pub const NON_COLUMN_TABLE_KEYS: [&str; 1] = ["primary_key"];
 
 /// All type compatibility rules
 pub const COLUMN_TYPE_COMPATIBILITY_RULES: [ColumnCompatibilityRule; 2] = [

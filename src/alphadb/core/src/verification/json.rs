@@ -199,9 +199,9 @@ pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<Verificat
 ///
 /// # Returns
 /// * `i32` - Parsed version number if successful, 0 otherwise
-pub fn parse_version_number(version_number: &str, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> i32 {
+pub fn parse_version_number(version_number: &str, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> u32 {
     match adb_parse_version_number(version_number) {
-        Ok(v) => v as i32,
+        Ok(v) => v as u32,
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
