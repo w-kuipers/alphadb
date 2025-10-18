@@ -87,7 +87,7 @@ pub fn consolidate_table(version_list: &Vec<Value>, table_name: &str, target_ver
             None => column,
         };
 
-        let consolidated_column = consolidate_column(version_list, column.as_str(), table_name)?;
+        let consolidated_column = consolidate_column(version_list, column.as_str(), table_name, target_version)?;
 
         if !get_json_object(&consolidated_column)?.is_empty() {
             table[column] = consolidated_column;

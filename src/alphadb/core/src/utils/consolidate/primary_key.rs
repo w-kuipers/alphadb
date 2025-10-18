@@ -45,35 +45,43 @@ pub fn get_primary_key<'a>(version_list: &'a Vec<Value>, table_name: &str, targe
         }
 
         if exists_in_object(version, "createtable")? {
-            if exists_in_object(&version["createtable"], table_name)? {
-                if exists_in_object(&version["createtable"][table_name], "primary_key")? {
-                    primary_key = version["createtable"][table_name]["primary_key"].as_str();
+            // Ignore if the createtable block is not an object, this is a user error. Verification
+            // will catch it.
+            if version["createtable"][table_name].is_object() {
+                if exists_in_object(&version["createtable"], table_name)? {
+                    if exists_in_object(&version["createtable"][table_name], "primary_key")? {
+                        primary_key = version["createtable"][table_name]["primary_key"].as_str();
+                    }
                 }
             }
         }
 
         if exists_in_object(version, "altertable")? {
-            if exists_in_object(&version["altertable"], table_name)? {
-                if exists_in_object(&version["altertable"][table_name], "primary_key")? {
-                    primary_key = version["altertable"][table_name]["primary_key"].as_str();
-                }
+            // Ignore if the altertable block is not an object, this is a user error. Verification
+            // will catch it.
+            if version["altertable"][table_name].is_object() {
+                if exists_in_object(&version["altertable"], table_name)? {
+                    if exists_in_object(&version["altertable"][table_name], "primary_key")? {
+                        primary_key = version["altertable"][table_name]["primary_key"].as_str();
+                    }
 
-                // If the column is dropped, primary key should reset to None
-                if exists_in_object(&version["altertable"][table_name], "dropcolumn")? {
-                    if primary_key.is_some() {
-                        for dropcol in array_iter(&version["altertable"][table_name]["dropcolumn"])? {
-                            if dropcol.as_str() == primary_key {
-                                primary_key = None;
+                    // If the column is dropped, primary key should reset to None
+                    if exists_in_object(&version["altertable"][table_name], "dropcolumn")? {
+                        if primary_key.is_some() {
+                            for dropcol in array_iter(&version["altertable"][table_name]["dropcolumn"])? {
+                                if dropcol.as_str() == primary_key {
+                                    primary_key = None;
+                                }
                             }
                         }
                     }
-                }
 
-                // Handle column renames
-                if let Some(pk) = primary_key {
-                    if exists_in_object(&version["altertable"][table_name], "renamecolumn")? {
-                        if exists_in_object(&version["altertable"][table_name]["renamecolumn"], pk)? {
-                            primary_key = version["altertable"][table_name]["renamecolumn"][pk].as_str();
+                    // Handle column renames
+                    if let Some(pk) = primary_key {
+                        if exists_in_object(&version["altertable"][table_name], "renamecolumn")? {
+                            if exists_in_object(&version["altertable"][table_name]["renamecolumn"], pk)? {
+                                primary_key = version["altertable"][table_name]["renamecolumn"][pk].as_str();
+                            }
                         }
                     }
                 }
@@ -169,10 +177,7 @@ mod get_primary_key_tests {
                 }
             }
         }]});
-        assert_eq!(
-            get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(),
-            Some("new_col")
-        );
+        assert_eq!(get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(), Some("new_col"));
     }
 
     #[test]

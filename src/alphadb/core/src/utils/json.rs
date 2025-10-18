@@ -101,6 +101,28 @@ pub fn exists_in_object(object: &serde_json::Value, key: &str) -> Result<bool, A
     }
 }
 
+/// Verify whether a value exists in serde_json::Value array
+///
+/// # Arguments
+/// * `array` - The JSON value to check
+/// * `value` - The value to check for existence
+///
+/// # Returns
+/// * `Result<bool, AlphaDBError>` - True if key exists, false otherwise
+///
+/// # Errors
+/// * Returns `AlphaDBError` if the value cannot be converted to an object
+pub fn exists_in_array(array: &serde_json::Value, value: &str) -> Result<bool, AlphaDBError> {
+    if let Some(array) = array.as_array() {
+        return Ok(array.contains(&Value::from(value)));
+    } else {
+        Err(AlphaDBError {
+            message: "Unable to convert the value into a vector".to_string(),
+            ..Default::default()
+        })
+    }
+}
+
 /// Get JSON value as string
 ///
 /// # Arguments

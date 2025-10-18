@@ -138,14 +138,14 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                                 version_trace: e.version_trace().clone(),
                             }),
                         },
-                        // "default_data" => match self.default_data(&version_output, version_number) {
-                        //     Ok(v) => v,
-                        //     Err(e) => self.issues.add(VerificationIssue {
-                        //         message: e.message(),
-                        //         level: VerificationIssueLevel::Critical,
-                        //         version_trace: e.version_trace().clone(),
-                        //     }),
-                        // },
+                        "default_data" => match self.default_data(&version_output, version_number) {
+                            Ok(v) => v,
+                            Err(e) => self.issues.add(VerificationIssue {
+                                message: e.message(),
+                                level: VerificationIssueLevel::Critical,
+                                version_trace: e.version_trace().clone(),
+                            }),
+                        },
                         _ => {
                             self.issues.add(VerificationIssue {
                                 level: VerificationIssueLevel::High,
@@ -335,7 +335,6 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                     break;
                 }
             }
-
             let consolidated_default_data = match consolidate_default_data(&self.version_list, version_number) {
                 Ok(c) => c,
                 Err(e) => {
@@ -354,6 +353,7 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                 let consolidated_table = match consolidate_table(&self.version_list, table, Some(loop_version_number)) {
                     Ok(t) => t,
                     Err(e) => {
+                        println!("{}", e.error());
                         return Err(AlphaDBError {
                             message: e.message(),
                             error: e.error(),
@@ -390,11 +390,23 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                     table_version_trace.push(format!("column:{column}"));
 
                     if !E::NON_COLUMN_TABLE_KEYS.contains(&column.as_str()) {
+                        let null_not_allowed = !exists_in_object(&consolidated_table[column], "null", &mut self.issues, &table_version_trace)
+                            || !get_json_boolean(&consolidated_table[column]["null"], &mut self.issues, &table_version_trace);
+                        let has_no_default = !exists_in_object(&consolidated_table[column], "default", &mut self.issues, &table_version_trace)
+                            || get_json_string(&consolidated_table[column]["default"], &mut self.issues, &table_version_trace).is_empty();
+
+                        let mut needs_default_data = true;
+                        if !null_not_allowed {
+                            needs_default_data = false;
+                        }
+
+                        if !has_no_default {
+                            needs_default_data = false;
+                        }
+
                         // If the column is not allowed to have a NULL value, default data is
                         // required to be present
-                        if !exists_in_object(&consolidated_table[column], "null", &mut self.issues, &table_version_trace)
-                            || !get_json_boolean(&consolidated_table[column]["null"], &mut self.issues, &table_version_trace)
-                        {
+                        if needs_default_data {
                             for (i, dataset) in array_iter(&consolidated_default_data[table], &mut self.issues, &table_version_trace).iter().enumerate() {
                                 version_trace.push(format!("item:{i}"));
                                 let col_type = get_json_string(&&consolidated_table[column]["type"], &mut self.issues, &table_version_trace);

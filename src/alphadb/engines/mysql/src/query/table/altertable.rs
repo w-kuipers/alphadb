@@ -136,7 +136,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
                     if exists_in_object(&table_data["altertable"][table_name]["modifycolumn"][column], "recreate")?
                         && table_data["altertable"][table_name]["modifycolumn"][column]["recreate"] == false
                     {
-                        mutable_table_data["altertable"][table_name]["modifycolumn"][column] = consolidate_column(&version_list, column, table_name)?;
+                        mutable_table_data["altertable"][table_name]["modifycolumn"][column] = consolidate_column(&version_list, column, table_name, None)?;
                     }
 
                     let definition = definecolumn(&mutable_table_data["altertable"][table_name]["modifycolumn"][column], table_name, column, version)?;
