@@ -75,6 +75,7 @@ macro_rules! error {
 macro_rules! error {
     ($error_string:expr) => {{
         use std::process;
+        use colored::Colorize;
 
         let error_string = $error_string;
         let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);
