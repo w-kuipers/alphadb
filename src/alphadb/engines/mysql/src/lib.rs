@@ -14,7 +14,7 @@
 
 pub mod methods;
 mod query;
-mod utils;
+pub mod utils;
 pub mod verification;
 
 use crate::utils::connection::get_connection;

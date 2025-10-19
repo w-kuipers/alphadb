@@ -10,8 +10,8 @@ class Status(TypedDict):
     name: str
     template: Union[str, None]
 
-VerificationIssueLevel = Literal["LOW"] | Literal["HIGH"] | Literal["CRITICAL"]
-VerificationIssueLevel.__doc__ = """
+ToleratedVerificationIssueLevel = Literal["LOW"] | Literal["HIGH"] | Literal["CRITICAL"]
+ToleratedVerificationIssueLevel.__doc__ = """
 LOW: Will work, but will not have any effect on the database.
 HIGH: Will still work, but might produce a different result than desired.
 CRITICAL: Will not execute.
@@ -47,7 +47,9 @@ class AlphaDB:
         target_version: Optional[str] = None,
         no_data=False,
         verify=False,
-        allowed_error_priority: Optional[VerificationIssueLevel] = "LOW",
+        tolerated_verification_issue_level: Optional[
+            ToleratedVerificationIssueLevel
+        ] = "LOW",
     ): ...
     """Update the databae"""
 
