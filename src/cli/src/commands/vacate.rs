@@ -13,8 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{config::connection::get_active_connection, error};
 use crate::utils::title;
+use crate::{config::connection::get_active_connection, error};
+use alphadb::prelude::AlphaDBEngine;
 use alphadb::AlphaDB;
 use colored::Colorize;
 use inquire::{ui::RenderConfig, Confirm};
@@ -23,7 +24,7 @@ use inquire::{ui::RenderConfig, Confirm};
 /// User should select a version source
 ///
 /// - db: AlphaDB instance  
-pub fn vacate(db: &mut AlphaDB) {
+pub fn vacate(db: &mut AlphaDB<Box<dyn AlphaDBEngine>>) {
     title("Vacate");
 
     println!(
@@ -78,13 +79,19 @@ pub fn vacate(db: &mut AlphaDB) {
     match confirm {
         Ok(confirm) => {
             if confirm {
-                db.vacate();
-                println!(
-                    "{} {} {}\n",
-                    "Database".green(),
-                    conn.connection.database.cyan(),
-                    "has successfully been emtpied".green()
-                );
+                match db.vacate() {
+                    Ok(_) => {
+                        println!(
+                            "{} {} {}\n",
+                            "Database".green(),
+                            conn.connection.database.cyan(),
+                            "has successfully been emtpied".green()
+                        );
+                    }
+                    Err(e) => {
+                        error!(e.to_string());
+                    }
+                }
             } else {
                 println!("{}\n", "The database was not emptied.".red());
             }

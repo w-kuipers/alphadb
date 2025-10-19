@@ -73,10 +73,11 @@ checksum = "5c6cb57a04249c6480766f7f7cef5467412af1490f8d1e243141daddada3264f"
 name = "alphadb"
 version = "1.0.0-dev16"
 dependencies = [
+ "alphadb-core",
+ "alphadb-mysql-engine",
  "mysql",
  "serde",
  "serde_json",
- "thiserror",
 ]
 
 [[package]]
@@ -101,6 +102,26 @@ dependencies = [
  "serde_json",
  "thiserror",
  "toml",
+]
+
+[[package]]
+name = "alphadb-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "alphadb-mysql-engine"
+version = "1.0.0"
+dependencies = [
+ "alphadb-core",
+ "mysql",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

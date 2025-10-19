@@ -15,9 +15,8 @@
 
 use crate::types::PooledConnWrap;
 use crate::utils::get_connection;
-use alphadb::methods::update::update;
+use alphadb::engine::methods::update;
 use alphadb::prelude::*;
-use alphadb::utils::types::ToleratedVerificationIssueLevel;
 use neon::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;

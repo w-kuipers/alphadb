@@ -17,9 +17,10 @@ use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
 use crate::error;
 use crate::utils::title;
-use alphadb::utils::errors::{get_version_trace_string, Get};
-use alphadb::utils::types::VerificationIssueLevel;
-use alphadb::version_source_verification::VersionSourceVerification;
+use alphadb::core::utils::get_version_trace_string;
+use alphadb::prelude::Get;
+use alphadb::engine::MySQLVerificationEngine;
+use alphadb::verification::{AlphaDBVerification, VerificationIssueLevel};
 use colored::Colorize;
 use std::fs;
 use std::path::PathBuf;
@@ -46,7 +47,8 @@ pub fn verify(config: &Config, version_source: Option<PathBuf>) {
         }
     };
 
-    let mut verification = match VersionSourceVerification::new(version_source) {
+    let engine = MySQLVerificationEngine::new();
+    let mut verification = match AlphaDBVerification::with_engine(engine, version_source) {
         Ok(v) => v,
         Err(e) => error!(e.message()),
     };

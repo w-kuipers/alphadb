@@ -14,13 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{error, utils::title};
-use alphadb::AlphaDB;
+use alphadb::{prelude::AlphaDBEngine, AlphaDB};
 use colored::Colorize;
 
 /// Print database status
 ///
 /// - db: AlphaDB instance  
-pub fn status(db: &mut AlphaDB) {
+pub fn status(db: &mut AlphaDB<Box<dyn AlphaDBEngine>>) {
     title("Status");
 
     let status = match db.status() {

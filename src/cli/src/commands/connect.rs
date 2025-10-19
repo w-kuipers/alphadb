@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::config::connection::{get_connections, new_connection, set_active_connection};
+use crate::config::connection::{get_connections, new_mysql_connection, set_active_connection};
 use crate::config::setup::Config;
 use crate::error;
 use crate::utils::{abort, title};
@@ -53,7 +53,7 @@ pub fn connect(config: &Config) {
         };
 
         if choice == "++ New connection".to_string() {
-            let label = new_connection(true, config);
+            let label = new_mysql_connection(true, config);
 
             println!(
                 "\n{} {} {}\n",
@@ -72,7 +72,7 @@ pub fn connect(config: &Config) {
             );
         }
     } else {
-        let label = new_connection(true, config);
+        let label = new_mysql_connection(true, config);
 
         println!(
             "\n{} {} {}\n",

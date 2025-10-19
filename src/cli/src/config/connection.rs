@@ -13,13 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::commands::connect::Connection;
+use crate::commands::Connection;
 use crate::config::setup::{
     get_config_content, get_home, Config, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE,
 };
 use crate::error;
 use crate::utils::encrypt_password;
-use alphadb::AlphaDB;
+use alphadb::{engine::MySQLEngine, AlphaDB};
 use colored::Colorize;
 use inquire::{required, CustomType, Password, Text};
 use serde::Deserialize;
@@ -64,7 +64,7 @@ pub struct Session {
 /// # Panics
 /// * Panics if unable to connect to the database with provided credentials
 /// * Panics if unable to write to the config file
-pub fn new_connection(activate: bool, config: &Config) -> String {
+pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
     let home = get_home();
 
     print!("\n");
@@ -107,17 +107,18 @@ pub fn new_connection(activate: bool, config: &Config) -> String {
     };
 
     // Try if the credentials will connect
-    let mut db = AlphaDB::new();
-    let testconn = db.connect(
+    let engine = MySQLEngine::with_credentials(
         &connection.host,
         &connection.user,
         &connection.password,
         &connection.database,
         connection.port,
     );
+    let mut db = AlphaDB::with_engine(engine);
+    let testconn = db.connect();
 
-    if testconn.is_err() {
-        error!(testconn.unwrap_err().to_string());
+    if let Err(t) = testconn {
+        error!(t.to_string());
     }
 
     println!(
@@ -254,7 +255,10 @@ pub fn set_active_connection(label: &String) {
     }
 
     let mut sessions_content = sessions_content.unwrap();
-    let _ = sessions_content.setup.active_session.insert(label.to_string());
+    let _ = sessions_content
+        .setup
+        .active_session
+        .insert(label.to_string());
 
     write_config(sessions_content);
 }

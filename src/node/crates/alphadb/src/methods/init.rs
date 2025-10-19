@@ -15,7 +15,8 @@
 
 use crate::types::PooledConnWrap;
 use crate::utils::get_connection;
-use alphadb::methods::init::init;
+use alphadb::core::method_types::Init;
+use alphadb::engine::methods::init;
 use alphadb::prelude::*;
 use neon::prelude::*;
 use std::cell::RefCell;
@@ -36,10 +37,8 @@ pub fn init_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     if let Some(connection) = connection.inner.as_mut() {
         match init(&db_name, connection) {
             Ok(i) => match i {
-                alphadb::Init::AlreadyInitialized => {
-                    cx.throw_error("The database is already initialized.")
-                }
-                alphadb::Init::Success => return Ok(cx.undefined()),
+                Init::AlreadyInitialized => cx.throw_error("The database is already initialized."),
+                Init::Success => return Ok(cx.undefined()),
             },
             Err(e) => return cx.throw_error(e.message()),
         }

@@ -13,16 +13,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use alphadb::methods::connect::connect;
-use alphadb::methods::init::init;
-use alphadb::methods::status::status;
-use alphadb::methods::update::update;
-use alphadb::methods::update_queries::update_queries;
-use alphadb::methods::update_queries::Query as AdbQuery;
-use alphadb::methods::vacate::vacate;
+use alphadb::core::method_types::{Init, Query as AdbQuery};
+use alphadb::engine::methods::connect;
+use alphadb::engine::methods::init;
+use alphadb::engine::methods::status;
+use alphadb::engine::methods::update;
+use alphadb::engine::methods::update_queries;
+use alphadb::engine::methods::vacate;
+use alphadb::engine::utils::connection::get_connection;
 use alphadb::prelude::*;
-use alphadb::utils::helpers::get_connection;
-use alphadb::utils::types::ToleratedVerificationIssueLevel;
 use mysql::PooledConn;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -31,7 +30,7 @@ use pyo3::prelude::*;
 struct AlphaDB {
     connection: Option<PooledConn>,
     db_name: Option<String>,
-    is_connected: bool
+    is_connected: bool,
 }
 
 #[derive(Debug, IntoPyObject, IntoPyObjectRef)]
@@ -65,7 +64,7 @@ enum PyToleratedVerificationIssueLevel {
     /// High: Will pass with verification errors below level Critical.
     High,
     /// Critical: Will ignore all errors.
-    Critical, 
+    Critical,
     /// All: Will fail with an error of any level.
     All,
 }
@@ -77,7 +76,7 @@ impl AlphaDB {
         Self {
             connection: None,
             db_name: None,
-            is_connected: false
+            is_connected: false,
         }
     }
 
@@ -107,29 +106,27 @@ impl AlphaDB {
     }
 
     fn init(&mut self) -> PyResult<()> {
-        let (db_name, connection) =
-            match get_connection(self.db_name.as_deref(), &mut self.connection) {
-                Ok(c) => c,
-                Err(e) => return Err(PyRuntimeError::new_err(e.message())),
-            };
+        let (db_name, connection) = match get_connection(&mut self.db_name, &mut self.connection) {
+            Ok(c) => c,
+            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
+        };
 
         match init(db_name, connection) {
             Ok(i) => match i {
-                alphadb::Init::AlreadyInitialized => Err(PyRuntimeError::new_err(
+                Init::AlreadyInitialized => Err(PyRuntimeError::new_err(
                     "The database is already initialized",
                 )),
-                alphadb::Init::Success => Ok(()),
+                Init::Success => Ok(()),
             },
             Err(e) => Err(PyRuntimeError::new_err(e.message())),
         }
     }
 
     fn status(&mut self) -> PyResult<Py<PyAny>> {
-        let (db_name, connection) =
-            match get_connection(self.db_name.as_deref(), &mut self.connection) {
-                Ok(c) => c,
-                Err(e) => return Err(PyRuntimeError::new_err(e.message())),
-            };
+        let (db_name, connection) = match get_connection(&mut self.db_name, &mut self.connection) {
+            Ok(c) => c,
+            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
+        };
 
         Python::with_gil(|py| match status(db_name, connection) {
             Ok(s) => {
@@ -155,22 +152,15 @@ impl AlphaDB {
         &mut self,
         version_source: String,
         target_version: Option<&str>,
-        no_data: bool, 
+        no_data: bool,
     ) -> PyResult<Vec<Query>> {
-        let (db_name, connection) =
-            match get_connection(self.db_name.as_deref(), &mut self.connection) {
-                Ok(c) => c,
-                Err(e) => return Err(PyRuntimeError::new_err(e.message())),
-            };
+        let (db_name, connection) = match get_connection(&mut self.db_name, &mut self.connection) {
+            Ok(c) => c,
+            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
+        };
 
         Python::with_gil(|_py| {
-            match update_queries(
-                db_name,
-                connection,
-                version_source,
-                target_version,
-                no_data
-            ) {
+            match update_queries(db_name, connection, version_source, target_version, no_data) {
                 Ok(queries) => {
                     let mut queries_converted: Vec<Query> = Vec::new();
 
@@ -185,22 +175,21 @@ impl AlphaDB {
         })
     }
 
-    #[pyo3(signature = (version_source, target_version=None, no_data=false, verify=true, allowed_error_priority=PyToleratedVerificationIssueLevel::Low))]
+    #[pyo3(signature = (version_source, target_version=None, no_data=false, verify=true, tolerated_verification_issue_level=PyToleratedVerificationIssueLevel::Low))]
     fn update(
         &mut self,
         version_source: String,
         target_version: Option<String>,
         no_data: Option<bool>,
         verify: Option<bool>,
-        allowed_error_priority: PyToleratedVerificationIssueLevel,
+        tolerated_verification_issue_level: PyToleratedVerificationIssueLevel,
     ) -> PyResult<()> {
-        let (db_name, connection) =
-            match get_connection(self.db_name.as_deref(), &mut self.connection) {
-                Ok(c) => c,
-                Err(e) => return Err(PyRuntimeError::new_err(e.message())),
-            };
+        let (db_name, connection) = match get_connection(&mut self.db_name, &mut self.connection) {
+            Ok(c) => c,
+            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
+        };
 
-        let allowed_error_priority = match allowed_error_priority {
+        let allowed_error_priority = match tolerated_verification_issue_level {
             PyToleratedVerificationIssueLevel::Low => ToleratedVerificationIssueLevel::Low,
             PyToleratedVerificationIssueLevel::High => ToleratedVerificationIssueLevel::High,
             PyToleratedVerificationIssueLevel::Critical => {
@@ -234,7 +223,11 @@ impl AlphaDB {
     }
 
     fn vacate(&mut self) -> PyResult<()> {
-        match vacate(&mut self.connection) {
+        let (_, connection) = match get_connection(&mut self.db_name, &mut self.connection) {
+            Ok(c) => c,
+            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
+        };
+        match vacate(connection) {
             Ok(_) => Ok(()),
             Err(e) => Err(PyRuntimeError::new_err(e.message())),
         }

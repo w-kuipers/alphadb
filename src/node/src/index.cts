@@ -58,7 +58,7 @@ declare module "./load.cjs" {
 	function status(conn: any, internaldbname: any): Status;
 	function update_queries(conn: any, internaldbname: any, version_source: string, target_version: string, no_data: boolean): Array<Query>;
 	function update(conn: any, internaldbname: any, version_source: string, target_version: string, no_data: boolean, verify: boolean, tolerated_verification_issue_level: string): Array<Query>;
-	function vacate(conn: any): void;
+	function vacate(conn: any, internaldbname: any): void;
 }
 
 class AlphaDB {
@@ -102,7 +102,7 @@ class AlphaDB {
 	}
 
 	public vacate() {
-		addon.vacate(this.conn);
+		addon.vacate(this.conn, this.internaldbname);
 	}
 }
 

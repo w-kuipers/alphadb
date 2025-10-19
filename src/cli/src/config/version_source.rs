@@ -16,7 +16,7 @@ use crate::config::setup::{
     get_config_content, get_home, Config, ALPHADB_DIR, CONFIG_DIR, SOURCES_FILE,
 };
 use crate::error;
-use crate::utils::{abort};
+use crate::utils::abort;
 use colored::Colorize;
 use inquire::Select;
 use inquire::{CustomType, Text};
@@ -36,7 +36,6 @@ pub struct VersionSources {
 /// If no saved version source exists, let the user create
 /// a new one
 ///
-/// - activate: Set the connection as active after creating it
 /// - config: The full user configuration
 pub fn select_version_source(config: &Config) -> Option<PathBuf> {
     // Get all available version sources as a vector of strings containing the labels
@@ -58,21 +57,18 @@ pub fn select_version_source(config: &Config) -> Option<PathBuf> {
         };
 
         if choice == "++ New version source".to_string() {
-            return get_version_source(new_version_source(config));
+            return get_version_source(new_version_source());
         } else {
             return get_version_source(choice);
         }
     }
 
-    return get_version_source(new_version_source(config));
+    return get_version_source(new_version_source());
 }
 
 /// Add a new version-source by promting the user
 /// for the file/url and saving it to the version source config file
-///
-/// - activate: Set the connection as active after creating it
-/// - config: The full user configuration
-pub fn new_version_source(config: &Config) -> String {
+pub fn new_version_source() -> String {
     let home = get_home();
 
     print!("\n");
@@ -142,7 +138,7 @@ fn get_version_source(label: String) -> Option<PathBuf> {
     }
 
     let source_content = source_content.unwrap();
-    
+
     if let Some(vs_path) = source_content.source_files.get(&label) {
         return Some(vs_path.to_path_buf());
     }
