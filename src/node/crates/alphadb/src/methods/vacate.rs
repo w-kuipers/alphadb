@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::types::PooledConnWrap;
-use alphadb::methods::vacate::vacate;
+use crate::utils::get_connection;
+use alphadb::engine::methods::vacate;
 use alphadb::prelude::*;
 use neon::prelude::*;
 use std::cell::RefCell;
@@ -24,8 +25,16 @@ pub fn vacate_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let conn_rc = cx.argument::<JsBox<Rc<RefCell<Option<PooledConnWrap>>>>>(0)?;
     let mut conn_ref = conn_rc.borrow_mut();
 
-    if let Some(conn) = conn_ref.as_mut() {
-        match vacate(&mut conn.inner) {
+    let db_name_rc = cx.argument::<JsBox<Rc<RefCell<Option<String>>>>>(1)?;
+    let db_name_ref = db_name_rc.borrow();
+
+    let (_, connection) = match get_connection(db_name_ref, &mut conn_ref) {
+        Ok(v) => v,
+        Err(e) => return cx.throw_error(e.message()),
+    };
+
+    if let Some(connection) = connection.inner.as_mut() {
+        match vacate(connection) {
             Ok(_) => Ok(cx.undefined()),
             Err(e) => return cx.throw_error(e.message()),
         }

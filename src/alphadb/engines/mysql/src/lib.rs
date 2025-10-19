@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-mod methods;
+pub mod methods;
 mod query;
 mod utils;
 pub mod verification;
@@ -110,7 +110,7 @@ impl AlphaDBEngine for MySQLEngine {
         let port = self.port.ok_or(MySQLEngineError::ConnectionParamsNotSet)?;
 
         // Establish connection to database using the stored parameters
-        self.connection = Some(methods::connect::connect(host, user, password, database, port)?);
+        self.connection = Some(methods::connect(host, user, password, database, port)?);
         *db_name = Some(database.to_string());
         *is_connected = true;
 

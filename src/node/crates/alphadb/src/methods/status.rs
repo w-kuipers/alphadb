@@ -15,7 +15,7 @@
 
 use crate::utils::get_connection;
 use crate::types::PooledConnWrap;
-use alphadb::methods::status::status;
+use alphadb::engine::methods::status;
 use alphadb::prelude::*;
 use neon::prelude::*;
 use std::cell::RefCell;

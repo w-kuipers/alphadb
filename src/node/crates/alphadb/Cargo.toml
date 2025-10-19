@@ -13,5 +13,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 neon = "1"
-alphadb = { path = "../../../alphadb" }
+alphadb = { path = "../../../alphadb", features = ["mysql"] }
 mysql = "25.0.1"
