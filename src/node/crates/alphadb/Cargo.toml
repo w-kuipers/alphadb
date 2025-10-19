@@ -1,5 +1,5 @@
 [package]
-name = "alphadb"
+name = "alphadb-mysql"
 version = "23.0.22-dev.238-node"
 authors = ["Wibo Kuipers"]
 license = "GPL-3.0"

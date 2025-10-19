@@ -46,21 +46,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "alphadb"
-version = "23.0.22-dev.238-node"
-dependencies = [
- "alphadb 1.0.0-dev16",
- "mysql",
- "neon",
-]
-
-[[package]]
 name = "alphadb-core"
 version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "alphadb-mysql"
+version = "23.0.22-dev.238-node"
+dependencies = [
+ "alphadb",
+ "mysql",
+ "neon",
 ]
 
 [[package]]

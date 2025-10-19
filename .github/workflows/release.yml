@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-22.04
     environment:
       name: release
-      url: https://pypi.org/p/alphadb
+      url: https://pypi.org/p/alphadb-mysql
     permissions:
       id-token: write
     steps:

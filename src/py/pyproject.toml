@@ -3,7 +3,7 @@ requires = ["maturin>=1.6,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "alphadb"
+name = "alphadb-mysql"
 version = "1.0.0"
 author = "Wibo Kuipers"
 author-email = "wkuipersoss@gmail.com"
