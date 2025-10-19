@@ -20,8 +20,8 @@ pub mod engine {
     #[cfg(feature = "mysql")]
     pub use alphadb_mysql_engine::*;
 
-    #[cfg(feature = "mysql")]
-    pub use alphadb_mysql_engine::*;
+    #[cfg(feature = "postgres")]
+    pub use alphadb_postgres_engine::*;
 
     pub use alphadb_core::engine::{AlphaDBEngine, AlphaDBVerificationEngine};
 }

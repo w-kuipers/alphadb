@@ -1,0 +1,243 @@
+{
+  "name": "test",
+  "version": [
+    {
+      "_id": "0.0.1",
+      "createtable": {
+        "table1": {
+          "primary_key": "col1",
+          "col1": {
+            "type": "INTEGER",
+            "length": 7,
+            "generated": "BY DEFAULT"
+          },
+          "col2": {
+            "type": "VARCHAR",
+            "length": 100,
+            "unique": true
+          },
+          "col3": {
+            "type": "TEXT",
+            "null": true
+          },
+          "col4": {
+            "type": "INTEGER",
+            "length": 7
+          }
+        }
+      },
+      "default_data": {
+        "table1": [
+          {
+            "col1": 4,
+            "col2": "test",
+            "col3": "test",
+            "col4": 12
+          }
+        ]
+      }
+    },
+    {
+      "_id": "0.0.2",
+      "createtable": {
+        "table2": {
+          "primary_key": "col1",
+          "col1": {
+            "type": "INTEGER",
+            "generated": "BY DEFAULT"
+          },
+          "col2": {
+            "type": "VARCHAR",
+            "length": 100,
+            "default": "default value"
+          }
+        }
+      }
+    },
+    {
+      "_id": "0.0.3",
+      "createtable": {
+        "table3": {
+          "col1": {
+            "type": "INTEGER",
+            "generated": "BY DEFAULT",
+            "unique": true
+          },
+          "col2": {
+            "type": "VARCHAR",
+            "length": 100,
+            "default": "default value"
+          }
+        }
+      },
+      "default_data": {
+        "table1": [
+          {
+            "col1": 3,
+            "col2": "test1",
+            "col3": "test",
+            "col4": 12
+          }
+        ]
+      }
+    },
+    {
+      "_id": "0.0.4",
+      "createtable": {
+        "table4": {
+          "primary_key": "thecol1",
+          "thecol1": {
+            "type": "INTEGER",
+            "generated": "BY DEFAULT"
+          },
+          "thecol2": {
+            "type": "VARCHAR",
+            "length": 100,
+            "default": "some value"
+          }
+        }
+      }
+    },
+    {
+      "_id": "0.1.0",
+      "altertable": {
+        "table1": {
+          "dropcolumn": ["col3", "col1"],
+          "addcolumn": {
+            "col5": {
+              "type": "TEXT",
+              "length": 1000
+            },
+            "col6": {
+              "type": "JSONB",
+              "null": true
+            }
+          }
+        }
+      },
+      "default_data": {
+        "table1": {
+          "0": {
+            "col5": "test"
+          },
+          "1": {
+            "col5": "test"
+          },
+          "2": {
+            "col2": "test2",
+            "col4": 12,
+            "col5": "test"
+          }
+        }
+      }
+    },
+    {
+      "_id": "0.2.0",
+      "altertable": {
+        "table2": {
+          "modifycolumn": {
+            "col2": {
+              "type": "INTEGER",
+              "unique": true,
+              "null": true
+            },
+            "col1": {
+              "type": "INTEGER",
+              "generated": "BY DEFAULT"
+            }
+          }
+        }
+      }
+    },
+    {
+      "_id": "0.2.1",
+      "altertable": {
+        "table2": {
+          "renamecolumn": {
+            "col1": "wasoriginalycol1"
+          }
+        }
+      }
+    },
+    {
+      "_id": "0.2.2",
+      "altertable": {
+        "table2": {
+          "modifycolumn": {
+            "wasoriginalycol1": {
+              "recreate": false,
+              "length": 30,
+              "type": "SMALLINT"
+            }
+          }
+        }
+      }
+    },
+    {
+      "_id": "0.2.3",
+      "altertable": {
+        "table2": {
+          "renamecolumn": {
+            "wasoriginalycol1": "secondrenameoncol1"
+          }
+        }
+      }
+    },
+    {
+      "_id": "0.2.4",
+      "altertable": {
+        "table4": {
+          "primary_key": "thecol2",
+          "modifycolumn": {
+            "thecol2": {
+              "length": 3000,
+              "recreate": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "_id": "0.2.5",
+      "altertable": {
+        "table2": {
+          "modifycolumn": {
+            "secondrenameoncol1": {
+              "recreate": false,
+              "null": false
+            },
+            "col2": {
+              "recreate": false,
+              "length": 2
+            }
+          }
+        },
+        "table1": {
+          "modifycolumn": {
+            "col2": {
+              "recreate": false,
+              "length": 200
+            }
+          }
+        }
+      },
+      "default_data": {
+        "table1": [
+          {
+            "col2": "test3",
+            "col4": 12,
+            "col5": "test"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "0.2.6",
+      "altertable": {
+        "table4": {
+          "primary_key": "thecol1"
+        }
+      }
+    }
+  ]
+}

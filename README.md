@@ -3,7 +3,7 @@
 [![GitHub releases](https://img.shields.io/github/v/release/w-kuipers/alphadb)](https://github.com/w-kuipers/alphadb/releases)
 [![Crates.io Version](https://img.shields.io/crates/v/alphadb)](https://crates.io/crates/alphadb)
 [![PyPI release](https://img.shields.io/pypi/v/alphadb.svg)](https://pypi.org/project/alphadb/)
-[![NPM release](https://img.shields.io/npm/v/%40w-kuipers%2Falphadb)](https://www.npmjs.com/package/@w-kuipers/alphadb)
+[![NPM release](https://img.shields.io/npm/v/%40w-kuipers%2Falphadb-mysql)](https://www.npmjs.com/package/@w-kuipers/alphadb-mysql)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![](https://img.shields.io/github/last-commit/w-kuipers/alphadb?label=last%20modified)](https://github.com/w-kuipers/alphadb)
 [![Tests](https://github.com/w-kuipers/alphadb/actions/workflows/run-tests.yml/badge.svg)](https://github.com/w-kuipers/alphadb/actions/workflows/run-tests.yml)

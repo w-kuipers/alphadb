@@ -28,7 +28,22 @@ services:
     networks:
       - alphadb_network
 
+  postgres:
+    container_name: alphadb_postgres
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: test
+    volumes:
+      - ./scripts/init-dev-db-postgres.sql:/docker-entrypoint-initdb.d/init.sql
+      - alphadb_postgres:/var/lib/postgresql/data
+    ports:
+      - "544:5432"
+    networks:
+      - alphadb_network
+
 networks:
   alphadb_network:
 volumes:
   alphadb_mysql:
+  alphadb_postgres:
