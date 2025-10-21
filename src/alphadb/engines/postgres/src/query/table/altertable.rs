@@ -13,9 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::query::column::altercolumn::altercolumn;
 use crate::query::column::definecolumn::definecolumn;
 use alphadb_core::query::{build::StructureQuery, column::definecolumn::DefineColumn};
-use alphadb_core::utils::consolidate::column::{consolidate_column, get_column_renames};
+use alphadb_core::utils::consolidate::column::{get_column_renames, get_column_type};
 use alphadb_core::utils::consolidate::primary_key::get_primary_key;
 use alphadb_core::utils::errors::AlphaDBError;
 use alphadb_core::utils::json::{array_iter, exists_in_object, get_json_string, object_iter};
@@ -133,15 +134,32 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
             let table_data = mutable_table_data.clone(); // Get up-to-date table data
             if exists_in_object(&table_data["altertable"][table_name], "modifycolumn")? {
                 for column in object_iter(&table_data["altertable"][table_name]["modifycolumn"])? {
-                    if exists_in_object(&table_data["altertable"][table_name]["modifycolumn"][column], "recreate")?
-                        && table_data["altertable"][table_name]["modifycolumn"][column]["recreate"] == false
-                    {
-                        mutable_table_data["altertable"][table_name]["modifycolumn"][column] = consolidate_column(&version_list, column, table_name, None)?;
-                    }
+                    let version_trace = VersionTrace::from([
+                        format!("Version: {}", version),
+                        "altertable".to_string(),
+                        format!("table:{}", table_name),
+                        format!("column:{}", column),
+                    ]);
+                    let column_type = match get_column_type(version_list, column, table_name, parse_version_number(version)?)? {
+                        Some(t) => t,
+                        None => {
+                            return Err(AlphaDBError {
+                                message: "Cannot modify a column without knowing it's type, and this column has no type defined".to_string(),
+                                error: "column-has-no-type".to_string(),
+                                version_trace: version_trace,
+                            })
+                        }
+                    };
 
-                    let definition = definecolumn(&mutable_table_data["altertable"][table_name]["modifycolumn"][column], table_name, column, version)?;
-                    if let Some(mut definition) = definition {
-                        definition.method("ALTER COLUMN");
+                    let definitions = altercolumn(
+                        &mutable_table_data["altertable"][table_name]["modifycolumn"][column],
+                        table_name,
+                        column,
+                        &column_type,
+                        version,
+                    )?;
+
+                    for definition in definitions {
                         query.definition(definition);
                     }
                 }

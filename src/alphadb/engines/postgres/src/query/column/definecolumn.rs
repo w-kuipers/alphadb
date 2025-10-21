@@ -38,13 +38,13 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
     let column_keys = get_object_keys(column_data);
     let version_trace = VersionTrace::from([version.to_string(), table_name.to_string(), column_name.to_string()]);
 
+    // Foreign key will be handled elsewhere
+    if column_name == "foreign_key" {
+        return Ok(None);
+    }
+
     // If iteration is not an object, it is not a column, so it should be processed later
     if let Ok(column_keys) = column_keys {
-        // Foreign keys, as well, have to be handled later
-        if column_name == "foreign_key" {
-            return Ok(None);
-        }
-
         // Must know the type to create a column
         if !column_keys.contains(&&"type".to_string()) {
             return Err(incomplete_version_object_err("type", version_trace.clone()));

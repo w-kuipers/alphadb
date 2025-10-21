@@ -20,11 +20,10 @@ pub fn default_data(table_name: &str, item: &Value) -> Result<Query, AlphaDBErro
     let data = parse_default_data(item)?;
 
     let q = format!(
-        "INSERT INTO `{table_name}` ({}) VALUES ({});",
+        "INSERT INTO {table_name} ({}) VALUES ({});",
         data.columns.join(","),
-        data.values.iter().map(|_| "?").collect::<Vec<_>>().join(",")
+        (1..=data.values.len()).map(|i| format!("${}", i)).collect::<Vec<_>>().join(",")
     );
-
     return Ok(Query {
         query: q,
         data: Some(data.values),
@@ -52,7 +51,7 @@ mod default_data_tests {
         });
 
         let q = default_data("test", &test_item).unwrap();
-        assert_eq!(q.query, "INSERT INTO `test` (col1,col2,col4,col5,col6) VALUES (?,?,?,?,?);");
+        assert_eq!(q.query, "INSERT INTO test (col1,col2,col4,col5,col6) VALUES ($1,$2,$3,$4,$5);");
         assert_eq!(q.data.unwrap(), Vec::from(["value1", "1", "true", "false", &sub.to_string()]));
     }
 }
