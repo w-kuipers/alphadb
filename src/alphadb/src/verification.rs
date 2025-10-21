@@ -28,6 +28,8 @@ use alphadb_core::{
 };
 use serde_json::Value;
 
+const SUPPORTED_ENGINES: [&str; 2] = ["mysql", "postgres"];
+
 pub struct AlphaDBVerification<E = ()> {
     version_source: Value,
     issues: Vec<VerificationIssue>,
@@ -71,15 +73,35 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
         if !exists_in_object(&self.version_source, "name", &mut self.issues, &VersionTrace::new()) {
             self.issues.add(VerificationIssue {
                 level: VerificationIssueLevel::Critical,
-                message: String::from("No rootlevel name specified"),
+                message: String::from("No rootlevel name specified."),
                 version_trace: VersionTrace::new(),
             });
+        }
+
+        if !exists_in_object(&self.version_source, "engine", &mut self.issues, &VersionTrace::new()) {
+            self.issues.add(VerificationIssue {
+                level: VerificationIssueLevel::High,
+                message: String::from("No engine specified. While not required for AlphaDB, this version source is incompatible with the command-line interface."),
+                version_trace: VersionTrace::new(),
+            });
+        } else {
+            let engine = get_json_string(&self.version_source["engine"], &mut self.issues, &VersionTrace::from(["engine"]));
+
+            if !engine.is_empty() {
+                if !SUPPORTED_ENGINES.contains(&engine) {
+                    self.issues.add(VerificationIssue {
+                        level: VerificationIssueLevel::Critical,
+                        message: format!("Engine '{}' is not supported.", engine),
+                        version_trace: VersionTrace::new(),
+                    });
+                }
+            }
         }
 
         if !exists_in_object(&self.version_source, "version", &mut self.issues, &VersionTrace::new()) {
             self.issues.add(VerificationIssue {
                 level: VerificationIssueLevel::Low,
-                message: String::from("This version source does not contain any versions"),
+                message: String::from("This version source does not contain any versions."),
                 version_trace: VersionTrace::new(),
             });
         } else {

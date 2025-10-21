@@ -1,5 +1,6 @@
 {
   "name": "test",
+  "engine": "postgres",
   "version": [
     {
       "_id": "0.0.1",
