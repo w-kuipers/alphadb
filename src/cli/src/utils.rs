@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::config::connection::get_active_connection;
+use crate::config::connection::{get_active_connection, SessionType};
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{Aes256Gcm, Nonce};
 use base64::engine::{general_purpose, Engine};
@@ -29,15 +29,30 @@ use thiserror::Error;
 /// * `title` - Title that will be displayed
 pub fn title(title: &str) {
     if let Some(conn) = get_active_connection() {
-        println!(
-            "{} {} {} {}:{} {}",
-            "Connected to database".cyan(),
-            conn.connection.database,
-            "on".cyan(),
-            conn.connection.host,
-            conn.connection.port,
-            format!("({})", conn.label).green()
-        );
+        match conn.connection {
+            SessionType::Mysql(s) => {
+                println!(
+                    "{} {} {} {}:{} {}",
+                    "Connected to MySQL database".cyan(),
+                    s.database,
+                    "on".cyan(),
+                    s.host,
+                    s.port,
+                    format!("({})", conn.label).green()
+                );
+            },
+            SessionType::Postgres(s) => {
+                println!(
+                    "{} {} {} {}:{} {}",
+                    "Connected to PostgreSQL database".cyan(),
+                    s.database,
+                    "on".cyan(),
+                    s.host,
+                    s.port,
+                    format!("({})", conn.label).green()
+                );
+            }
+        }
     }
 
     println!("\n{} {} {}\n", "-----".green(), title, "-----".green());
@@ -74,8 +89,8 @@ macro_rules! error {
 #[macro_export]
 macro_rules! error {
     ($error_string:expr) => {{
-        use std::process;
         use colored::Colorize;
+        use std::process;
 
         let error_string = $error_string;
         let start = error_string.find("{").map(|pos| pos + 1).unwrap_or(0);

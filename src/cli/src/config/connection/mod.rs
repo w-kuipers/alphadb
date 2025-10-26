@@ -16,5 +16,5 @@
 mod connection;
 mod mysql;
 
-pub use connection::{get_connections, DbSessions, get_active_connection, remove_connection};
+pub use connection::{get_connections, DbSessions, get_active_connection, remove_connection, SessionType};
 pub use mysql::new_mysql_connection;
