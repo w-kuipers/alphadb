@@ -13,11 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::config::connection::{get_active_connection, SessionType};
 use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
 use crate::error;
-use crate::utils::title;
-use alphadb::prelude::{AlphaDBEngine, ToleratedVerificationIssueLevel, Get};
+use crate::utils::{title, AVAILABLE_ENGINES};
+use alphadb::prelude::{AlphaDBEngine, Get, ToleratedVerificationIssueLevel};
 use alphadb::AlphaDB;
 use colored::Colorize;
 use std::fs;
@@ -71,6 +72,30 @@ pub fn update(
             ));
         }
     };
+
+    let json: serde_json::Value = match serde_json::from_str(&data) {
+        Ok(v) => v,
+        Err(_) => {
+            error!("The provided version source can not be deserialized. Not valid JSON.");
+        }
+    };
+
+    match json["engine"].as_str() {
+        Some(v) => {
+            if !AVAILABLE_ENGINES.contains(&v) {
+                error!(format!("Engine '{v}' is not supported."));
+            }
+        }
+        None => {
+            error!("Version source files used with the command-line interface require an engine to be defined.");
+        }
+    }
+
+    let queries = db.update_queries(data.clone(), None, nodata);
+
+    for q in queries.unwrap() {
+        println!("{:?}", q);
+    }
 
     let update = db.update(data, None, nodata, noverify, verification_issue_level);
 

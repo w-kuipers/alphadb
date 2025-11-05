@@ -15,7 +15,7 @@
 
 use crate::methods::update_queries;
 use crate::utils::errors::AlphaDBMysqlError;
-use alphadb_core::utils::errors::{AlphaDBError};
+use alphadb_core::utils::errors::AlphaDBError;
 use alphadb_core::utils::types::ToleratedVerificationIssueLevel;
 use mysql::prelude::*;
 use mysql::*;
@@ -60,7 +60,7 @@ pub fn update(
                         message: error.to_string(),
                         ..Default::default()
                     }
-                        .into());
+                    .into());
                 }
             };
         } else {
@@ -71,7 +71,7 @@ pub fn update(
                         message: error.to_string(),
                         ..Default::default()
                     }
-                        .into());
+                    .into());
                 }
             };
         }

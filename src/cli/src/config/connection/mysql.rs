@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::commands::Connection;
+use crate::config::connection::connection::{DbSessions, SessionType, MysqlSession};
 use crate::config::setup::{
     get_config_content, get_home, Config, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE,
 };
@@ -22,32 +23,8 @@ use crate::utils::encrypt_password;
 use alphadb::{engine::MySQLEngine, AlphaDB};
 use colored::Colorize;
 use inquire::{required, CustomType, Password, Text};
-use serde::Deserialize;
-use serde_derive::Serialize;
-use std::{collections::BTreeMap, fs};
+use std::fs;
 use toml;
-
-use super::setup::write_config;
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct DbSessions {
-    sessions: BTreeMap<String, Session>,
-    setup: Setup,
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Setup {
-    active_session: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Session {
-    pub host: String,
-    pub user: String,
-    pub password: String,
-    pub database: String,
-    pub port: u16,
-}
 
 /// Add a new database connection by prompting the user for credentials
 ///
@@ -133,30 +110,27 @@ pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
         .unwrap();
 
     // Get current file contents
-    let sessions_content = get_config_content::<DbSessions>();
-    let mut file: DbSessions;
-    if sessions_content.is_none() {
-        file = DbSessions::default();
-    } else {
-        file = sessions_content.unwrap();
-    }
+    let mut sessions_content = match get_config_content::<DbSessions>() {
+        Some(s) => s,
+        None => DbSessions::default()
+    };
 
-    file.sessions.insert(
+    sessions_content.sessions.insert(
         label.to_string(),
-        Session {
+        SessionType::Mysql(MysqlSession {
             host: connection.host,
             user: connection.user,
             password: encrypt_password(&connection.password, config.main.secret.clone().unwrap()),
             database: connection.database,
             port: connection.port,
-        },
+        }),
     );
 
     if activate {
-        let _ = file.setup.active_session.insert(label.to_string());
+        let _ = sessions_content.setup.active_session.insert(label.to_string());
     }
 
-    let toml_string = match toml::to_string(&file) {
+    let toml_string = match toml::to_string(&sessions_content) {
         Ok(c) => c,
         Err(_) => {
             error!(format!(
@@ -177,114 +151,4 @@ pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
     };
 
     return label;
-}
-
-/// Get all saved database connections
-///
-/// This function retrieves all saved connections from the sessions config file.
-/// The active connection, if any, will be marked with "(active)" in green.
-///
-/// # Returns
-/// * `Option<Vec<String>>` - List of connection labels if any exist, None otherwise
-pub fn get_connections() -> Option<Vec<String>> {
-    let sessions_content = get_config_content::<DbSessions>();
-    if sessions_content.is_none() {
-        return None;
-    }
-
-    let sessions_content = sessions_content.unwrap();
-    let mut connections = Vec::new();
-
-    for connection in sessions_content.sessions {
-        let mut label = connection.0.clone();
-        if let Some(active_session) = sessions_content.setup.active_session.clone() {
-            if connection.0 == active_session {
-                label = format!("{} {}", connection.0, "(active)".green())
-            }
-        }
-        connections.push(label);
-    }
-
-    return Some(connections);
-}
-
-#[derive(Debug)]
-pub struct ActiveConnection {
-    pub label: String,
-    pub connection: Session,
-}
-
-/// Get the currently active database connection
-///
-/// # Returns
-/// * `Option<ActiveConnection>` - The active connection if one exists, None otherwise
-pub fn get_active_connection() -> Option<ActiveConnection> {
-    let sessions_content = get_config_content::<DbSessions>();
-    if sessions_content.is_none() {
-        return None;
-    }
-
-    let sessions_content = sessions_content.unwrap();
-    if sessions_content.setup.active_session.is_none() {
-        return None;
-    }
-
-    let active_session = sessions_content.setup.active_session.unwrap();
-    let connection = sessions_content.sessions.get(&active_session);
-    if connection.is_none() {
-        return None;
-    }
-
-    return Some(ActiveConnection {
-        label: active_session,
-        connection: connection.unwrap().clone(),
-    });
-}
-
-/// Set a connection as the active database connection
-///
-/// # Arguments
-/// * `label` - The label of the connection to set as active
-///
-/// # Panics
-/// * Panics if unable to write to the config file
-pub fn set_active_connection(label: &String) {
-    let sessions_content = get_config_content::<DbSessions>();
-    if sessions_content.is_none() {
-        error!("No sessions found".to_string());
-    }
-
-    let mut sessions_content = sessions_content.unwrap();
-    let _ = sessions_content
-        .setup
-        .active_session
-        .insert(label.to_string());
-
-    write_config(sessions_content);
-}
-
-/// Remove a saved database connection
-///
-/// # Arguments
-/// * `label` - The label of the connection to remove
-///
-/// # Panics
-/// * Panics if no sessions exist
-/// * Panics if unable to write to the config file
-pub fn remove_connection(label: String) {
-    let sessions_content = get_config_content::<DbSessions>();
-    if sessions_content.is_none() {
-        error!("No sessions found".to_string());
-    }
-
-    let mut sessions_content = sessions_content.unwrap();
-    sessions_content.sessions.remove(&label);
-
-    if let Some(active_session) = sessions_content.setup.active_session.clone() {
-        if active_session == label {
-            sessions_content.setup.active_session = None;
-        }
-    }
-
-    write_config(sessions_content);
 }

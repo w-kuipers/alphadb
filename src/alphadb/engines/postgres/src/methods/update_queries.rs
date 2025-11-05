@@ -47,6 +47,20 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
     let version_source = parse_version_source_string(version_source)?;
     let versions = get_version_array(&version_source)?;
 
+    match version_source["engine"].as_str() {
+        Some(v) => {
+            if v.to_lowercase() != "postgres" {
+                return Err(AlphaDBError {
+                    error: "incompatible-version-source".to_string(),
+                    message: format!("Tried to update a PostgreSQL database using a version source with engine '{v}'"),
+                    ..Default::default()
+                }
+                .into());
+            }
+        }
+        None => (),
+    }
+
     // Check if database is initialized
     let status = status(db_name, connection)?;
 

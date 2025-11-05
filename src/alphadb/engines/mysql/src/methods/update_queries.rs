@@ -14,17 +14,17 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::methods::status;
-use crate::utils::errors::AlphaDBMysqlError;
 use crate::query::default_data::default_data;
 use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
+use crate::utils::errors::AlphaDBMysqlError;
+use alphadb_core::method_types::Query;
 use alphadb_core::utils::consolidate::default_data::consolidate_default_data;
 use alphadb_core::utils::errors::AlphaDBError;
 use alphadb_core::utils::globals::CONFIG_TABLE_NAME;
 use alphadb_core::utils::json::{array_iter, get_object_keys, object_iter};
 use alphadb_core::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
 use alphadb_core::utils::version_source::{get_version_array, parse_version_source_string};
-use alphadb_core::method_types::Query;
 use alphadb_core::verification::issue::VersionTrace;
 use mysql::*;
 
@@ -46,6 +46,20 @@ pub fn update_queries(db_name: &str, connection: &mut PooledConn, version_source
     let mut queries: Vec<Query> = Vec::new();
     let version_source = parse_version_source_string(version_source)?;
     let versions = get_version_array(&version_source)?;
+
+    match version_source["engine"].as_str() {
+        Some(v) => {
+            if v.to_lowercase() != "mysql" {
+                return Err(AlphaDBError {
+                    error: "incompatible-version-source".to_string(),
+                    message: format!("Tried to update a MySQL database using a version source with engine '{v}'"),
+                    ..Default::default()
+                }
+                .into());
+            }
+        }
+        None => (),
+    }
 
     // Check if database is initialized
     let status = status(db_name, connection)?;

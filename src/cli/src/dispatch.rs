@@ -16,7 +16,7 @@
 use std::path::PathBuf;
 
 use alphadb::{
-    engine::MySQLEngine,
+    engine::{MySQLEngine, PostgresEngine},
     prelude::{AlphaDBEngine, AlphaDBError},
     AlphaDB,
 };
@@ -26,7 +26,7 @@ use colored::Colorize;
 use crate::{
     commands,
     config::{
-        connection::{get_active_connection, remove_connection},
+        connection::{get_active_connection, remove_connection, SessionType},
         setup::Config,
     },
     error,
@@ -103,32 +103,40 @@ pub fn get_db(
     // Check if the current command should have an active database connection
     if let Some(m) = matches.subcommand() {
         if m.0 != "connect" {
-            match get_active_connection() {
-                Some(c) => {
+            let active_connection = match get_active_connection() {
+                Some(c) => c,
+                None => {
+                    return Err(AlphaDBError {
+                        message: format!("{}", "No active database connection.".yellow()),
+                        ..Default::default()
+                    });
+                }
+            };
+
+            match active_connection.connection {
+                SessionType::Mysql(c) => {
                     let password = match decrypt_password(
-                        c.connection.password,
+                        c.password,
                         config.main.secret.clone().unwrap(),
                     ) {
                         Ok(p) => p,
                         Err(_) => {
-                            remove_connection(c.label);
+                            remove_connection(active_connection.label);
                             error!(format!(
                                 "Unable to connect to database {}@{}:{} using saved credentials. The connection has been removed.",
-                                c.connection.database.cyan(),
-                                c.connection.host.cyan(),
-                                c.connection.port.to_string().cyan(),
+                                c.database.cyan(),
+                                c.host.cyan(),
+                                c.port.to_string().cyan(),
                             ));
                         }
                     };
 
-                    // TODO for now this is just a MySQL connection, should later be converted to
-                    // dynamic approach
                     let engine: Box<dyn AlphaDBEngine> = Box::new(MySQLEngine::with_credentials(
-                        &c.connection.host,
-                        &c.connection.user,
+                        &c.host,
+                        &c.user,
                         &password,
-                        &c.connection.database,
-                        c.connection.port,
+                        &c.database,
+                        c.port,
                     ));
                     let mut db = db.set_engine(engine);
                     match db.connect() {
@@ -147,11 +155,47 @@ pub fn get_db(
 
                     return Ok(db);
                 }
-                None => {
-                    return Err(AlphaDBError {
-                        message: format!("{}", "No active database connection.".yellow()),
-                        ..Default::default()
-                    });
+                SessionType::Postgres(c) => {
+                    let password = match decrypt_password(
+                        c.password,
+                        config.main.secret.clone().unwrap(),
+                    ) {
+                        Ok(p) => p,
+                        Err(_) => {
+                            remove_connection(active_connection.label);
+                            error!(format!(
+                                "Unable to connect to database {}@{}:{} using saved credentials. The connection has been removed.",
+                                c.database.cyan(),
+                                c.host.cyan(),
+                                c.port.to_string().cyan(),
+                            ));
+                        }
+                    };
+
+                    let engine: Box<dyn AlphaDBEngine> =
+                        Box::new(PostgresEngine::with_credentials(
+                            &c.host,
+                            &c.user,
+                            &password,
+                            &c.database,
+                            c.port,
+                        ));
+                    let mut db = db.set_engine(engine);
+                    match db.connect() {
+                        Ok(_) => (),
+                        Err(e) => {
+                            error!(e.to_string());
+                        }
+                    };
+
+                    if !db.is_connected {
+                        return Err(AlphaDBError {
+                            message: format!("{}", "No active database connection.".yellow()),
+                            ..Default::default()
+                        });
+                    }
+
+                    return Ok(db);
                 }
             }
         }
