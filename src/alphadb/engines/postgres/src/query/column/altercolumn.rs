@@ -119,9 +119,9 @@ pub fn altercolumn(column_data: &Value, table_name: &str, column_name: &String, 
             return Err(simple_err(format!("Column type '{}' is not (yet) supported", column_type).as_str(), version_trace));
         }
 
-        let mut type_constraint = format!("TYPE {}", column_type);
+        let mut type_constraint = format!("TYPE {}", column_type.to_uppercase());
         if length != -1.0 {
-            type_constraint = format!("{}({})", type_constraint, length);
+            type_constraint = format!("{} ({})", type_constraint, length);
         }
 
         let mut type_stmt = DefineColumn::new();
@@ -145,15 +145,16 @@ pub fn altercolumn(column_data: &Value, table_name: &str, column_name: &String, 
         }
 
         if let Some(d) = default {
-            let mut default_value = format!("'{}'", d);
-
-            if d.parse::<f64>().is_ok() {
-                default_value = d.clone();
+            let mut default_value = d.to_uppercase();
+            let needs_quotes = if d.parse::<f64>().is_ok() {
+                false
             } else {
                 let sql_functions = ["CURRENT_TIMESTAMP", "NOW()", "CURRENT_DATE", "CURRENT_TIME", "LOCALTIME", "LOCALTIMESTAMP", "NULL"];
-                if sql_functions.iter().any(|&func| d.to_uppercase() == func) || (d.to_uppercase().contains("(") && d.to_uppercase().contains(")")) {
-                    default_value = d.clone();
-                }
+                !sql_functions.iter().any(|&func| d.to_uppercase() == func) && !(d.to_uppercase().contains("(") && d.to_uppercase().contains(")"))
+            };
+
+            if needs_quotes {
+                default_value = format!("'{}'", default_value);
             }
 
             let mut default_stmt = DefineColumn::new();

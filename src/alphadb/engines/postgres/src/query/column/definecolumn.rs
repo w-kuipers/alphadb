@@ -199,11 +199,11 @@ mod definecolumn_tests {
     fn ai_and_type() {
         let column = &json!({
             "type": "VARCHAR",
-            "auto_increment": true
+            "generated": true
         });
         let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
         assert!(q.is_err());
-        assert_eq!(q.unwrap_err().message, "Column attributes 'AUTO_INCREMENT' and 'type==VARCHAR' are not compatible.");
+        assert_eq!(q.unwrap_err().message, "Column attributes 'GENERATED' and 'type==VARCHAR' are not compatible.");
     }
 
     // UNIQUE on incompatible type
@@ -234,13 +234,13 @@ mod definecolumn_tests {
     #[test]
     fn ai_and_null() {
         let column = &json!({
-            "type": "INT",
+            "type": "INTEGER",
             "null": true,
-            "auto_increment": true
+            "generated": true
         });
         let q = definecolumn(column, "table", &"col".to_string(), "0.0.1");
         assert!(q.is_err());
-        assert_eq!(q.unwrap_err().message, "Column attributes 'AUTO_INCREMENT' and 'NULL' are not compatible.");
+        assert_eq!(q.unwrap_err().message, "Column attributes 'GENERATED' and 'NULL' are not compatible.");
     }
 
     // Unsupported column type
