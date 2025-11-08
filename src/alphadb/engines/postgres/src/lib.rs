@@ -149,8 +149,11 @@ impl AlphaDBEngine for PostgresEngine {
         verify: bool,
         tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
     ) -> Result<(), AlphaDBError> {
-        // Temporary test implementation
-        Ok(())
+        let (db_name, connection) = get_connection(db_name, &mut self.connection)?;
+        return match methods::update(db_name, connection, version_source, target_version, no_data, verify, tolerated_verification_issue_level) {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.into()),
+        };
     }
 
     fn vacate(&mut self, db_name: &mut Option<String>) -> Result<(), AlphaDBError> {

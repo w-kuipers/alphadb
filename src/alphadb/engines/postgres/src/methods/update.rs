@@ -14,13 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::methods::update_queries;
-use crate::utils::errors::AlphaDBMysqlError;
+use crate::utils::errors::AlphaDBPostgresError;
 use alphadb_core::utils::errors::AlphaDBError;
 use alphadb_core::utils::types::ToleratedVerificationIssueLevel;
-use mysql::prelude::*;
-use mysql::*;
+use postgres::types::ToSql;
+use postgres::Client;
 
-/// Generate and execute MySQL queries to update the tables
+/// Generate and execute PostgreSQL queries to update the tables
 ///
 /// # Arguments
 /// * `db_name` - The name of the database to update
@@ -32,19 +32,19 @@ use mysql::*;
 /// * `tolerated_verification_issue_level` - Level of verification issues to tolerate
 ///
 /// # Returns
-/// * `Result<(), AlphaDBMysqlError>` - Ok if update successful
+/// * `Result<(), AlphaDBPostgresError>` - Ok if update successful
 ///
 /// # Errors
-/// * Returns `AlphaDBMysqlError` if update fails
+/// * Returns `AlphaDBPostgresError` if update fails
 pub fn update(
     db_name: &str,
-    connection: &mut PooledConn,
+    connection: &mut Client,
     version_source: String,
     target_version: Option<&str>,
     no_data: bool,
     verify: bool,
     _tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
-) -> Result<(), AlphaDBMysqlError> {
+) -> Result<(), AlphaDBPostgresError> {
     if verify {
         // TODO
     }
@@ -52,28 +52,12 @@ pub fn update(
     let queries = update_queries(db_name, connection, version_source, target_version, no_data)?;
 
     for query in queries {
+        println!("{:?}", query);
         if let Some(data) = query.data {
-            match connection.exec_drop(query.query, data) {
-                Ok(result) => result,
-                Err(error) => {
-                    return Err(AlphaDBError {
-                        message: error.to_string(),
-                        ..Default::default()
-                    }
-                    .into());
-                }
-            };
+            let params: Vec<&(dyn ToSql + Sync)> = data.iter().map(|value| value as &(dyn ToSql + Sync)).collect();
+            connection.execute(query.query.as_str(), params.as_slice())?;
         } else {
-            match connection.exec_drop(query.query, ()) {
-                Ok(result) => result,
-                Err(error) => {
-                    return Err(AlphaDBError {
-                        message: error.to_string(),
-                        ..Default::default()
-                    }
-                    .into());
-                }
-            };
+            connection.execute(query.query.as_str(), &[])?;
         }
     }
 
