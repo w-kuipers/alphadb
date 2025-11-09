@@ -15,10 +15,20 @@
 
 use crate::methods::update_queries;
 use crate::utils::errors::AlphaDBPostgresError;
-use alphadb_core::utils::errors::AlphaDBError;
+use alphadb_core::method_types::QueryValue;
 use alphadb_core::utils::types::ToleratedVerificationIssueLevel;
 use postgres::types::ToSql;
 use postgres::Client;
+
+fn query_value_to_postgres_param(value: &QueryValue) -> Box<dyn ToSql + Sync> {
+    match value {
+        QueryValue::String(s) => Box::new(s.clone()),
+        QueryValue::Integer(i) => Box::new(*i as i32),
+        QueryValue::Unsigned(u) => Box::new(*u as i32),
+        QueryValue::Float(f) => Box::new(*f as f32),
+        QueryValue::Bool(b) => Box::new(*b),
+    }
+}
 
 /// Generate and execute PostgreSQL queries to update the tables
 ///
@@ -52,10 +62,10 @@ pub fn update(
     let queries = update_queries(db_name, connection, version_source, target_version, no_data)?;
 
     for query in queries {
-        println!("{:?}", query);
         if let Some(data) = query.data {
-            let params: Vec<&(dyn ToSql + Sync)> = data.iter().map(|value| value as &(dyn ToSql + Sync)).collect();
-            connection.execute(query.query.as_str(), params.as_slice())?;
+            let params: Vec<Box<dyn ToSql + Sync>> = data.iter().map(query_value_to_postgres_param).collect();
+            let param_refs: Vec<&(dyn ToSql + Sync)> = params.iter().map(|p| p.as_ref()).collect();
+            connection.execute(query.query.as_str(), param_refs.as_slice())?;
         } else {
             connection.execute(query.query.as_str(), &[])?;
         }

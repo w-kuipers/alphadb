@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use alphadb_core::{method_types::Query, query::default_data::parse_default_data, utils::errors::AlphaDBError};
+use alphadb_core::{method_types::{Query, QueryValue}, query::default_data::parse_default_data, utils::errors::AlphaDBError};
 use serde_json::Value;
 
 pub fn default_data(table_name: &str, item: &Value) -> Result<Query, AlphaDBError> {
@@ -34,6 +34,7 @@ pub fn default_data(table_name: &str, item: &Value) -> Result<Query, AlphaDBErro
 #[cfg(test)]
 mod default_data_tests {
     use super::default_data;
+    use alphadb_core::method_types::QueryValue;
     use serde_json::json;
 
     #[test]
@@ -53,6 +54,12 @@ mod default_data_tests {
 
         let q = default_data("test", &test_item).unwrap();
         assert_eq!(q.query, "INSERT INTO `test` (col1,col2,col4,col5,col6) VALUES (?,?,?,?,?);");
-        assert_eq!(q.data.unwrap(), Vec::from(["value1", "1", "true", "false", &sub.to_string()]));
+        assert_eq!(q.data.unwrap(), Vec::from([
+            QueryValue::String("value1".to_string()),
+            QueryValue::Integer(1),
+            QueryValue::Bool(true),
+            QueryValue::Bool(false),
+            QueryValue::String(sub.to_string())
+        ]));
     }
 }

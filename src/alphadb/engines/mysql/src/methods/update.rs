@@ -15,10 +15,21 @@
 
 use crate::methods::update_queries;
 use crate::utils::errors::AlphaDBMysqlError;
+use alphadb_core::method_types::QueryValue;
 use alphadb_core::utils::errors::{AlphaDBError};
 use alphadb_core::utils::types::ToleratedVerificationIssueLevel;
 use mysql::prelude::*;
 use mysql::*;
+
+fn query_value_to_mysql_value(value: &QueryValue) -> mysql::Value {
+    match value {
+        QueryValue::String(s) => mysql::Value::from(s.as_str()),
+        QueryValue::Integer(i) => mysql::Value::from(*i),
+        QueryValue::Unsigned(u) => mysql::Value::from(*u),
+        QueryValue::Float(f) => mysql::Value::from(*f),
+        QueryValue::Bool(b) => mysql::Value::from(*b),
+    }
+}
 
 /// Generate and execute MySQL queries to update the tables
 ///
@@ -53,7 +64,8 @@ pub fn update(
 
     for query in queries {
         if let Some(data) = query.data {
-            match connection.exec_drop(query.query, data) {
+            let mysql_params: Vec<mysql::Value> = data.iter().map(query_value_to_mysql_value).collect();
+            match connection.exec_drop(query.query, mysql_params) {
                 Ok(result) => result,
                 Err(error) => {
                     return Err(AlphaDBError {

@@ -131,7 +131,6 @@ impl<'a, E: AlphaDBEngine> AlphaDB<E> {
     /// Generate and execute MySQL queries to update the tables
     ///
     /// # Arguments
-    /// * `connection` - Active connection pool to the database
     /// * `version_source` - Complete JSON version source
     /// * `target_version` - Optional version number to update to
     /// * `no_data` - Whether to skip data updates

@@ -18,7 +18,7 @@ use crate::query::default_data::default_data;
 use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
 use crate::utils::errors::AlphaDBMysqlError;
-use alphadb_core::method_types::Query;
+use alphadb_core::method_types::{Query, QueryValue};
 use alphadb_core::utils::consolidate::default_data::consolidate_default_data;
 use alphadb_core::utils::errors::AlphaDBError;
 use alphadb_core::utils::globals::CONFIG_TABLE_NAME;
@@ -199,7 +199,11 @@ pub fn update_queries(db_name: &str, connection: &mut PooledConn, version_source
     // Add query to update the config table
     queries.push(Query {
         query: format!("UPDATE `{CONFIG_TABLE_NAME}` SET `version`=?, `template`=? WHERE `db` = ?;"),
-        data: Some(Vec::from([latest_version, template_name.to_string(), db_name.to_string()])),
+        data: Some(Vec::from([
+            QueryValue::String(latest_version),
+            QueryValue::String(template_name.to_string()),
+            QueryValue::String(db_name.to_string())
+        ])),
     });
 
     Ok(queries)

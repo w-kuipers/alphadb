@@ -13,9 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utils::{
-    errors::AlphaDBError,
-    json::{get_json_boolean, get_json_int, get_json_string, object_iter},
+use crate::{
+    method_types::QueryValue,
+    utils::{
+        errors::AlphaDBError,
+        json::object_iter,
+    },
 };
 use serde_json::Value;
 
@@ -28,7 +31,7 @@ use serde_json::Value;
 /// # Fields
 ///
 /// - `columns`: A vector of column names extracted from JSON object keys
-/// - `values`: A vector of string representations of the corresponding values
+/// - `values`: A vector of QueryValue instances of the corresponding values
 ///
 /// # Lifetime
 ///
@@ -43,8 +46,8 @@ use serde_json::Value;
 pub struct DefaultData<'a> {
     /// Column names extracted from JSON object keys
     pub columns: Vec<&'a str>,
-    /// String representations of the corresponding values
-    pub values: Vec<String>,
+    /// QueryValue instances of the corresponding values
+    pub values: Vec<QueryValue>,
 }
 
 /// Parses JSON data into database-compatible column names and values.
@@ -55,9 +58,9 @@ pub struct DefaultData<'a> {
 ///
 /// # Type Conversion
 ///
-/// - **Boolean**: `true` becomes `"true"`, `false` becomes `"false"`
-/// - **Number**: Converted to string representation using `to_string()`
-/// - **String**: Used as-is
+/// - **Boolean**: Converted to `QueryValue::Bool`
+/// - **Number**: Converted to appropriate `QueryValue` numeric type (Integer, Unsigned, or Float)
+/// - **String**: Converted to `QueryValue::String`
 /// - **Null**: Filtered out (not included in results)
 ///
 /// # Parameters
@@ -95,12 +98,12 @@ pub struct DefaultData<'a> {
 /// 
 /// // Result contains:
 /// // columns: ["username", "user_id", "is_admin", "email"]
-/// // values: ["alice", "42", "false", "alice@example.com"]
+/// // values: [QueryValue::String("alice"), QueryValue::Integer(42), QueryValue::Bool(false), QueryValue::String("alice@example.com")]
 /// // Note: profile_image is excluded because it's null
 /// ```
 pub fn parse_default_data<'a>(item: &'a Value) -> Result<DefaultData<'a>, AlphaDBError> {
     let mut keys: Vec<&str> = Vec::new();
-    let mut values: Vec<String> = Vec::new();
+    let mut values: Vec<QueryValue> = Vec::new();
 
     for key in object_iter(item)? {
         if item[key].is_null() {
@@ -108,18 +111,7 @@ pub fn parse_default_data<'a>(item: &'a Value) -> Result<DefaultData<'a>, AlphaD
         }
 
         keys.push(key);
-
-        if item[key].is_boolean() {
-            if get_json_boolean(&item[key])? {
-                values.push("true".to_string());
-            } else {
-                values.push("false".to_string());
-            }
-        } else if item[key].is_number() {
-            values.push(get_json_int(&item[key])?.to_string());
-        } else {
-            values.push(get_json_string(&item[key])?.to_string());
-        }
+        values.push(QueryValue::from_json(&item[key]));
     }
 
     return Ok(DefaultData { values, columns: keys });
