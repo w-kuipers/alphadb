@@ -91,12 +91,6 @@ pub fn update(
         }
     }
 
-    let queries = db.update_queries(data.clone(), None, nodata);
-
-    for q in queries.unwrap() {
-        println!("{:?}", q);
-    }
-
     let update = db.update(data, None, nodata, noverify, verification_issue_level);
 
     let status = match db.status() {

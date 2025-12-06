@@ -718,8 +718,6 @@ mod get_column_type_tests {
 
         // Check type after drop
         let result_after = get_column_type(get_version_array(&versions).unwrap(), "col", "table", 2);
-        println!("asdfasdfasdf");
-        println!("{:?}", result_after);
         assert_eq!(result_after.unwrap(), None);
     }
 

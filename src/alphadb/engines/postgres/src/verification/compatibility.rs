@@ -24,7 +24,24 @@ use alphadb_core::{
 use serde_json::Value;
 
 /// All columns supported by AlphaDB for PostgreSQL
-pub const SUPPORTED_COLUMN_TYPES: [&str; 15] = ["SERIAL", "INTEGER", "SMALLINT", "BIGINT", "TEXT", "TEXT", "REAL", "NUMERIC", "VARCHAR", "TIMESTAMP", "JSONB", "BOOLEAN", "DATE", "TIMESTAMPTZ", "UUID"];
+pub const SUPPORTED_COLUMN_TYPES: [&str; 16] = [
+    "SERIAL",
+    "BIGSERIAL",
+    "INTEGER",
+    "SMALLINT",
+    "BIGINT",
+    "TEXT",
+    "TEXT",
+    "REAL",
+    "NUMERIC",
+    "VARCHAR",
+    "TIMESTAMP",
+    "JSONB",
+    "BOOLEAN",
+    "DATE",
+    "TIMESTAMPTZ",
+    "UUID",
+];
 
 /// All PostgreSQL column types that do not accept a length, precision, or scale.
 pub const NO_LENGTH_COLUMN_TYPES: [&str; 42] = [
