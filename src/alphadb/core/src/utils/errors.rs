@@ -14,13 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::verification::issue::{VerificationIssue, VerificationIssueLevel, VersionTrace};
+use serde_json::Error as SerdeJsonError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub struct AlphaDBError {
     pub message: String,
     pub error: String,
-    pub version_trace: VersionTrace
+    pub version_trace: VersionTrace,
 }
 
 pub trait Get {
@@ -99,6 +100,16 @@ impl Default for AlphaDBError {
         AlphaDBError {
             message: String::new(),
             error: String::new(),
+            version_trace: VersionTrace::new(),
+        }
+    }
+}
+
+impl From<SerdeJsonError> for AlphaDBError {
+    fn from(error: SerdeJsonError) -> Self {
+        AlphaDBError {
+            message: error.to_string(),
+            error: "serde-json-error".to_string(),
             version_trace: VersionTrace::new(),
         }
     }

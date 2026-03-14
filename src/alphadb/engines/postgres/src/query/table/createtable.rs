@@ -68,7 +68,9 @@ pub fn createtable(version: &serde_json::Value, table_name: &str, version_number
             return Err(incomplete_version_object_err("references", version_trace));
         }
 
-        let mut foreign_key_string = format!("FOREIGN KEY ({}) REFERENCES {} ({})", get_json_string(&foreign_key["from"])?, 
+        let mut foreign_key_string = format!(
+            "FOREIGN KEY ({}) REFERENCES {} ({})",
+            get_json_string(&foreign_key["from"])?,
             get_json_string(&foreign_key["references"])?,
             get_json_string(&foreign_key["to"])?
         );
@@ -149,6 +151,9 @@ mod createtable_tests {
             }
         });
 
-        assert_eq!(createtable(json, "table", "0.0.1").unwrap(), "CREATE TABLE table (col1 VARCHAR(30) NOT NULL UNIQUE, id SERIAL NOT NULL, PRIMARY KEY (id), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE);");
+        assert_eq!(
+            createtable(json, "table", "0.0.1").unwrap(),
+            "CREATE TABLE table (col1 VARCHAR(30) NOT NULL UNIQUE, id SERIAL NOT NULL, PRIMARY KEY (id), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE);"
+        );
     }
 }

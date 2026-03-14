@@ -9,8 +9,7 @@
           "primary_key": "col1",
           "col1": {
             "type": "INTEGER",
-            "length": 7,
-            "generated": "BY DEFAULT"
+            "length": 7
           },
           "col2": {
             "type": "VARCHAR",
@@ -24,7 +23,25 @@
           "col4": {
             "type": "INTEGER",
             "length": 7
-          }
+          },
+          "index": [
+            {
+              "name": "test_index",
+              "type": "btree",
+              "columns": ["col3"],
+              "condition": {
+                "type": "and",
+                "conditions": [
+                  {
+                    "type": "comparison",
+                    "op": "=",
+                    "left": { "type": "column", "name": "status" },
+                    "right": { "type": "value", "value": "pending" }
+                  }
+                ]
+              }
+            }
+          ]
         }
       },
       "default_data": {
@@ -44,8 +61,7 @@
         "table2": {
           "primary_key": "col1",
           "col1": {
-            "type": "INTEGER",
-            "generated": "BY DEFAULT"
+            "type": "INTEGER"
           },
           "col2": {
             "type": "VARCHAR",
@@ -137,11 +153,6 @@
       "altertable": {
         "table2": {
           "modifycolumn": {
-            "col2": {
-              "type": "INTEGER",
-              "unique": true,
-              "null": true
-            },
             "col1": {
               "type": "INTEGER",
               "generated": "BY DEFAULT"

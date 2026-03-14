@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::methods::status;
+use crate::query::createindex;
 use crate::query::default_data::default_data;
 use crate::query::table::altertable::altertable;
 use crate::query::table::createtable::createtable;
@@ -22,7 +23,7 @@ use alphadb_core::method_types::{Query, QueryValue};
 use alphadb_core::utils::consolidate::default_data::consolidate_default_data;
 use alphadb_core::utils::errors::AlphaDBError;
 use alphadb_core::utils::globals::CONFIG_TABLE_NAME;
-use alphadb_core::utils::json::{array_iter, get_object_keys, object_iter};
+use alphadb_core::utils::json::{array_iter, exists_in_object, get_object_keys, object_iter};
 use alphadb_core::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
 use alphadb_core::utils::version_source::{get_version_array, parse_version_source_string};
 use alphadb_core::verification::issue::VersionTrace;
@@ -172,6 +173,15 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
             for table in object_iter(&version["createtable"])? {
                 let q = createtable(version, table, version_number)?;
                 queries.push(Query { query: q, data: None });
+
+                if exists_in_object(&version["createtable"][table], "index")? {
+                    for index in array_iter(&version["createtable"][table]["index"])? {
+                        queries.push(Query {
+                            query: createindex(index, table, version_number)?,
+                            data: None,
+                        });
+                    }
+                }
             }
         }
 
@@ -202,7 +212,7 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
         data: Some(Vec::from([
             QueryValue::String(latest_version),
             QueryValue::String(template_name.to_string()),
-            QueryValue::String(db_name.to_string())
+            QueryValue::String(db_name.to_string()),
         ])),
     });
 
