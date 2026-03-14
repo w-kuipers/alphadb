@@ -1,6 +1,6 @@
 use alphadb_core::utils::error_messages::incomplete_version_object_err;
 use alphadb_core::utils::errors::AlphaDBError;
-use alphadb_core::utils::json::{array_iter, get_json_string, get_object_keys};
+use alphadb_core::utils::json::{array_iter, get_json_boolean, get_json_string, get_object_keys};
 use alphadb_core::verification::issue::VersionTrace;
 use serde_json::Value;
 
@@ -38,6 +38,10 @@ pub fn createindex(index: &Value, table_name: &str, version_number: &str) -> Res
     }
 
     let name = get_json_string(&index["name"])?;
+    let unique = match get_json_boolean(&index["unique"]) {
+        Ok(v) => v,
+        Err(_) => false,
+    };
 
     let index_type = if keys.iter().any(|k| *k == "type") {
         Some(get_json_string(&index["type"])?.to_uppercase())
@@ -59,8 +63,15 @@ pub fn createindex(index: &Value, table_name: &str, version_number: &str) -> Res
     }
 
     let mut sql = match index_type {
-        Some(ref t) => format!("CREATE INDEX {} ON {} USING {} ({})", name, table_name, t, columns.join(", ")),
-        None => format!("CREATE INDEX {} ON {} ({})", name, table_name, columns.join(", ")),
+        Some(ref t) => format!(
+            "CREATE {}INDEX {} ON {} USING {} ({})",
+            if unique { "UNIQUE " } else { "" },
+            name,
+            table_name,
+            t,
+            columns.join(", ")
+        ),
+        None => format!("CREATE {}INDEX {} ON {} ({})", if unique { "UNIQUE " } else { "" }, name, table_name, columns.join(", ")),
     };
 
     // Optional WHERE clause (partial index)
@@ -143,5 +154,19 @@ mod createindex_tests {
         });
         let result = createindex(&index, "my_table", "0.0.1").unwrap();
         assert_eq!(result, "CREATE INDEX test_index ON my_table USING BTREE (col3) WHERE (status = 'pending');");
+    }
+
+    #[test]
+    fn unique_index() {
+        let index = json!({ "name": "idx_unique", "unique": true, "columns": ["col1"] });
+        let result = createindex(&index, "my_table", "0.0.1").unwrap();
+        assert_eq!(result, "CREATE UNIQUE INDEX idx_unique ON my_table (col1);");
+    }
+
+    #[test]
+    fn unique_index_with_type() {
+        let index = json!({ "name": "idx_unique_btree", "unique": true, "type": "btree", "columns": ["col1"] });
+        let result = createindex(&index, "my_table", "0.0.1").unwrap();
+        assert_eq!(result, "CREATE UNIQUE INDEX idx_unique_btree ON my_table USING BTREE (col1);");
     }
 }
