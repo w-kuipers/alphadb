@@ -25,7 +25,7 @@ base64 = "0.22.1"
 aead = "0.5.2"
 aes = "0.8.4"
 thiserror = "1.0.64"
-serde_json = "1.0.133"
+serde_json = { version = "1.0.133", features = ["preserve_order"] }
 ctrlc = "3.4.5"
 openssl = { version = "0.10.68", features = ["vendored"] }
 chrono = "0.4.41"
