@@ -52,36 +52,53 @@ pub fn createtable(version: &serde_json::Value, table_name: &str, version_number
     }
 
     if table_keys.iter().any(|&i| i == "foreign_key") {
-        let foreign_key = get_json_object(&table_data["foreign_key"])?;
-        let foreign_key_keys = foreign_key.keys().collect::<Vec<&String>>();
-        let version_trace = VersionTrace::from([version_number.to_string(), table_name.to_string(), "foreign_key".to_string()]);
+        let foreign_keys = table_data["foreign_key"]
+            .as_array()
+            .ok_or_else(|| AlphaDBError {
+                message: "foreign_key must be an array of objects".to_string(),
+                error: "invalid-structure".to_string(),
+                version_trace: VersionTrace::new(),
+            })?
+            .to_vec();
 
-        if !foreign_key_keys.iter().any(|&i| i == "from") {
-            return Err(incomplete_version_object_err("from", version_trace));
+        for foreign_key_value in &foreign_keys {
+            let foreign_key = foreign_key_value.as_object().ok_or_else(|| AlphaDBError {
+                message: "foreign_key items must be objects".to_string(),
+                error: "invalid-structure".to_string(),
+                version_trace: VersionTrace::new(),
+            })?;
+            let foreign_key_keys = foreign_key.keys().collect::<Vec<&String>>();
+            let version_trace = VersionTrace::from([version_number.to_string(), table_name.to_string(), "foreign_key".to_string()]);
+
+            if !foreign_key_keys.iter().any(|&i| i == "from") {
+                return Err(incomplete_version_object_err("from", version_trace));
+            }
+
+            if !foreign_key_keys.iter().any(|&i| i == "to") {
+                return Err(incomplete_version_object_err("to", version_trace));
+            }
+
+            if !foreign_key_keys.iter().any(|&i| i == "references") {
+                return Err(incomplete_version_object_err("references", version_trace));
+            }
+
+            let mut foreign_key_string = format!(
+                "FOREIGN KEY ({}) REFERENCES {} ({})",
+                get_json_string(&foreign_key_value["from"])?,
+                get_json_string(&foreign_key_value["references"])?,
+                get_json_string(&foreign_key_value["to"])?
+            );
+
+            if foreign_key_keys.iter().any(|&i| i == "on_delete") {
+                foreign_key_string = format!("{foreign_key_string} ON DELETE {}", get_json_string(&foreign_key_value["on_delete"])?.to_uppercase());
+            }
+
+            if foreign_key_keys.iter().any(|&i| i == "on_update") {
+                foreign_key_string = format!("{foreign_key_string} ON UPDATE {}", get_json_string(&foreign_key_value["on_update"])?.to_uppercase());
+            }
+
+            query.constraint(foreign_key_string);
         }
-
-        if !foreign_key_keys.iter().any(|&i| i == "to") {
-            return Err(incomplete_version_object_err("to", version_trace));
-        }
-
-        if !foreign_key_keys.iter().any(|&i| i == "references") {
-            return Err(incomplete_version_object_err("references", version_trace));
-        }
-
-        let mut foreign_key_string = format!("FOREIGN KEY ({}) REFERENCES {} ({})", get_json_string(&foreign_key["from"])?, 
-            get_json_string(&foreign_key["references"])?,
-            get_json_string(&foreign_key["to"])?
-        );
-
-        if foreign_key_keys.iter().any(|&i| i == "on_delete") {
-            foreign_key_string = format!("{foreign_key_string} ON DELETE {}", get_json_string(&foreign_key["on_delete"])?.to_uppercase());
-        }
-
-        if foreign_key_keys.iter().any(|&i| i == "on_update") {
-            foreign_key_string = format!("{foreign_key_string} ON UPDATE {}", get_json_string(&foreign_key["on_update"])?.to_uppercase());
-        }
-
-        query.constraint(foreign_key_string);
     }
 
     query.options("ENGINE = InnoDB");
@@ -99,9 +116,11 @@ mod createtable_tests {
         let column = &json!({
             "createtable": {
                 "table": {
-                    "foreign_key": {
-                        "references": "test"
-                    }
+                    "foreign_key": [
+                        {
+                            "references": "test"
+                        }
+                    ]
                 }
             }
         });
@@ -117,10 +136,12 @@ mod createtable_tests {
         let column = &json!({
             "createtable": {
                 "table": {
-                    "foreign_key": {
-                        "from": "test",
-                        "to": "test"
-                    }
+                    "foreign_key": [
+                        {
+                            "from": "test",
+                            "to": "test"
+                        }
+                    ]
                 }
             }
         });
@@ -140,16 +161,18 @@ mod createtable_tests {
                         "auto_increment": true,
                     },
                     "col1": {"type": "VARCHAR", "length": 30, "unique": true},
-                    "foreign_key": {
-                        "references": "other_table",
-                        "from": "key",
-                        "to": "key",
-                        "on_delete": "cascade",
-                    },
+                    "foreign_key": [
+                        {
+                            "references": "other_table",
+                            "from": "key",
+                            "to": "key",
+                            "on_delete": "cascade",
+                        }
+                    ],
                 }
             }
         });
 
-        assert_eq!(createtable(json, "table", "0.0.1").unwrap(), "CREATE TABLE table (col1 VARCHAR(30) NOT NULL UNIQUE, id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE) ENGINE = InnoDB;");
+        assert_eq!(createtable(json, "table", "0.0.1").unwrap(), "CREATE TABLE table (id INT NOT NULL AUTO_INCREMENT, col1 VARCHAR(30) NOT NULL UNIQUE, PRIMARY KEY (id), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE) ENGINE = InnoDB;");
     }
 }
