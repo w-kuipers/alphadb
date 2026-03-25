@@ -6,7 +6,7 @@ def replace_line(includes: str, new: str, file: str):
         lines = f.readlines()
 
     for i, line in enumerate(lines):
-        if includes in line:
+        if line.strip().startswith(includes):
             lines[i] = new
 
     with open(file, "w") as f:

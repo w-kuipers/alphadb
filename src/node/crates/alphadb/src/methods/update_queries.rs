@@ -36,12 +36,12 @@ pub fn update_queries_wrap(mut cx: FunctionContext) -> JsResult<JsArray> {
     let version_source = cx.argument::<JsString>(2)?.value(&mut cx);
     let target_version = cx.argument::<JsString>(3)?.value(&mut cx);
     let no_data = cx.argument::<JsBoolean>(4)?.value(&mut cx);
-    
+
     // The TypeScript wrapper allows for target_version to be undefined
     // so it's set to NOVERSION if that is the case
     let mut target_version_processed: Option<&str> = None;
     if target_version != "NOVERSION".to_string() {
-        target_version_processed = Some(target_version.as_str()); 
+        target_version_processed = Some(target_version.as_str());
     }
 
     let query_array = cx.empty_array();
@@ -52,7 +52,7 @@ pub fn update_queries_wrap(mut cx: FunctionContext) -> JsResult<JsArray> {
             connection,
             version_source,
             target_version_processed,
-            no_data
+            no_data,
         ) {
             Ok(c) => {
                 // Convert to JS array
@@ -67,7 +67,7 @@ pub fn update_queries_wrap(mut cx: FunctionContext) -> JsResult<JsArray> {
                     match &q.data {
                         Some(d) => {
                             for (di, v) in d.iter().enumerate() {
-                                let v = cx.string(v);
+                                let v = cx.string(v.to_string_lossy());
                                 data.set(&mut cx, di as u32, v)?;
                             }
                         }

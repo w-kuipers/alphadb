@@ -12,12 +12,13 @@ jobs:
     name: Publish to PyPI
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-22.04]
+        # os: [macos-latest, windows-latest, ubuntu-22.04]
+        os: [macos-latest, ubuntu-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 
     needs:
       - build-py
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     environment:
       name: release
       url: https://pypi.org/p/alphadb-mysql
@@ -115,9 +116,9 @@ jobs:
 
     strategy:
       matrix:
-        # os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         # os: [windows-latest]
-        os: [macos-latest, windows-latest, ubuntu-22.04]
+        # os: [macos-latest, windows-latest, ubuntu-22.04]
 
     runs-on: ${{ matrix.os }}
 
