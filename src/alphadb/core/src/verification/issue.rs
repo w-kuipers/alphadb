@@ -122,6 +122,12 @@ pub struct VerificationIssue {
     pub version_trace: VersionTrace,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VerificationIssueDraft {
+    pub level: VerificationIssueLevel,
+    pub message: String,
+}
+
 pub trait IssueCollection {
     fn add(&mut self, issue: VerificationIssue);
 }

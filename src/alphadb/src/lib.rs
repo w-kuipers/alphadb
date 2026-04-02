@@ -23,7 +23,7 @@ pub mod engine {
     #[cfg(feature = "postgres")]
     pub use alphadb_postgres_engine::*;
 
-    pub use alphadb_core::engine::{AlphaDBEngine, AlphaDBVerificationEngine};
+    pub use alphadb_core::engine::{AlphaDBEngine, EngineConfig};
 }
 
 use crate::prelude::AlphaDBError;

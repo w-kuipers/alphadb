@@ -15,12 +15,17 @@
 
 pub use alphadb_core::verification::issue::{IssueCollection, VerificationIssue, VerificationIssueLevel, VersionTrace};
 
+use alphadb_core::engine_config::{AltertableHookParams, ColumnCompatibilityHookParams, CreatetableHookParams, DefaultDataHookParams, VerifyHookParams};
+use alphadb_core::verification::compatibility::{check_column_attributes_compatibility, verify_column_type_compatibility};
 use alphadb_core::{
-    engine::AlphaDBVerificationEngine,
+    engine_config::EngineConfig,
     utils::{
         consolidate::{default_data::consolidate_default_data, primary_key::get_primary_key, table::consolidate_table},
         errors::{AlphaDBError, Get, ToVerificationIssue},
-        json::{get_json_float as adb_get_json_float, get_json_int as adb_get_json_int, get_json_object as adb_get_json_object, get_json_string as adb_get_json_string},
+        json::{
+            exists_in_object as adb_exists_in_object, get_json_float as adb_get_json_float, get_json_int as adb_get_json_int, get_json_object as adb_get_json_object,
+            get_json_string as adb_get_json_string,
+        },
         version_number::parse_version_number as adb_parse_version_number,
         version_source::get_version_array,
     },
@@ -30,22 +35,37 @@ use serde_json::Value;
 
 const SUPPORTED_ENGINES: [&str; 2] = ["mysql", "postgres"];
 
-pub struct AlphaDBVerification<E = ()> {
+fn get_engine_config(name: &str) -> Option<&'static EngineConfig> {
+    #[cfg(feature = "mysql")]
+    if name == "mysql" {
+        return Some(&alphadb_mysql_engine::verification::MYSQL_CONFIG);
+    }
+
+    #[cfg(feature = "postgres")]
+    if name == "postgres" {
+        return Some(&alphadb_postgres_engine::verification::POSTGRES_CONFIG);
+    }
+
+    None
+}
+
+pub struct AlphaDBVerification {
     version_source: Value,
     issues: Vec<VerificationIssue>,
     version_list: Vec<Value>,
-    engine: E,
+    config: &'static EngineConfig,
 }
 
-impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
-    /// Create a new Verification instance with an engine
+impl AlphaDBVerification {
+    /// Create a new Verification instance with an engine configuration
     ///
     /// # Arguments
-    /// * `engine` - The engine instance to use
+    /// * `engine_name` - The engine name (e.g., "mysql", "postgres")
+    /// * `version_source` - The JSON version source string
     ///
     /// # Returns
-    /// * `Verification<'a, E>` - New Verification instance with the specified engine
-    pub fn with_engine(engine: E, version_source: String) -> Result<AlphaDBVerification<E>, AlphaDBError> {
+    /// * `Result<AlphaDBVerification, AlphaDBError>` - New Verification instance
+    pub fn new(version_source: String) -> Result<AlphaDBVerification, AlphaDBError> {
         let version_source: Value = match serde_json::from_str(&version_source) {
             Ok(vs) => vs,
             Err(_) => {
@@ -57,11 +77,30 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
             }
         };
 
+        let no_engine_error = AlphaDBError {
+            error: "no-engine".to_string(),
+            message: "No engine specified. While not required for AlphaDB, this version source is incompatible with the command-line interface.".to_string(),
+            version_trace: VersionTrace::new(),
+        };
+        if !adb_exists_in_object(&version_source, "engine")? {
+            return Err(no_engine_error);
+        }
+
+        let engine = adb_get_json_string(&version_source["engine"])?;
+        if engine.is_empty() {
+            return Err(no_engine_error);
+        }
+
+        let config = get_engine_config(engine).ok_or_else(|| AlphaDBError {
+            message: format!("Engine '{}' is not supported. Supported engines: {:?}", engine, SUPPORTED_ENGINES),
+            ..Default::default()
+        })?;
+
         Ok(AlphaDBVerification {
             version_list: get_version_array(&version_source)?.clone(),
             version_source,
             issues: Vec::new(),
-            engine,
+            config,
         })
     }
 
@@ -70,32 +109,26 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
     /// Will Return true if no issues are found, else it will return a
     /// list with all issues and their levels.
     pub fn verify(&mut self) -> Result<(), Vec<VerificationIssue>> {
+        // Run verify hooks at start
+        for hook in self.config.verification_hooks.verify {
+            let params = VerifyHookParams {
+                version_source: &self.version_source,
+            };
+            if let Err(draft) = hook(&params) {
+                self.issues.push(VerificationIssue {
+                    level: draft.level,
+                    message: draft.message,
+                    version_trace: VersionTrace::new(),
+                });
+            }
+        }
+
         if !exists_in_object(&self.version_source, "name", &mut self.issues, &VersionTrace::new()) {
             self.issues.add(VerificationIssue {
                 level: VerificationIssueLevel::Critical,
                 message: String::from("No rootlevel name specified."),
                 version_trace: VersionTrace::new(),
             });
-        }
-
-        if !exists_in_object(&self.version_source, "engine", &mut self.issues, &VersionTrace::new()) {
-            self.issues.add(VerificationIssue {
-                level: VerificationIssueLevel::High,
-                message: String::from("No engine specified. While not required for AlphaDB, this version source is incompatible with the command-line interface."),
-                version_trace: VersionTrace::new(),
-            });
-        } else {
-            let engine = get_json_string(&self.version_source["engine"], &mut self.issues, &VersionTrace::from(["engine"]));
-
-            if !engine.is_empty() {
-                if !SUPPORTED_ENGINES.contains(&engine) {
-                    self.issues.add(VerificationIssue {
-                        level: VerificationIssueLevel::Critical,
-                        message: format!("Engine '{}' is not supported.", engine),
-                        version_trace: VersionTrace::new(),
-                    });
-                }
-            }
         }
 
         if !exists_in_object(&self.version_source, "version", &mut self.issues, &VersionTrace::new()) {
@@ -207,6 +240,22 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                 for table in ct.keys() {
                     version_trace.push(table.to_string());
 
+                    // Run createtable hooks for each table
+                    for hook in self.config.verification_hooks.createtable {
+                        let params = CreatetableHookParams {
+                            table_name: table,
+                            table_data: &ct[table],
+                            version: version_output,
+                        };
+                        if let Err(draft) = hook(&params) {
+                            self.issues.push(VerificationIssue {
+                                level: draft.level,
+                                message: draft.message,
+                                version_trace: version_trace.clone(),
+                            });
+                        }
+                    }
+
                     for column in get_json_object(&ct[table], &mut self.issues, &version_trace).keys() {
                         version_trace.push(column.to_string());
 
@@ -226,15 +275,7 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                             continue;
                         }
 
-                        self.engine.verify_column_compatibility(
-                            &self.version_list,
-                            &mut self.issues,
-                            table.as_str(),
-                            column,
-                            &createtable[table][column].clone(),
-                            "createtable",
-                            version_output,
-                        )?;
+                        self.verify_column_compatibility(table.as_str(), column, &createtable[table][column].clone(), "createtable", version_output)?;
                         version_trace.pop();
                     }
                     version_trace.pop();
@@ -266,13 +307,28 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
         for table in get_object_keys(&altertable, &mut self.issues, &version_trace) {
             version_trace.push(table.to_string());
 
+            // Run altertable hooks for each table
+            for hook in self.config.verification_hooks.altertable {
+                let params = AltertableHookParams {
+                    table_name: table,
+                    alter_data: &altertable[table],
+                    version: version_output,
+                };
+                if let Err(draft) = hook(&params) {
+                    self.issues.push(VerificationIssue {
+                        level: draft.level,
+                        message: draft.message,
+                        version_trace: version_trace.clone(),
+                    });
+                }
+            }
+
             let table_keys = get_object_keys(&altertable[table], &mut self.issues, &version_trace);
 
             // Modifycolumn
             if table_keys.contains(&&"modifycolumn".to_string()) {
                 for (column_name, column) in altertable[table]["modifycolumn"].as_object().unwrap() {
-                    self.engine
-                        .verify_column_compatibility(&self.version_list, &mut self.issues, table.as_str(), column_name, &column, "altertable", version_output)?;
+                    self.verify_column_compatibility(table.as_str(), column_name, &column, "altertable", version_output)?;
                 }
             }
 
@@ -372,6 +428,22 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                 version_trace.push(format!("table:{table}"));
                 table_version_trace.push(format!("table:{table}"));
 
+                // Run default_data hooks for each table
+                for hook in self.config.verification_hooks.default_data {
+                    let params = DefaultDataHookParams {
+                        table_name: table,
+                        default_data: &consolidated_default_data[table],
+                        version: version_output,
+                    };
+                    if let Err(draft) = hook(&params) {
+                        self.issues.push(VerificationIssue {
+                            level: draft.level,
+                            message: draft.message,
+                            version_trace: version_trace.clone(),
+                        });
+                    }
+                }
+
                 let consolidated_table = match consolidate_table(&self.version_list, table, Some(loop_version_number)) {
                     Ok(t) => t,
                     Err(e) => {
@@ -411,7 +483,7 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                     version_trace.push(format!("column:{column}"));
                     table_version_trace.push(format!("column:{column}"));
 
-                    if !E::NON_COLUMN_TABLE_KEYS.contains(&column.as_str()) {
+                    if !self.config.non_column_table_keys.contains(&column.as_str()) {
                         let null_not_allowed = !exists_in_object(&consolidated_table[column], "null", &mut self.issues, &table_version_trace)
                             || !get_json_boolean(&consolidated_table[column]["null"], &mut self.issues, &table_version_trace);
                         let has_no_default = !exists_in_object(&consolidated_table[column], "default", &mut self.issues, &table_version_trace)
@@ -446,7 +518,7 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                                 }
 
                                 // Verify if the specified default data value is the right type
-                                if E::STRING_COLUMNS.contains(&col_type) {
+                                if self.config.string_columns.contains(&col_type) {
                                     if adb_get_json_string(&dataset[column]).is_err() {
                                         self.issues.push(VerificationIssue {
                                             level: VerificationIssueLevel::Critical,
@@ -455,7 +527,7 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                                         });
                                     }
                                 }
-                                if E::INT_COLUMNS.contains(&col_type) {
+                                if self.config.int_columns.contains(&col_type) {
                                     if adb_get_json_int(&dataset[column]).is_err() {
                                         self.issues.push(VerificationIssue {
                                             level: VerificationIssueLevel::Critical,
@@ -464,7 +536,7 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                                         });
                                     }
                                 }
-                                if E::FLOAT_COLUMNS.contains(&col_type) {
+                                if self.config.float_columns.contains(&col_type) {
                                     if adb_get_json_float(&dataset[column]).is_err() {
                                         self.issues.push(VerificationIssue {
                                             level: VerificationIssueLevel::Critical,
@@ -520,6 +592,89 @@ impl<E: AlphaDBVerificationEngine> AlphaDBVerification<E> {
                 }
                 version_trace.pop();
                 table_version_trace.pop();
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Verify column compatibility using the engine configuration
+    fn verify_column_compatibility(&mut self, table: &str, column: &str, data: &Value, method: &str, version: &str) -> Result<(), AlphaDBError> {
+        use alphadb_core::utils::{consolidate::column::get_column_type, version_number::parse_version_number as adb_parse_version_number};
+
+        let version_trace = VersionTrace::from([version.to_string(), method.to_string(), format!("table:{table}"), format!("column:{column}")]);
+        let data_keys = get_object_keys(data, &mut self.issues, &version_trace);
+
+        // Verify if column attributes are compatible with each other
+        for rule in self.config.attribute_compatibility_rules {
+            if let Err(incompatible_keys) = check_column_attributes_compatibility(rule, &data_keys) {
+                for key in incompatible_keys {
+                    self.issues.push(VerificationIssue {
+                        level: VerificationIssueLevel::Critical,
+                        message: format!("Column attributes {} and {} are incompatible", rule.attribute.to_uppercase(), key.to_uppercase()),
+                        version_trace: version_trace.clone(),
+                    });
+                }
+            }
+        }
+
+        // If a column type is not defined, we can not check the types compatibility
+        let column_type = match get_column_type(&self.version_list, column, table, adb_parse_version_number(version)?) {
+            Ok(ct) => ct,
+            Err(_) => {
+                // The get_column_type function could error because of an issue that has already been
+                // adressed earlier in the verification process, this function should not create
+                // additional issues as they will be solved by solving the earlier ones.
+                // We can check the type in a less reliable way here.
+                let recreate = match data["recreate"].is_boolean() {
+                    true => get_json_boolean(&data["recreate"], &mut self.issues, &version_trace),
+                    false => false,
+                };
+
+                let mut ct = None;
+
+                if !data_keys.contains(&&"type".to_string()) {
+                    if method != "createtable" && (!data_keys.contains(&&"recreate".to_string()) || recreate == false) {
+                        ct = Some("".to_string());
+                    }
+                } else if method != "createtable" && data["type"].is_null() {
+                    ct = Some("".to_string());
+                } else {
+                    let column_type = get_json_string(&data["type"], &mut self.issues, &version_trace);
+                    ct = Some(column_type.to_string());
+                }
+
+                ct
+            }
+        };
+
+        if let Some(column_type) = column_type {
+            if !column_type.is_empty() {
+                verify_column_type_compatibility(&mut self.issues, &column_type, self.config.type_compatibility_rules, &data_keys, &version_trace);
+            }
+        } else {
+            self.issues.push(VerificationIssue {
+                level: VerificationIssueLevel::Critical,
+                message: format!("Does not contain a column type"),
+                version_trace: version_trace.clone(),
+            });
+        }
+
+        // Run column_compatibility hooks for each column
+        for hook in self.config.verification_hooks.column_compatibility {
+            let params = ColumnCompatibilityHookParams {
+                table_name: table,
+                column_name: column,
+                column_data: data,
+                method,
+                version,
+            };
+            if let Err(draft) = hook(&params) {
+                self.issues.push(VerificationIssue {
+                    level: draft.level,
+                    message: draft.message,
+                    version_trace: version_trace.clone(),
+                });
             }
         }
 

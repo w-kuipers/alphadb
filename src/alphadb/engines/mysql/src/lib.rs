@@ -26,7 +26,6 @@ use alphadb_core::{
 };
 use mysql::PooledConn;
 use thiserror::Error;
-pub use verification::MySQLVerificationEngine;
 
 #[derive(Error, Debug)]
 pub enum MySQLEngineError {

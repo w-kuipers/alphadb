@@ -14,6 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod compatibility;
-pub mod verification;
+pub mod config;
 
-pub use verification::MySQLVerificationEngine;
+// Re-export the config for easy access
+pub use config::MYSQL_CONFIG;
+
+// Note: MySQLVerificationEngine has been removed in favor of the simpler
+// configuration-driven approach using MYSQL_CONFIG with AlphaDBVerification.

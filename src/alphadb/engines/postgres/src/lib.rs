@@ -26,7 +26,6 @@ use alphadb_core::{
 };
 use postgres::Client;
 use thiserror::Error;
-pub use verification::PostgresVerificationEngine;
 
 #[derive(Error, Debug)]
 pub enum PostgresEngineError {

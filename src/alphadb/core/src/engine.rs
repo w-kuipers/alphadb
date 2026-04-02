@@ -1,10 +1,10 @@
-use serde_json::Value;
-
 use crate::{
     method_types::{Init, Query, Status},
     utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel},
-    verification::issue::VerificationIssue,
 };
+
+// Re-export engine config
+pub use crate::engine_config::EngineConfig;
 
 // Base engine trait that all engines must implement
 pub trait AlphaDBEngine {
@@ -81,27 +81,4 @@ impl<T: AlphaDBEngine + ?Sized> AlphaDBEngine for Box<T> {
     fn vacate(&mut self, db_name: &mut Option<String>) -> Result<(), AlphaDBError> {
         (**self).vacate(db_name)
     }
-}
-
-// Base engine trait that all verification engines must implement
-pub trait AlphaDBVerificationEngine {
-    /// All the version source table keys that do not represent a column
-    const NON_COLUMN_TABLE_KEYS: &'static [&'static str];
-    /// All column types that should take a float value as inserted data
-    const FLOAT_COLUMNS: &'static [&'static str];
-    /// All column types that should take an integer value as inserted data
-    const INT_COLUMNS: &'static [&'static str];
-    /// All column types that should take a string value as inserted data
-    const STRING_COLUMNS: &'static [&'static str];
-
-    fn verify_column_compatibility(
-        &mut self,
-        version_list: &Vec<Value>,
-        issues: &mut Vec<VerificationIssue>,
-        table_name: &str,
-        column_name: &str,
-        data: &Value,
-        method: &str,
-        version_output: &str,
-    ) -> Result<(), AlphaDBError>;
 }

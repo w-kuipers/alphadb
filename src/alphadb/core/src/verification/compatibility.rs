@@ -21,6 +21,7 @@ use crate::{
 };
 
 /// Compatibility rule for type-attribute incompatibilities
+#[derive(Debug)]
 pub struct ColumnCompatibilityRule {
     pub incompatible: &'static [&'static str],
     pub attribute: &'static str,

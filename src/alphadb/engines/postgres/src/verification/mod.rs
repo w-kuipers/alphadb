@@ -14,6 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod compatibility;
-pub mod verification;
+pub mod config;
 
-pub use verification::PostgresVerificationEngine;
+// Re-export the config for easy access
+pub use config::POSTGRES_CONFIG;
+
+// Note: PostgresVerificationEngine has been removed in favor of the simpler
+// configuration-driven approach using POSTGRES_CONFIG with AlphaDBVerification.
