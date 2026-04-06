@@ -81,7 +81,7 @@ pub struct DefaultData<'a> {
 ///
 /// ```rust
 /// use serde_json::json;
-/// use alphadb_core::query::default_data::parse_default_data;
+/// use alphadb::core::query::default_data::parse_default_data;
 ///
 /// let user_data = json!({
 ///     "username": "alice",

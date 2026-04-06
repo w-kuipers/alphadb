@@ -56,7 +56,7 @@ impl DefineColumn {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::column::DefineColumn;
     /// let column = DefineColumn::new();
     /// // All fields are empty and ready for configuration
     /// ```
@@ -88,7 +88,7 @@ impl DefineColumn {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let column = DefineColumn::new()
     ///     .name("user_id")
@@ -117,7 +117,7 @@ impl DefineColumn {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let column = DefineColumn::new()
     ///     .method("ADD COLUMN")
@@ -149,7 +149,7 @@ impl DefineColumn {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let column = DefineColumn::new()
     ///     .name("description")
@@ -178,7 +178,7 @@ impl DefineColumn {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let column = DefineColumn::new()
     ///     .name("title")
@@ -210,7 +210,7 @@ impl DefineColumn {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let column = DefineColumn::new()
     ///     .name("email")
@@ -243,7 +243,7 @@ impl DefineColumn {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let column = DefineColumn::new()
     ///     .name("status")
@@ -275,7 +275,7 @@ impl DefineColumn {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let column = DefineColumn::new()
     ///     .name("count")
@@ -310,7 +310,7 @@ impl DefineColumn {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let column = DefineColumn::new()
     ///     .method("ADD COLUMN")

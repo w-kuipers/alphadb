@@ -91,8 +91,8 @@ impl StructureQuery {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::build::StructureQuery;
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::build::StructureQuery;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let mut query = StructureQuery::createtable();
     /// let mut id_column = DefineColumn::new();
@@ -121,8 +121,8 @@ impl StructureQuery {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::build::StructureQuery;
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::build::StructureQuery;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let mut query = StructureQuery::altertable();
     /// let mut timestamp_column = DefineColumn::new();
@@ -156,8 +156,8 @@ impl StructureQuery {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::build::StructureQuery;
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::build::StructureQuery;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let mut query = StructureQuery::createtable();
     /// let mut id_column = DefineColumn::new();
@@ -193,8 +193,8 @@ impl StructureQuery {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::build::StructureQuery;
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::build::StructureQuery;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let mut query = StructureQuery::createtable();
     /// let mut id_column = DefineColumn::new();
@@ -231,8 +231,8 @@ impl StructureQuery {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::build::StructureQuery;
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::build::StructureQuery;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let mut query = StructureQuery::createtable();
     /// let mut id_column = DefineColumn::new();
@@ -269,8 +269,8 @@ impl StructureQuery {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::build::StructureQuery;
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::build::StructureQuery;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let mut query = StructureQuery::createtable();
     /// let mut item_column = DefineColumn::new();
@@ -302,8 +302,8 @@ impl StructureQuery {
     /// # Examples
     ///
     /// ```rust
-    /// use alphadb_core::query::build::StructureQuery;
-    /// use alphadb_core::query::column::DefineColumn;
+    /// use alphadb::core::query::build::StructureQuery;
+    /// use alphadb::core::query::column::DefineColumn;
     ///
     /// let mut query = StructureQuery::createtable();
     /// let mut session_column = DefineColumn::new();
