@@ -17,7 +17,7 @@ use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
 use crate::error;
 use crate::utils::title;
-use alphadb::core::utils::consolidate_version_source;
+use alphadb::core::utils::consolidate::consolidate_version_source;
 use chrono::Local;
 use colored::Colorize;
 use std::fs;

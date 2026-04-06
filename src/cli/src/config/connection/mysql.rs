@@ -14,13 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::commands::Connection;
-use crate::config::connection::connection::{DbSessions, SessionType, MysqlSession};
+use crate::config::connection::connection::{DbSessions, MysqlSession, SessionType};
 use crate::config::setup::{
     get_config_content, get_home, Config, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE,
 };
 use crate::error;
 use crate::utils::encrypt_password;
-use alphadb::{engine::MySQLEngine, AlphaDB};
+use alphadb::{engine::mysql::MySQLEngine, AlphaDB};
 use colored::Colorize;
 use inquire::{required, CustomType, Password, Text};
 use std::fs;
@@ -112,7 +112,7 @@ pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
     // Get current file contents
     let mut sessions_content = match get_config_content::<DbSessions>() {
         Some(s) => s,
-        None => DbSessions::default()
+        None => DbSessions::default(),
     };
 
     sessions_content.sessions.insert(
@@ -127,7 +127,10 @@ pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
     );
 
     if activate {
-        let _ = sessions_content.setup.active_session.insert(label.to_string());
+        let _ = sessions_content
+            .setup
+            .active_session
+            .insert(label.to_string());
     }
 
     let toml_string = match toml::to_string(&sessions_content) {

@@ -17,7 +17,7 @@ use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
 use crate::error;
 use crate::utils::title;
-use alphadb::core::utils::get_version_trace_string;
+use alphadb::core::utils::errors::get_version_trace_string;
 use alphadb::prelude::Get;
 use alphadb::verification::{AlphaDBVerification, VerificationIssueLevel};
 use colored::Colorize;

@@ -16,7 +16,7 @@
 use std::path::PathBuf;
 
 use alphadb::{
-    engine::{MySQLEngine, PostgresEngine},
+    engine::{mysql::MySQLEngine, postgres::PostgresEngine},
     prelude::{AlphaDBEngine, AlphaDBError},
     AlphaDB,
 };
