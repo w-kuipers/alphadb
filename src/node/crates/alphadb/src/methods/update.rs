@@ -15,7 +15,7 @@
 
 use crate::types::PooledConnWrap;
 use crate::utils::get_connection;
-use alphadb::engine::methods::update;
+use alphadb::engine::mysql::methods::update;
 use alphadb::prelude::*;
 use neon::prelude::*;
 use std::cell::RefCell;
@@ -43,18 +43,19 @@ pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     // so it's set to NOVERSION if that is the case
     let mut target_version_processed: Option<&str> = None;
     if target_version != "NOVERSION".to_string() {
-        target_version_processed = Some(target_version.as_str()); 
+        target_version_processed = Some(target_version.as_str());
     }
 
-    // The TypeScript version of the issuelevel is strings, they need to 
+    // The TypeScript version of the issuelevel is strings, they need to
     // be mapped to the Enum
-    let allowed_error_priority_processed: ToleratedVerificationIssueLevel = match allowed_error_priority.as_str() {
-        "LOW" => ToleratedVerificationIssueLevel::Low,
-        "HIGH" => ToleratedVerificationIssueLevel::High,
-        "CRITICAL" => ToleratedVerificationIssueLevel::Critical,
-        "ALL" => ToleratedVerificationIssueLevel::All,
-        _ => ToleratedVerificationIssueLevel::Low
-    };
+    let allowed_error_priority_processed: ToleratedVerificationIssueLevel =
+        match allowed_error_priority.as_str() {
+            "LOW" => ToleratedVerificationIssueLevel::Low,
+            "HIGH" => ToleratedVerificationIssueLevel::High,
+            "CRITICAL" => ToleratedVerificationIssueLevel::Critical,
+            "ALL" => ToleratedVerificationIssueLevel::All,
+            _ => ToleratedVerificationIssueLevel::Low,
+        };
 
     if let Some(connection) = connection.inner.as_mut() {
         match update(
@@ -64,10 +65,10 @@ pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
             target_version_processed,
             no_data,
             verify,
-            allowed_error_priority_processed
+            allowed_error_priority_processed,
         ) {
             Ok(_) => {
-                return Ok(cx.undefined());     
+                return Ok(cx.undefined());
             }
             Err(e) => cx.throw_error(e.message())?,
         }

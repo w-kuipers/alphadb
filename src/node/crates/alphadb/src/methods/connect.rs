@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::types::PooledConnWrap;
-use alphadb::engine::methods::connect;
+use alphadb::engine::mysql::methods::connect;
 use alphadb::prelude::*;
 use neon::prelude::*;
 use std::cell::RefCell;
