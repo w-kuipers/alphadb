@@ -16,3 +16,5 @@
 pub mod compatibility;
 pub mod json;
 pub mod issue;
+pub mod foreign_key;
+pub mod index;

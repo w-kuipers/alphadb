@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use alphadb_core::verification::foreign_key::verify_foreign_key;
+use alphadb_core::verification::index::verify_index;
 pub use alphadb_core::verification::issue::{IssueCollection, VerificationIssue, VerificationIssueLevel, VersionTrace};
 
 use alphadb_core::engine_config::{AltertableHookParams, ColumnCompatibilityHookParams, CreatetableHookParams, DefaultDataHookParams, VerifyHookParams};
@@ -272,6 +274,24 @@ impl AlphaDBVerification {
                             }
 
                             version_trace.pop();
+                            continue;
+                        }
+
+                        if column == "foreign_key" {
+                            match verify_foreign_key(&ct[table][column], &mut self.issues, &version_trace) {
+                                Ok(_) => (),
+                                Err(e) => e.to_verification_issue(&mut self.issues),
+                            }
+
+                            continue;
+                        }
+
+                        if column == "index" {
+                            match verify_index(&ct[table][column], &mut self.issues, &version_trace) {
+                                Ok(_) => (),
+                                Err(e) => e.to_verification_issue(&mut self.issues),
+                            }
+
                             continue;
                         }
 
