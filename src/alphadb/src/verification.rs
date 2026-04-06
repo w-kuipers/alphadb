@@ -13,13 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use alphadb_core::verification::foreign_key::verify_foreign_key;
-use alphadb_core::verification::index::verify_index;
-pub use alphadb_core::verification::issue::{IssueCollection, VerificationIssue, VerificationIssueLevel, VersionTrace};
+use crate::core::verification::foreign_key::verify_foreign_key;
+use crate::core::verification::index::verify_index;
+pub use crate::core::verification::issue::{IssueCollection, VerificationIssue, VerificationIssueLevel, VersionTrace};
 
-use alphadb_core::engine_config::{AltertableHookParams, ColumnCompatibilityHookParams, CreatetableHookParams, DefaultDataHookParams, VerifyHookParams};
-use alphadb_core::verification::compatibility::{check_column_attributes_compatibility, verify_column_type_compatibility};
-use alphadb_core::{
+use crate::core::engine_config::{AltertableHookParams, ColumnCompatibilityHookParams, CreatetableHookParams, DefaultDataHookParams, VerifyHookParams};
+use crate::core::verification::compatibility::{check_column_attributes_compatibility, verify_column_type_compatibility};
+use crate::core::{
     engine_config::EngineConfig,
     utils::{
         consolidate::{default_data::consolidate_default_data, primary_key::get_primary_key, table::consolidate_table},
@@ -40,12 +40,12 @@ const SUPPORTED_ENGINES: [&str; 2] = ["mysql", "postgres"];
 fn get_engine_config(name: &str) -> Option<&'static EngineConfig> {
     #[cfg(feature = "mysql")]
     if name == "mysql" {
-        return Some(&alphadb_mysql_engine::verification::MYSQL_CONFIG);
+        return Some(&crate::engine::mysql::verification::MYSQL_CONFIG);
     }
 
     #[cfg(feature = "postgres")]
     if name == "postgres" {
-        return Some(&alphadb_postgres_engine::verification::POSTGRES_CONFIG);
+        return Some(&crate::engine::postgres::verification::POSTGRES_CONFIG);
     }
 
     None
@@ -620,7 +620,7 @@ impl AlphaDBVerification {
 
     /// Verify column compatibility using the engine configuration
     fn verify_column_compatibility(&mut self, table: &str, column: &str, data: &Value, method: &str, version: &str) -> Result<(), AlphaDBError> {
-        use alphadb_core::utils::{consolidate::column::get_column_type, version_number::parse_version_number as adb_parse_version_number};
+        use crate::core::utils::{consolidate::column::get_column_type, version_number::parse_version_number as adb_parse_version_number};
 
         let version_trace = VersionTrace::from([version.to_string(), method.to_string(), format!("table:{table}"), format!("column:{column}")]);
         let data_keys = get_object_keys(data, &mut self.issues, &version_trace);

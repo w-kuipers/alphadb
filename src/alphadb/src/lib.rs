@@ -15,24 +15,14 @@
 pub mod core;
 pub mod prelude;
 pub mod verification;
-
-pub mod engine {
-    #[cfg(feature = "mysql")]
-    pub use alphadb_mysql_engine::*;
-
-    #[cfg(feature = "postgres")]
-    pub use alphadb_postgres_engine::*;
-
-    pub use alphadb_core::engine::{AlphaDBEngine, EngineConfig};
-}
+pub mod engine;
 
 use crate::prelude::AlphaDBError;
-use alphadb_core::{
+use crate::core::{
     engine::AlphaDBEngine,
     method_types::{Init, Query, Status},
     utils::types::ToleratedVerificationIssueLevel,
 };
-use mysql::*;
 
 #[derive(Debug)]
 pub struct AlphaDB<E = ()> {
