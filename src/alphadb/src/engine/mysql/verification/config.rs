@@ -25,7 +25,7 @@ pub const MYSQL_CONFIG: EngineConfig = EngineConfig {
     string_columns: &["TEXT", "LONGTEXT", "VARCHAR", "DATETIME", "JSON"],
     int_columns: &["INT", "TINYINT", "BIGINT", "DATETIME"],
     float_columns: &["FLOAT", "DECIMAL"],
-    supported_column_types: &["INT", "TINYINT", "BIGINT", "TEXT", "LONGTEXT", "FLOAT", "DECIMAL", "VARCHAR", "DATETIME", "JSON"],
+    supported_column_types: &["INT", "TINYINT", "BIGINT", "TEXT", "LONGTEXT", "FLOAT", "DECIMAL", "VARCHAR", "DATETIME", "JSON", "BINARY"],
 
     type_compatibility_rules: &[
         ColumnCompatibilityRule {

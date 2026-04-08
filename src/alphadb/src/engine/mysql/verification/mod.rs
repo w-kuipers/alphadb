@@ -16,8 +16,5 @@
 pub mod compatibility;
 pub mod config;
 
-// Re-export the config for easy access
 pub use config::MYSQL_CONFIG;
 
-// Note: MySQLVerificationEngine has been removed in favor of the simpler
-// configuration-driven approach using MYSQL_CONFIG with AlphaDBVerification.

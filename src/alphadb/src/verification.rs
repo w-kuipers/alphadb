@@ -672,6 +672,14 @@ impl AlphaDBVerification {
             if !column_type.is_empty() {
                 verify_column_type_compatibility(&mut self.issues, &column_type, self.config.type_compatibility_rules, &data_keys, &version_trace);
             }
+
+            if !self.config.supported_column_types.contains(&&column_type.as_str()) {
+                self.issues.push(VerificationIssue {
+                    level: VerificationIssueLevel::Critical,
+                    message: format!("Column type {} is currently not supported", column_type),
+                    version_trace: version_trace.clone(),
+                });
+            }
         } else {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Critical,

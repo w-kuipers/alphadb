@@ -16,8 +16,4 @@
 pub mod compatibility;
 pub mod config;
 
-// Re-export the config for easy access
 pub use config::POSTGRES_CONFIG;
-
-// Note: PostgresVerificationEngine has been removed in favor of the simpler
-// configuration-driven approach using POSTGRES_CONFIG with AlphaDBVerification.
