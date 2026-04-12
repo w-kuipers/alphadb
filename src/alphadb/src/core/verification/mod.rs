@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod compatibility;
-pub mod json;
-pub mod issue;
 pub mod foreign_key;
 pub mod index;
+pub mod issue;
+pub mod json;

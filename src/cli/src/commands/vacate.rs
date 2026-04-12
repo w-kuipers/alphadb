@@ -15,9 +15,7 @@
 
 use crate::config::connection::SessionType;
 use crate::utils::title;
-use crate::{config::connection::get_active_connection, error};
-use alphadb::prelude::AlphaDBEngine;
-use alphadb::AlphaDB;
+use crate::{config::connection::get_active_connection, engine_wrapper::DynamicAlphaDB, error};
 use colored::Colorize;
 use inquire::{ui::RenderConfig, Confirm};
 
@@ -25,7 +23,7 @@ use inquire::{ui::RenderConfig, Confirm};
 /// User should select a version source
 ///
 /// - db: AlphaDB instance  
-pub fn vacate(db: &mut AlphaDB<Box<dyn AlphaDBEngine>>) {
+pub fn vacate(db: &mut DynamicAlphaDB) {
     title("Vacate");
 
     println!(

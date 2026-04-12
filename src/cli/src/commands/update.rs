@@ -16,10 +16,10 @@
 use crate::config::connection::{get_active_connection, SessionType};
 use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
+use crate::engine_wrapper::DynamicAlphaDB;
 use crate::error;
 use crate::utils::{title, AVAILABLE_ENGINES};
-use alphadb::prelude::{AlphaDBEngine, Get, ToleratedVerificationIssueLevel};
-use alphadb::AlphaDB;
+use alphadb::prelude::{Get, ToleratedVerificationIssueLevel};
 use colored::Colorize;
 use std::fs;
 use std::path::PathBuf;
@@ -30,7 +30,7 @@ use std::path::PathBuf;
 /// - db: AlphaDB instance  
 pub fn update(
     config: &Config,
-    db: &mut AlphaDB<Box<dyn AlphaDBEngine>>,
+    db: &mut DynamicAlphaDB,
     nodata: bool,
     noverify: bool,
     tolerated_verification_level: String,

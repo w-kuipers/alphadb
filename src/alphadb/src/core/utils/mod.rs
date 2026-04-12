@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod error_messages;
-pub mod globals;
-pub mod version_number;
 pub mod consolidate;
-pub mod types;
+pub mod error_messages;
 pub mod errors;
+pub mod globals;
 pub mod json;
+pub mod types;
+pub mod version_number;
 pub mod version_source;

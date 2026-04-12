@@ -16,7 +16,7 @@
 use crate::core::utils::json::{array_iter, exists_in_array, get_json_string, get_object_keys};
 use crate::core::utils::version_number::parse_version_number;
 use crate::core::utils::{errors::AlphaDBError, json::exists_in_object};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 #[derive(Debug, PartialEq)]
 pub struct ColumnRename {

@@ -14,13 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use alphadb::core::method_types::{Init, Query as AdbQuery};
-use alphadb::engine::methods::connect;
-use alphadb::engine::methods::init;
-use alphadb::engine::methods::status;
-use alphadb::engine::methods::update;
-use alphadb::engine::methods::update_queries;
-use alphadb::engine::methods::vacate;
-use alphadb::engine::utils::connection::get_connection;
+use alphadb::engine::mysql::methods::connect;
+use alphadb::engine::mysql::methods::init;
+use alphadb::engine::mysql::methods::status;
+use alphadb::engine::mysql::methods::update;
+use alphadb::engine::mysql::methods::update_queries;
+use alphadb::engine::mysql::methods::vacate;
+use alphadb::engine::mysql::utils::connection::get_connection;
 use alphadb::prelude::*;
 use mysql::PooledConn;
 use pyo3::exceptions::PyRuntimeError;

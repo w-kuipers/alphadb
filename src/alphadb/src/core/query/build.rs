@@ -97,7 +97,7 @@ impl StructureQuery {
     /// let mut query = StructureQuery::createtable();
     /// let mut id_column = DefineColumn::new();
     /// id_column.name("id").datatype("INT").constraint("PRIMARY KEY");
-    /// 
+    ///
     /// let result = query.table("products").definition(id_column.clone()).build();
     /// // Result: "CREATE TABLE products (id INT PRIMARY KEY);"
     /// ```
@@ -128,7 +128,7 @@ impl StructureQuery {
     /// let mut timestamp_column = DefineColumn::new();
     /// timestamp_column.method("ADD COLUMN").name("created_at")
     ///     .datatype("TIMESTAMP").default("CURRENT_TIMESTAMP").default_raw(true);
-    /// 
+    ///
     /// let result = query.table("users").definition(timestamp_column.clone()).build();
     /// // Result: "ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"
     /// ```
@@ -164,7 +164,7 @@ impl StructureQuery {
     /// id_column.name("order_id").datatype("INT").constraint("AUTO_INCREMENT");
     /// let mut name_column = DefineColumn::new();
     /// name_column.name("customer_name").datatype("VARCHAR").size("100");
-    /// 
+    ///
     /// let result = query.table("orders")
     ///     .definition(id_column.clone())
     ///     .definition(name_column.clone())
@@ -201,7 +201,7 @@ impl StructureQuery {
     /// id_column.name("user_id").datatype("INT");
     /// let mut email_column = DefineColumn::new();
     /// email_column.name("email").datatype("VARCHAR").size("255");
-    /// 
+    ///
     /// let result = query.table("user_profiles")
     ///     .definition(id_column.clone())
     ///     .definition(email_column.clone())
@@ -239,7 +239,7 @@ impl StructureQuery {
     /// id_column.name("id").datatype("INT").constraint("AUTO_INCREMENT");
     /// let mut message_column = DefineColumn::new();
     /// message_column.name("message").datatype("TEXT");
-    /// 
+    ///
     /// let result = query.table("logs")
     ///     .definition(id_column.clone())
     ///     .definition(message_column.clone())
@@ -275,7 +275,7 @@ impl StructureQuery {
     /// let mut query = StructureQuery::createtable();
     /// let mut item_column = DefineColumn::new();
     /// item_column.name("item_id").datatype("INT");
-    /// 
+    ///
     /// let mut result = query.table("inventory").definition(item_column.clone()).build();
     /// // Result: "CREATE TABLE inventory (item_id INT);"
     /// ```
@@ -310,7 +310,7 @@ impl StructureQuery {
     /// session_column.name("session_id").datatype("VARCHAR").size("128").constraint("PRIMARY KEY");
     /// let mut user_column = DefineColumn::new();
     /// user_column.name("user_id").datatype("INT").constraint("NOT NULL");
-    /// 
+    ///
     /// let result = query.table("sessions")
     ///     .definition(session_column.clone())
     ///     .definition(user_column.clone())

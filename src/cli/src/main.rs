@@ -16,6 +16,7 @@
 mod commands;
 mod config;
 mod dispatch;
+mod engine_wrapper;
 mod parse;
 mod utils;
 

@@ -15,11 +15,7 @@
 
 use std::path::PathBuf;
 
-use alphadb::{
-    engine::{mysql::MySQLEngine, postgres::PostgresEngine},
-    prelude::{AlphaDBEngine, AlphaDBError},
-    AlphaDB,
-};
+use alphadb::prelude::AlphaDBError;
 use clap::ArgMatches;
 use colored::Colorize;
 
@@ -29,12 +25,13 @@ use crate::{
         connection::{get_active_connection, remove_connection, SessionType},
         setup::Config,
     },
+    engine_wrapper::DynamicAlphaDB,
     error,
     utils::decrypt_password,
 };
 
 /// Execute the right commands based on parsed commandline input
-pub fn dispatch(matches: &ArgMatches, config: &Config, mut db: AlphaDB<Box<dyn AlphaDBEngine>>) {
+pub fn dispatch(matches: &ArgMatches, config: &Config, mut db: DynamicAlphaDB) {
     match matches.subcommand() {
         Some(("connect", _query_matches)) => commands::connect(&config),
         Some(("init", _query_matches)) => commands::init(&mut db),
@@ -94,12 +91,7 @@ pub fn dispatch(matches: &ArgMatches, config: &Config, mut db: AlphaDB<Box<dyn A
 }
 
 /// Get the AlphaDB instance
-pub fn get_db(
-    matches: &ArgMatches,
-    config: &Config,
-) -> Result<AlphaDB<Box<dyn AlphaDBEngine>>, AlphaDBError> {
-    let mut db = AlphaDB::new();
-
+pub fn get_db(matches: &ArgMatches, config: &Config) -> Result<DynamicAlphaDB, AlphaDBError> {
     // Check if the current command should have an active database connection
     if let Some(m) = matches.subcommand() {
         if m.0 != "connect" {
@@ -131,22 +123,15 @@ pub fn get_db(
                         }
                     };
 
-                    let engine: Box<dyn AlphaDBEngine> = Box::new(MySQLEngine::with_credentials(
-                        &c.host,
-                        &c.user,
-                        &password,
-                        &c.database,
-                        c.port,
-                    ));
-                    let mut db = db.set_engine(engine);
-                    match db.connect() {
+                    let mut db = DynamicAlphaDB::mysql();
+                    match db.connect(&c.host, &c.user, &password, &c.database, c.port) {
                         Ok(_) => (),
                         Err(e) => {
                             error!(e.to_string());
                         }
                     };
 
-                    if !db.is_connected {
+                    if !db.is_connected() {
                         return Err(AlphaDBError {
                             message: format!("{}", "No active database connection.".yellow()),
                             ..Default::default()
@@ -172,23 +157,15 @@ pub fn get_db(
                         }
                     };
 
-                    let engine: Box<dyn AlphaDBEngine> =
-                        Box::new(PostgresEngine::with_credentials(
-                            &c.host,
-                            &c.user,
-                            &password,
-                            &c.database,
-                            c.port,
-                        ));
-                    let mut db = db.set_engine(engine);
-                    match db.connect() {
+                    let mut db = DynamicAlphaDB::postgres();
+                    match db.connect(&c.host, &c.user, &password, &c.database, c.port) {
                         Ok(_) => (),
                         Err(e) => {
                             error!(e.to_string());
                         }
                     };
 
-                    if !db.is_connected {
+                    if !db.is_connected() {
                         return Err(AlphaDBError {
                             message: format!("{}", "No active database connection.".yellow()),
                             ..Default::default()
@@ -201,15 +178,7 @@ pub fn get_db(
         }
     }
 
-    // Create a dummy engine for commands that don't require a connection (could not think of a
-    // better approach...)
-    let dummy_engine: Box<dyn AlphaDBEngine> = Box::new(MySQLEngine::with_credentials(
-        "localhost",
-        "dummy",
-        "dummy",
-        "dummy",
-        3306,
-    ));
-    let db = db.set_engine(dummy_engine);
+    // Create a dummy instance for commands that don't require a connection
+    let db = DynamicAlphaDB::mysql();
     return Ok(db);
 }

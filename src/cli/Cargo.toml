@@ -10,6 +10,11 @@ homepage = "https://alphadb.w-kuipers.com"
 repository = "https://github.com/w-kuipers/alphadb"   
 readme = "README.md"
 
+[features]
+default = []
+mysql = ["dep:mysql", "alphadb/mysql"]
+postgres = ["dep:postgres", "alphadb/postgres"]
+
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
 alphadb = { path = "../alphadb", features = ["mysql", "postgres"] }
@@ -29,3 +34,5 @@ serde_json = { version = "1.0.133", features = ["preserve_order"] }
 ctrlc = "3.4.5"
 openssl = { version = "0.10.68", features = ["vendored"] }
 chrono = "0.4.41"
+mysql = { version = "25.0.1", optional = true }
+postgres = { version = "0.19", optional = true }

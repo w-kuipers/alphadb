@@ -40,12 +40,12 @@ const SUPPORTED_ENGINES: [&str; 2] = ["mysql", "postgres"];
 fn get_engine_config(name: &str) -> Option<&'static EngineConfig> {
     #[cfg(feature = "mysql")]
     if name == "mysql" {
-        return Some(&crate::engine::mysql::verification::MYSQL_CONFIG);
+        return Some(&crate::engine::mysql_impl::verification::MYSQL_CONFIG);
     }
 
     #[cfg(feature = "postgres")]
     if name == "postgres" {
-        return Some(&crate::engine::postgres::verification::POSTGRES_CONFIG);
+        return Some(&crate::engine::postgres_impl::verification::POSTGRES_CONFIG);
     }
 
     None
@@ -74,8 +74,7 @@ impl AlphaDBVerification {
                 return Err(AlphaDBError {
                     message: "The provided version source can not be deserialized. Not valid JSON.".to_string(),
                     ..Default::default()
-                }
-                .into())
+                })
             }
         };
 
@@ -151,7 +150,7 @@ impl AlphaDBVerification {
                 if !exists_in_object(version, "_id", &mut self.issues, &version_trace) {
                     self.issues.add(VerificationIssue {
                         level: VerificationIssueLevel::Critical,
-                        message: format!("Missing a version number"),
+                        message: "Missing a version number".to_string(),
                         version_trace: VersionTrace::new(),
                     });
                 } else {
@@ -207,7 +206,7 @@ impl AlphaDBVerification {
                             self.issues.add(VerificationIssue {
                                 level: VerificationIssueLevel::High,
                                 message: format!("Method '{method}' does not exist"),
-                                version_trace: VersionTrace::from([format!("{version_output}")]),
+                                version_trace: VersionTrace::from([version_output.clone()]),
                             });
                         }
                     }
@@ -216,9 +215,9 @@ impl AlphaDBVerification {
         }
 
         if self.issues.is_empty() {
-            return Ok(());
+            Ok(())
         } else {
-            return Err(self.issues.clone());
+            Err(self.issues.clone())
         }
     }
 
@@ -232,7 +231,7 @@ impl AlphaDBVerification {
                 if ct.is_empty() {
                     self.issues.push(VerificationIssue {
                         level: VerificationIssueLevel::Low,
-                        message: format!("Does not contain any data"),
+                        message: "Does not contain any data".to_string(),
                         version_trace: version_trace.clone(),
                     });
 
@@ -317,14 +316,14 @@ impl AlphaDBVerification {
         if altertable.as_object().unwrap().is_empty() {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Low,
-                message: format!("Does not contain any data"),
-                version_trace: version_trace,
+                message: "Does not contain any data".to_string(),
+                version_trace,
             });
 
             return Ok(());
         }
 
-        for table in get_object_keys(&altertable, &mut self.issues, &version_trace) {
+        for table in get_object_keys(altertable, &mut self.issues, &version_trace) {
             version_trace.push(table.to_string());
 
             // Run altertable hooks for each table
@@ -348,7 +347,7 @@ impl AlphaDBVerification {
             // Modifycolumn
             if table_keys.contains(&&"modifycolumn".to_string()) {
                 for (column_name, column) in altertable[table]["modifycolumn"].as_object().unwrap() {
-                    self.verify_column_compatibility(table.as_str(), column_name, &column, "altertable", version_output)?;
+                    self.verify_column_compatibility(table.as_str(), column_name, column, "altertable", version_output)?;
                 }
             }
 
@@ -654,7 +653,7 @@ impl AlphaDBVerification {
                 let mut ct = None;
 
                 if !data_keys.contains(&&"type".to_string()) {
-                    if method != "createtable" && (!data_keys.contains(&&"recreate".to_string()) || recreate == false) {
+                    if method != "createtable" && (!data_keys.contains(&&"recreate".to_string()) || !recreate) {
                         ct = Some("".to_string());
                     }
                 } else if method != "createtable" && data["type"].is_null() {
@@ -672,18 +671,10 @@ impl AlphaDBVerification {
             if !column_type.is_empty() {
                 verify_column_type_compatibility(&mut self.issues, &column_type, self.config.type_compatibility_rules, &data_keys, &version_trace);
             }
-
-            if !self.config.supported_column_types.contains(&&column_type.as_str()) {
-                self.issues.push(VerificationIssue {
-                    level: VerificationIssueLevel::Critical,
-                    message: format!("Column type {} is currently not supported", column_type),
-                    version_trace: version_trace.clone(),
-                });
-            }
         } else {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Critical,
-                message: format!("Does not contain a column type"),
+                message: "Does not contain a column type".to_string(),
                 version_trace: version_trace.clone(),
             });
         }

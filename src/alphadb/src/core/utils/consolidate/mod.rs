@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod primary_key;
 pub mod column;
+pub mod default_data;
+pub mod primary_key;
 pub mod table;
 pub mod version_source;
-pub mod default_data;
 
 pub use version_source::consolidate_version_source;

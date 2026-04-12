@@ -1,5 +1,4 @@
 // Copyright (C) 2024 Wibo Kuipers
-//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -13,11 +12,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-mod connection;
-mod mysql;
+pub mod config;
+pub mod methods;
+mod query;
+pub mod utils;
+pub mod verification;
 
-pub use connection::{
-    get_active_connection, get_connections, remove_connection, set_active_connection, DbSessions,
-    SessionType,
-};
-pub use mysql::new_mysql_connection;
+pub use config::mysql_runtime_config;

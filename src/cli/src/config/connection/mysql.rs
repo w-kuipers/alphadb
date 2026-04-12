@@ -18,9 +18,9 @@ use crate::config::connection::connection::{DbSessions, MysqlSession, SessionTyp
 use crate::config::setup::{
     get_config_content, get_home, Config, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE,
 };
+use crate::engine_wrapper::DynamicAlphaDB;
 use crate::error;
 use crate::utils::encrypt_password;
-use alphadb::{engine::mysql::MySQLEngine, AlphaDB};
 use colored::Colorize;
 use inquire::{required, CustomType, Password, Text};
 use std::fs;
@@ -44,7 +44,7 @@ use toml;
 pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
     let home = get_home();
 
-    print!("\n");
+    println!();
     let host = Text::new("Host")
         .with_default("localhost")
         .with_help_message("URL/IP")
@@ -84,15 +84,14 @@ pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
     };
 
     // Try if the credentials will connect
-    let engine = MySQLEngine::with_credentials(
+    let mut db = DynamicAlphaDB::mysql();
+    let testconn = db.connect(
         &connection.host,
         &connection.user,
         &connection.password,
         &connection.database,
         connection.port,
     );
-    let mut db = AlphaDB::with_engine(engine);
-    let testconn = db.connect();
 
     if let Err(t) = testconn {
         error!(t.to_string());
@@ -110,10 +109,7 @@ pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
         .unwrap();
 
     // Get current file contents
-    let mut sessions_content = match get_config_content::<DbSessions>() {
-        Some(s) => s,
-        None => DbSessions::default(),
-    };
+    let mut sessions_content = get_config_content::<DbSessions>().unwrap_or_default();
 
     sessions_content.sessions.insert(
         label.to_string(),
@@ -153,5 +149,5 @@ pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
         }
     };
 
-    return label;
+    label
 }
