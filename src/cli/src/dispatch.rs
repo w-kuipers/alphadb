@@ -15,9 +15,14 @@
 
 use std::path::PathBuf;
 
-use alphadb::prelude::AlphaDBError;
+use alphadb::{
+    core::method_types::{Init, Status},
+    prelude::{AlphaDB, AlphaDBError, ToleratedVerificationIssueLevel},
+};
 use clap::ArgMatches;
 use colored::Colorize;
+use mysql::PooledConn;
+use postgres::Client;
 
 use crate::{
     commands,
@@ -25,13 +30,75 @@ use crate::{
         connection::{get_active_connection, remove_connection, SessionType},
         setup::Config,
     },
-    engine_wrapper::DynamicAlphaDB,
     error,
     utils::decrypt_password,
 };
 
+/// Enum wrapping both MySQL and PostgreSQL AlphaDB instances
+/// so the CLI can handle both engine types through a single interface.
+pub enum DbInstance {
+    Mysql(AlphaDB<PooledConn>),
+    Postgres(AlphaDB<Client>),
+}
+
+impl DbInstance {
+    pub fn init(&mut self) -> Result<Init, AlphaDBError> {
+        match self {
+            DbInstance::Mysql(db) => db.init(),
+            DbInstance::Postgres(db) => db.init(),
+        }
+    }
+
+    pub fn status(&mut self) -> Result<Status, AlphaDBError> {
+        match self {
+            DbInstance::Mysql(db) => db.status(),
+            DbInstance::Postgres(db) => db.status(),
+        }
+    }
+
+    pub fn update(
+        &mut self,
+        version_source: String,
+        target_version: Option<&str>,
+        no_data: bool,
+        verify: bool,
+        tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
+    ) -> Result<(), AlphaDBError> {
+        match self {
+            DbInstance::Mysql(db) => db.update(
+                version_source,
+                target_version,
+                no_data,
+                verify,
+                tolerated_verification_issue_level,
+            ),
+            DbInstance::Postgres(db) => db.update(
+                version_source,
+                target_version,
+                no_data,
+                verify,
+                tolerated_verification_issue_level,
+            ),
+        }
+    }
+
+    pub fn vacate(&mut self) -> Result<(), AlphaDBError> {
+        match self {
+            DbInstance::Mysql(db) => db.vacate(),
+            DbInstance::Postgres(db) => db.vacate(),
+        }
+    }
+
+    pub fn is_connected(&self) -> bool {
+        match self {
+            DbInstance::Mysql(db) => db.is_connected,
+            DbInstance::Postgres(db) => db.is_connected,
+        }
+    }
+}
+
 /// Execute the right commands based on parsed commandline input
-pub fn dispatch(matches: &ArgMatches, config: &Config, mut db: DynamicAlphaDB) {
+pub fn dispatch(matches: &ArgMatches, config: &Config, mut db: DbInstance) {
     match matches.subcommand() {
         Some(("connect", _query_matches)) => commands::connect(&config),
         Some(("init", _query_matches)) => commands::init(&mut db),
@@ -91,7 +158,7 @@ pub fn dispatch(matches: &ArgMatches, config: &Config, mut db: DynamicAlphaDB) {
 }
 
 /// Get the AlphaDB instance
-pub fn get_db(matches: &ArgMatches, config: &Config) -> Result<DynamicAlphaDB, AlphaDBError> {
+pub fn get_db(matches: &ArgMatches, config: &Config) -> Result<DbInstance, AlphaDBError> {
     // Check if the current command should have an active database connection
     if let Some(m) = matches.subcommand() {
         if m.0 != "connect" {
@@ -123,7 +190,8 @@ pub fn get_db(matches: &ArgMatches, config: &Config) -> Result<DynamicAlphaDB, A
                         }
                     };
 
-                    let mut db = DynamicAlphaDB::mysql();
+                    let runtime_config = alphadb::engine::mysql_impl::mysql_runtime_config();
+                    let mut db = AlphaDB::new(runtime_config);
                     match db.connect(&c.host, &c.user, &password, &c.database, c.port) {
                         Ok(_) => (),
                         Err(e) => {
@@ -131,14 +199,14 @@ pub fn get_db(matches: &ArgMatches, config: &Config) -> Result<DynamicAlphaDB, A
                         }
                     };
 
-                    if !db.is_connected() {
+                    if !db.is_connected {
                         return Err(AlphaDBError {
                             message: format!("{}", "No active database connection.".yellow()),
                             ..Default::default()
                         });
                     }
 
-                    return Ok(db);
+                    return Ok(DbInstance::Mysql(db));
                 }
                 SessionType::Postgres(c) => {
                     let password = match decrypt_password(
@@ -157,7 +225,8 @@ pub fn get_db(matches: &ArgMatches, config: &Config) -> Result<DynamicAlphaDB, A
                         }
                     };
 
-                    let mut db = DynamicAlphaDB::postgres();
+                    let runtime_config = alphadb::engine::postgres_impl::postgres_runtime_config();
+                    let mut db = AlphaDB::new(runtime_config);
                     match db.connect(&c.host, &c.user, &password, &c.database, c.port) {
                         Ok(_) => (),
                         Err(e) => {
@@ -165,20 +234,21 @@ pub fn get_db(matches: &ArgMatches, config: &Config) -> Result<DynamicAlphaDB, A
                         }
                     };
 
-                    if !db.is_connected() {
+                    if !db.is_connected {
                         return Err(AlphaDBError {
                             message: format!("{}", "No active database connection.".yellow()),
                             ..Default::default()
                         });
                     }
 
-                    return Ok(db);
+                    return Ok(DbInstance::Postgres(db));
                 }
             }
         }
     }
 
-    // Create a dummy instance for commands that don't require a connection
-    let db = DynamicAlphaDB::mysql();
-    return Ok(db);
+    // Create a dummy engine for commands that don't require a connection (e.g. "connect")
+    let runtime_config = alphadb::engine::mysql_impl::mysql_runtime_config();
+    let db = AlphaDB::new(runtime_config);
+    return Ok(DbInstance::Mysql(db));
 }

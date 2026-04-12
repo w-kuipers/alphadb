@@ -16,11 +16,9 @@
 mod commands;
 mod config;
 mod dispatch;
-mod engine_wrapper;
 mod parse;
 mod utils;
 
-use alphadb::prelude::Get;
 use config::setup::{config_read, init_config, Config};
 use utils::abort;
 
@@ -45,7 +43,7 @@ fn main() {
     let db = match dispatch::get_db(&matches, &config) {
         Ok(db) => db,
         Err(e) => {
-            println!("{}", e.message());
+            println!("{}", e.message);
             return;
         }
     };

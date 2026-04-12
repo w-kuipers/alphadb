@@ -13,10 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::config::connection::{get_active_connection, SessionType};
 use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
-use crate::engine_wrapper::DynamicAlphaDB;
+use crate::dispatch::DbInstance;
 use crate::error;
 use crate::utils::{title, AVAILABLE_ENGINES};
 use alphadb::prelude::{Get, ToleratedVerificationIssueLevel};
@@ -30,7 +29,7 @@ use std::path::PathBuf;
 /// - db: AlphaDB instance  
 pub fn update(
     config: &Config,
-    db: &mut DynamicAlphaDB,
+    db: &mut DbInstance,
     nodata: bool,
     noverify: bool,
     tolerated_verification_level: String,

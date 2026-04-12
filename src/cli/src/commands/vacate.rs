@@ -14,16 +14,17 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::config::connection::SessionType;
+use crate::dispatch::DbInstance;
 use crate::utils::title;
-use crate::{config::connection::get_active_connection, engine_wrapper::DynamicAlphaDB, error};
+use crate::{config::connection::get_active_connection, error};
 use colored::Colorize;
 use inquire::{ui::RenderConfig, Confirm};
 
-/// Update the database.
-/// User should select a version source
+/// Vacate (empty) the database.
+/// User must confirm the deletion.
 ///
 /// - db: AlphaDB instance  
-pub fn vacate(db: &mut DynamicAlphaDB) {
+pub fn vacate(db: &mut DbInstance) {
     title("Vacate");
 
     println!(
