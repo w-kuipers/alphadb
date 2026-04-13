@@ -48,18 +48,15 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
     let version_source = parse_version_source_string(version_source)?;
     let versions = get_version_array(&version_source)?;
 
-    match version_source["engine"].as_str() {
-        Some(v) => {
-            if v.to_lowercase() != "postgres" {
-                return Err(AlphaDBError {
-                    error: "incompatible-version-source".to_string(),
-                    message: format!("Tried to update a PostgreSQL database using a version source with engine '{v}'"),
-                    ..Default::default()
-                }
-                .into());
+    if let Some(v) = version_source["engine"].as_str() {
+        if !v.eq_ignore_ascii_case("postgres") {
+            return Err(AlphaDBError {
+                error: "incompatible-version-source".to_string(),
+                message: format!("Tried to update a PostgreSQL database using a version source with engine '{v}'"),
+                ..Default::default()
             }
+            .into());
         }
-        None => (),
     }
 
     // Check if database is initialized
@@ -119,7 +116,6 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
                     message: format!("'{}' is not a valid version number", v),
                     error: "invalid-version-number".to_string(),
                     version_trace: VersionTrace::from([v.to_string()]),
-                    ..Default::default()
                 }
                 .into())
             }
@@ -128,7 +124,7 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
     };
 
     let latest_version_int = parse_version_number(latest_version.as_str())?;
-    let database_version_int = parse_version_number(&database_version.as_str())?;
+    let database_version_int = parse_version_number(database_version.as_str())?;
 
     // Check if database is up to date
     if latest_version_int <= database_version_int {
@@ -146,7 +142,7 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
             Some(v) => v,
             None => {
                 return Err(AlphaDBError {
-                    message: format!("Missing a version number"),
+                    message: "Missing a version number".to_string(),
                     version_trace: VersionTrace::from([format!(" index {i}")]),
                     ..Default::default()
                 }
@@ -197,8 +193,8 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
     }
 
     // Add queries to insert default data
-    if no_data == false {
-        let default_data_object = consolidate_default_data(&versions, target_version)?;
+    if !no_data {
+        let default_data_object = consolidate_default_data(versions, target_version)?;
         for table in object_iter(&default_data_object)? {
             for item in array_iter(&default_data_object[table])? {
                 queries.push(default_data(table, item)?);

@@ -55,5 +55,5 @@ pub fn init(db_name: &str, connection: &mut Client) -> Result<Init, AlphaDBPostg
     // Insert db version
     connection.execute(&format!("INSERT INTO {} (db, version) VALUES ($1, $2)", CONFIG_TABLE_NAME), &[&db_name, &"0.0.0"])?;
 
-    return Ok(Init::Success);
+    Ok(Init::Success)
 }
