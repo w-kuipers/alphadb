@@ -15,10 +15,10 @@
 
 use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
+use crate::dispatch::DbInstance;
 use crate::error;
-use crate::utils::title;
-use alphadb::prelude::{AlphaDBEngine, ToleratedVerificationIssueLevel, Get};
-use alphadb::AlphaDB;
+use crate::utils::{title, AVAILABLE_ENGINES};
+use alphadb::prelude::{Get, ToleratedVerificationIssueLevel};
 use colored::Colorize;
 use std::fs;
 use std::path::PathBuf;
@@ -29,7 +29,7 @@ use std::path::PathBuf;
 /// - db: AlphaDB instance  
 pub fn update(
     config: &Config,
-    db: &mut AlphaDB<Box<dyn AlphaDBEngine>>,
+    db: &mut DbInstance,
     nodata: bool,
     noverify: bool,
     tolerated_verification_level: String,
@@ -71,6 +71,24 @@ pub fn update(
             ));
         }
     };
+
+    let json: serde_json::Value = match serde_json::from_str(&data) {
+        Ok(v) => v,
+        Err(_) => {
+            error!("The provided version source can not be deserialized. Not valid JSON.");
+        }
+    };
+
+    match json["engine"].as_str() {
+        Some(v) => {
+            if !AVAILABLE_ENGINES.contains(&v) {
+                error!(format!("Engine '{v}' is not supported."));
+            }
+        }
+        None => {
+            error!("Version source files used with the command-line interface require an engine to be defined.");
+        }
+    }
 
     let update = db.update(data, None, nodata, noverify, verification_issue_level);
 

@@ -13,18 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::config::connection::SessionType;
+use crate::dispatch::DbInstance;
 use crate::utils::title;
 use crate::{config::connection::get_active_connection, error};
-use alphadb::prelude::AlphaDBEngine;
-use alphadb::AlphaDB;
 use colored::Colorize;
 use inquire::{ui::RenderConfig, Confirm};
 
-/// Update the database.
-/// User should select a version source
+/// Vacate (empty) the database.
+/// User must confirm the deletion.
 ///
 /// - db: AlphaDB instance  
-pub fn vacate(db: &mut AlphaDB<Box<dyn AlphaDBEngine>>) {
+pub fn vacate(db: &mut DbInstance) {
     title("Vacate");
 
     println!(
@@ -35,34 +35,56 @@ pub fn vacate(db: &mut AlphaDB<Box<dyn AlphaDBEngine>>) {
 
     // This function will not be called if no database connection
     // is active, so it's safe to unwrap
-    let conn = match get_active_connection() {
-        Some(c) => c,
-        None => {
-            error!("An unexpected error occured".to_string());
-        }
+    let connection = get_active_connection().unwrap();
+    let (confirm_messge, success_message) = match connection.connection {
+        SessionType::Mysql(c) => (
+            format!(
+                "{} {} {} {}:{}?\n",
+                "Are you absolutely sure you want to completely emtpy database".yellow(),
+                c.database.cyan(),
+                "on host".yellow(),
+                c.host.cyan(),
+                c.port.to_string().cyan()
+            ),
+            format!(
+                "{} {} {}\n",
+                "Database".green(),
+                c.database.cyan(),
+                "has successfully been emtpied".green()
+            ),
+        ),
+        SessionType::Postgres(c) => (
+            format!(
+                "{} {} {} {}:{}?\n",
+                "Are you absolutely sure you want to completely emtpy database".yellow(),
+                c.database.cyan(),
+                "on host".yellow(),
+                c.host.cyan(),
+                c.port.to_string().cyan()
+            ),
+            format!(
+                "{} {} {}\n",
+                "Database".green(),
+                c.database.cyan(),
+                "has successfully been emtpied".green()
+            ),
+        ),
     };
 
     // Ask the user to confirm the deletion by typing out the label of the database connection
-    println!(
-        "{} {} {} {}:{}?\n",
-        "Are you absolutely sure you want to completely emtpy database".yellow(),
-        conn.connection.database.cyan(),
-        "on host".yellow(),
-        conn.connection.host.cyan(),
-        conn.connection.port.to_string().cyan()
-    );
+    println!("{confirm_messge}");
     let confirm = Confirm {
-        message: format!("Type '{}' to confirm the deletion", conn.label).as_str(),
+        message: format!("Type '{}' to confirm the deletion", connection.label).as_str(),
         starting_input: None,
         default: None,
         placeholder: Some(""),
         help_message: Some("Just press ctrl+c to cancel"),
         formatter: &|ans| match ans {
-            true => conn.label.to_owned(),
+            true => connection.label.to_owned(),
             false => "".to_owned(),
         },
         parser: &|ans| {
-            if ans == conn.label {
+            if ans == connection.label {
                 Ok(true)
             } else {
                 Err(())
@@ -81,12 +103,7 @@ pub fn vacate(db: &mut AlphaDB<Box<dyn AlphaDBEngine>>) {
             if confirm {
                 match db.vacate() {
                     Ok(_) => {
-                        println!(
-                            "{} {} {}\n",
-                            "Database".green(),
-                            conn.connection.database.cyan(),
-                            "has successfully been emtpied".green()
-                        );
+                        println!("{success_message}");
                     }
                     Err(e) => {
                         error!(e.to_string());

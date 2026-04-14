@@ -13,17 +13,17 @@ jobs:
     name: Publish to Test PyPI
     strategy:
       matrix:
-        # os: [macos-latest, windows-latest, ubuntu-22.04]
-        # python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
-        os: [ubuntu-22.04]
-        python-version: ["3.12"]
+        os: [macos-latest, ubuntu-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        # os: [ubuntu-22.04]
+        # python-version: ["3.12"]
 
     needs:
       - build-py
     runs-on: ubuntu-latest
     environment:
       name: test
-      url: https://test.pypi.org/project/alphadb/
+      url: https://test.pypi.org/project/alphadb-mysql/
     permissions:
       id-token: write
     steps:
@@ -35,4 +35,4 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository_url: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/

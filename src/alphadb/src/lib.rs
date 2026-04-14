@@ -13,77 +13,83 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pub mod core;
+pub mod engine;
 pub mod prelude;
 pub mod verification;
 
-pub mod engine {
-    #[cfg(feature = "mysql")]
-    pub use alphadb_mysql_engine::*;
-
-    #[cfg(feature = "mysql")]
-    pub use alphadb_mysql_engine::*;
-
-    pub use alphadb_core::engine::{AlphaDBEngine, AlphaDBVerificationEngine};
-}
-
-use crate::prelude::AlphaDBError;
-use alphadb_core::{
-    engine::AlphaDBEngine,
+use crate::core::{
     method_types::{Init, Query, Status},
-    utils::types::ToleratedVerificationIssueLevel,
+    runtime_config::RuntimeConfig,
+    utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel},
 };
-use mysql::*;
 
-#[derive(Debug)]
-pub struct AlphaDB<E = ()> {
+pub struct AlphaDB<C> {
     pub db_name: Option<String>,
     pub is_connected: bool,
-    engine: E,
+    connection: Option<C>,
+    config: RuntimeConfig<C>,
 }
 
-impl AlphaDB<()> {
-    pub fn new() -> AlphaDB<()> {
-        AlphaDB {
-            db_name: None,
-            is_connected: false,
-            engine: (),
-        }
-    }
-
-    pub fn set_engine<E: AlphaDBEngine>(&mut self, engine: E) -> AlphaDB<E> {
-        AlphaDB {
-            db_name: None,
-            is_connected: false,
-            engine,
-        }
+impl<C> std::fmt::Debug for AlphaDB<C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AlphaDB")
+            .field("db_name", &self.db_name)
+            .field("is_connected", &self.is_connected)
+            .field("config_name", &self.config.name)
+            .finish()
     }
 }
 
-impl<'a, E: AlphaDBEngine> AlphaDB<E> {
-    /// Create a new AlphaDB instance with an engine
+impl<C> AlphaDB<C> {
+    /// Create a new AlphaDB instance with a runtime configuration
     ///
     /// # Arguments
-    /// * `engine` - The engine instance to use
+    /// * `config` - The engine runtime configuration
     ///
     /// # Returns
-    /// * `AlphaDB<'a, E>` - New AlphaDB instance with the specified engine
-    pub fn with_engine(engine: E) -> AlphaDB<E> {
+    /// * `AlphaDB<C>` - New AlphaDB instance with the specified configuration
+    pub fn new(config: RuntimeConfig<C>) -> AlphaDB<C> {
         AlphaDB {
             db_name: None,
             is_connected: false,
-            engine,
+            connection: None,
+            config,
         }
     }
 
-    /// Connect using the engine
+    /// Connect to the database using stored credentials
+    ///
+    /// # Arguments
+    /// * `host` - Database host
+    /// * `user` - Database user
+    /// * `password` - User password
+    /// * `database` - Database name
+    /// * `port` - Database port
     ///
     /// # Returns
     /// * `Result<(), AlphaDBError>` - Ok if connection successful
     ///
     /// # Errors
     /// * Returns `AlphaDBError` if connection fails
-    pub fn connect(&mut self) -> Result<(), AlphaDBError> {
-        self.engine.connect(&mut self.db_name, &mut self.is_connected)
+    pub fn connect(&mut self, host: &str, user: &str, password: &str, database: &str, port: u16) -> Result<(), AlphaDBError> {
+        let conn = (self.config.hooks.connect)(host, user, password, database, port)?;
+        self.connection = Some(conn);
+        self.db_name = Some(database.to_string());
+        self.is_connected = true;
+        Ok(())
+    }
+
+    /// Get a mutable reference to the connection, or return an error if not connected
+    fn get_connection(&mut self) -> Result<(&str, &mut C), AlphaDBError> {
+        let db_name = self.db_name.as_deref().ok_or_else(|| AlphaDBError {
+            message: "No connection seems to be active. db_name does not have a value".to_string(),
+            ..Default::default()
+        })?;
+        let connection = self.connection.as_mut().ok_or_else(|| AlphaDBError {
+            message: "No active database connection".to_string(),
+            ..Default::default()
+        })?;
+        Ok((db_name, connection))
     }
 
     /// Initialize the database
@@ -94,25 +100,25 @@ impl<'a, E: AlphaDBEngine> AlphaDB<E> {
     /// # Errors
     /// * Returns `AlphaDBError` if initialization fails
     pub fn init(&mut self) -> Result<Init, AlphaDBError> {
-        self.engine.init(&mut self.db_name)
+        let hook = self.config.hooks.init;
+        let (db_name, connection) = self.get_connection()?;
+        hook(db_name, connection)
     }
 
     /// Get database status including initialization state, version, name and template
     ///
-    /// # Arguments
-    /// * `db_name` - The name of the database to check
-    /// * `connection` - Active connection pool to the database
-    ///
     /// # Returns
-    /// * `Result<Status, AlphaDBMysqlError>` - Status struct containing database information
+    /// * `Result<Status, AlphaDBError>` - Status struct containing database information
     ///
     /// # Errors
-    /// * Returns `AlphaDBMysqlError` if there are any database or AlphaDB errors
+    /// * Returns `AlphaDBError` if there are any database or AlphaDB errors
     pub fn status(&mut self) -> Result<Status, AlphaDBError> {
-        self.engine.status(&mut self.db_name)
+        let hook = self.config.hooks.status;
+        let (db_name, connection) = self.get_connection()?;
+        hook(db_name, connection)
     }
 
-    /// Generate MySQL queries to update the tables
+    /// Generate queries to update the tables
     ///
     /// # Arguments
     /// * `version_source` - Complete JSON version source
@@ -120,18 +126,19 @@ impl<'a, E: AlphaDBEngine> AlphaDB<E> {
     /// * `no_data` - Whether to skip data updates
     ///
     /// # Returns
-    /// * `Result<Vec<Query>, UpdateQueriesError>` - Vector of update queries
+    /// * `Result<Vec<Query>, AlphaDBError>` - Vector of update queries
     ///
     /// # Errors
-    /// * Returns `UpdateQueriesError` if query generation fails
+    /// * Returns `AlphaDBError` if query generation fails
     pub fn update_queries(&mut self, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, AlphaDBError> {
-        self.engine.update_queries(&mut self.db_name, version_source, target_version, no_data)
+        let hook = self.config.hooks.update_queries;
+        let (db_name, connection) = self.get_connection()?;
+        hook(db_name, connection, version_source, target_version, no_data)
     }
 
-    /// Generate and execute MySQL queries to update the tables
+    /// Generate and execute queries to update the tables
     ///
     /// # Arguments
-    /// * `connection` - Active connection pool to the database
     /// * `version_source` - Complete JSON version source
     /// * `target_version` - Optional version number to update to
     /// * `no_data` - Whether to skip data updates
@@ -139,10 +146,10 @@ impl<'a, E: AlphaDBEngine> AlphaDB<E> {
     /// * `tolerated_verification_issue_level` - Level of verification issues to tolerate
     ///
     /// # Returns
-    /// * `Result<(), UpdateError>` - Ok if update successful
+    /// * `Result<(), AlphaDBError>` - Ok if update successful
     ///
     /// # Errors
-    /// * Returns `UpdateError` if update fails
+    /// * Returns `AlphaDBError` if update fails
     pub fn update(
         &mut self,
         version_source: String,
@@ -151,15 +158,21 @@ impl<'a, E: AlphaDBEngine> AlphaDB<E> {
         verify: bool,
         tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
     ) -> Result<(), AlphaDBError> {
-        self.engine
-            .update(&mut self.db_name, version_source, target_version, no_data, verify, tolerated_verification_issue_level)
+        let hook = self.config.hooks.update;
+        let (db_name, connection) = self.get_connection()?;
+        hook(db_name, connection, version_source, target_version, no_data, verify, tolerated_verification_issue_level)
     }
 
     /// Remove all tables from the database
     ///
-    /// # Panics
-    /// * Panics if no connection is established
+    /// # Returns
+    /// * `Result<(), AlphaDBError>` - Ok if all tables were removed successfully
+    ///
+    /// # Errors
+    /// * Returns `AlphaDBError` if there are any database or AlphaDB errors
     pub fn vacate(&mut self) -> Result<(), AlphaDBError> {
-        self.engine.vacate(&mut self.db_name)
+        let hook = self.config.hooks.vacate;
+        let (_, connection) = self.get_connection()?;
+        hook(connection)
     }
 }

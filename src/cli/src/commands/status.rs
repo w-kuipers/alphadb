@@ -13,14 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{error, utils::title};
-use alphadb::{prelude::AlphaDBEngine, AlphaDB};
+use crate::{dispatch::DbInstance, error, utils::title};
 use colored::Colorize;
 
 /// Print database status
 ///
 /// - db: AlphaDB instance  
-pub fn status(db: &mut AlphaDB<Box<dyn AlphaDBEngine>>) {
+pub fn status(db: &mut DbInstance) {
     title("Status");
 
     let status = match db.status() {

@@ -16,25 +16,89 @@
 use std::path::PathBuf;
 
 use alphadb::{
-    engine::MySQLEngine,
-    prelude::{AlphaDBEngine, AlphaDBError},
-    AlphaDB,
+    core::method_types::{Init, Status},
+    prelude::{AlphaDB, AlphaDBError, ToleratedVerificationIssueLevel},
 };
 use clap::ArgMatches;
 use colored::Colorize;
+use mysql::PooledConn;
+use postgres::Client;
 
 use crate::{
     commands,
     config::{
-        connection::{get_active_connection, remove_connection},
+        connection::{get_active_connection, remove_connection, SessionType},
         setup::Config,
     },
     error,
     utils::decrypt_password,
 };
 
+/// Enum wrapping both MySQL and PostgreSQL AlphaDB instances
+/// so the CLI can handle both engine types through a single interface.
+pub enum DbInstance {
+    Mysql(AlphaDB<PooledConn>),
+    Postgres(AlphaDB<Client>),
+}
+
+impl DbInstance {
+    pub fn init(&mut self) -> Result<Init, AlphaDBError> {
+        match self {
+            DbInstance::Mysql(db) => db.init(),
+            DbInstance::Postgres(db) => db.init(),
+        }
+    }
+
+    pub fn status(&mut self) -> Result<Status, AlphaDBError> {
+        match self {
+            DbInstance::Mysql(db) => db.status(),
+            DbInstance::Postgres(db) => db.status(),
+        }
+    }
+
+    pub fn update(
+        &mut self,
+        version_source: String,
+        target_version: Option<&str>,
+        no_data: bool,
+        verify: bool,
+        tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
+    ) -> Result<(), AlphaDBError> {
+        match self {
+            DbInstance::Mysql(db) => db.update(
+                version_source,
+                target_version,
+                no_data,
+                verify,
+                tolerated_verification_issue_level,
+            ),
+            DbInstance::Postgres(db) => db.update(
+                version_source,
+                target_version,
+                no_data,
+                verify,
+                tolerated_verification_issue_level,
+            ),
+        }
+    }
+
+    pub fn vacate(&mut self) -> Result<(), AlphaDBError> {
+        match self {
+            DbInstance::Mysql(db) => db.vacate(),
+            DbInstance::Postgres(db) => db.vacate(),
+        }
+    }
+
+    pub fn is_connected(&self) -> bool {
+        match self {
+            DbInstance::Mysql(db) => db.is_connected,
+            DbInstance::Postgres(db) => db.is_connected,
+        }
+    }
+}
+
 /// Execute the right commands based on parsed commandline input
-pub fn dispatch(matches: &ArgMatches, config: &Config, mut db: AlphaDB<Box<dyn AlphaDBEngine>>) {
+pub fn dispatch(matches: &ArgMatches, config: &Config, mut db: DbInstance) {
     match matches.subcommand() {
         Some(("connect", _query_matches)) => commands::connect(&config),
         Some(("init", _query_matches)) => commands::init(&mut db),
@@ -94,44 +158,41 @@ pub fn dispatch(matches: &ArgMatches, config: &Config, mut db: AlphaDB<Box<dyn A
 }
 
 /// Get the AlphaDB instance
-pub fn get_db(
-    matches: &ArgMatches,
-    config: &Config,
-) -> Result<AlphaDB<Box<dyn AlphaDBEngine>>, AlphaDBError> {
-    let mut db = AlphaDB::new();
-
+pub fn get_db(matches: &ArgMatches, config: &Config) -> Result<DbInstance, AlphaDBError> {
     // Check if the current command should have an active database connection
     if let Some(m) = matches.subcommand() {
         if m.0 != "connect" {
-            match get_active_connection() {
-                Some(c) => {
+            let active_connection = match get_active_connection() {
+                Some(c) => c,
+                None => {
+                    return Err(AlphaDBError {
+                        message: format!("{}", "No active database connection.".yellow()),
+                        ..Default::default()
+                    });
+                }
+            };
+
+            match active_connection.connection {
+                SessionType::Mysql(c) => {
                     let password = match decrypt_password(
-                        c.connection.password,
+                        c.password,
                         config.main.secret.clone().unwrap(),
                     ) {
                         Ok(p) => p,
                         Err(_) => {
-                            remove_connection(c.label);
+                            remove_connection(active_connection.label);
                             error!(format!(
                                 "Unable to connect to database {}@{}:{} using saved credentials. The connection has been removed.",
-                                c.connection.database.cyan(),
-                                c.connection.host.cyan(),
-                                c.connection.port.to_string().cyan(),
+                                c.database.cyan(),
+                                c.host.cyan(),
+                                c.port.to_string().cyan(),
                             ));
                         }
                     };
 
-                    // TODO for now this is just a MySQL connection, should later be converted to
-                    // dynamic approach
-                    let engine: Box<dyn AlphaDBEngine> = Box::new(MySQLEngine::with_credentials(
-                        &c.connection.host,
-                        &c.connection.user,
-                        &password,
-                        &c.connection.database,
-                        c.connection.port,
-                    ));
-                    let mut db = db.set_engine(engine);
-                    match db.connect() {
+                    let runtime_config = alphadb::engine::mysql_impl::mysql_runtime_config();
+                    let mut db = AlphaDB::new(runtime_config);
+                    match db.connect(&c.host, &c.user, &password, &c.database, c.port) {
                         Ok(_) => (),
                         Err(e) => {
                             error!(e.to_string());
@@ -145,27 +206,49 @@ pub fn get_db(
                         });
                     }
 
-                    return Ok(db);
+                    return Ok(DbInstance::Mysql(db));
                 }
-                None => {
-                    return Err(AlphaDBError {
-                        message: format!("{}", "No active database connection.".yellow()),
-                        ..Default::default()
-                    });
+                SessionType::Postgres(c) => {
+                    let password = match decrypt_password(
+                        c.password,
+                        config.main.secret.clone().unwrap(),
+                    ) {
+                        Ok(p) => p,
+                        Err(_) => {
+                            remove_connection(active_connection.label);
+                            error!(format!(
+                                "Unable to connect to database {}@{}:{} using saved credentials. The connection has been removed.",
+                                c.database.cyan(),
+                                c.host.cyan(),
+                                c.port.to_string().cyan(),
+                            ));
+                        }
+                    };
+
+                    let runtime_config = alphadb::engine::postgres_impl::postgres_runtime_config();
+                    let mut db = AlphaDB::new(runtime_config);
+                    match db.connect(&c.host, &c.user, &password, &c.database, c.port) {
+                        Ok(_) => (),
+                        Err(e) => {
+                            error!(e.to_string());
+                        }
+                    };
+
+                    if !db.is_connected {
+                        return Err(AlphaDBError {
+                            message: format!("{}", "No active database connection.".yellow()),
+                            ..Default::default()
+                        });
+                    }
+
+                    return Ok(DbInstance::Postgres(db));
                 }
             }
         }
     }
 
-    // Create a dummy engine for commands that don't require a connection (could not think of a
-    // better approach...)
-    let dummy_engine: Box<dyn AlphaDBEngine> = Box::new(MySQLEngine::with_credentials(
-        "localhost",
-        "dummy",
-        "dummy",
-        "dummy",
-        3306,
-    ));
-    let db = db.set_engine(dummy_engine);
-    return Ok(db);
+    // Create a dummy engine for commands that don't require a connection (e.g. "connect")
+    let runtime_config = alphadb::engine::mysql_impl::mysql_runtime_config();
+    let db = AlphaDB::new(runtime_config);
+    return Ok(DbInstance::Mysql(db));
 }
