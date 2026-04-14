@@ -9,7 +9,7 @@ pub fn verify_foreign_key(foreign_key: &Value, issues: &mut Vec<VerificationIssu
     if !foreign_key.is_array() {
         issues.push(VerificationIssue {
             level: VerificationIssueLevel::High,
-            message: format!("Foreign key definitions must be specified as an array."),
+            message: "Foreign key definitions must be specified as an array.".to_string(),
             version_trace: version_trace.clone(),
         });
     }

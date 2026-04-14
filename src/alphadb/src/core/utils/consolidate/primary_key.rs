@@ -89,7 +89,7 @@ pub fn get_primary_key<'a>(version_list: &'a Vec<Value>, table_name: &str, targe
         }
     }
 
-    return Ok(primary_key);
+    Ok(primary_key)
 }
 
 #[cfg(test)]
@@ -109,7 +109,7 @@ mod get_primary_key_tests {
                 }
             }
         }]});
-        assert_eq!(get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(), Some("col"));
+        assert_eq!(get_primary_key(get_version_array(&versions).unwrap(), "table", None).unwrap(), Some("col"));
     }
 
     #[test]

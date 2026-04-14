@@ -15,10 +15,12 @@
 
 use crate::core::verification::foreign_key::verify_foreign_key;
 use crate::core::verification::index::verify_index;
+use crate::core::verification::issue::VerificationIssueAccess;
 pub use crate::core::verification::issue::{IssueCollection, VerificationIssue, VerificationIssueLevel, VersionTrace};
 
 use crate::core::engine_config::{AltertableHookParams, ColumnCompatibilityHookParams, CreatetableHookParams, DefaultDataHookParams, VerifyHookParams};
 use crate::core::verification::compatibility::{check_column_attributes_compatibility, verify_column_type_compatibility};
+use crate::core::verification::primary_key::verify_primary_key;
 use crate::core::{
     engine_config::EngineConfig,
     utils::{
@@ -226,7 +228,7 @@ impl AlphaDBVerification {
         version_trace.push(version_output.to_string());
         version_trace.push("createtable".to_string());
 
-        match adb_get_json_object(&createtable) {
+        match adb_get_json_object(createtable) {
             Ok(ct) => {
                 if ct.is_empty() {
                     self.issues.push(VerificationIssue {
@@ -261,15 +263,12 @@ impl AlphaDBVerification {
                         version_trace.push(column.to_string());
 
                         if column == "primary_key" {
-                            let pk = get_json_string(&ct[table][column], &mut self.issues, &version_trace);
-
-                            // Check if the primary key exists as a column in the table
-                            if !exists_in_object(&ct[table], pk, &mut self.issues, &version_trace) {
-                                self.issues.push(VerificationIssue {
-                                    level: VerificationIssueLevel::Critical,
-                                    message: format!("Primary key '{pk}' does not match any column name"),
-                                    version_trace: version_trace.clone(),
-                                });
+                            match verify_primary_key(&ct[table][column], &ct[table]) {
+                                Ok(_) => (),
+                                Err(mut e) => {
+                                    e.set_version_trace(&version_trace);
+                                    self.issues.push(e);
+                                }
                             }
 
                             version_trace.pop();
@@ -282,6 +281,7 @@ impl AlphaDBVerification {
                                 Err(e) => e.to_verification_issue(&mut self.issues),
                             }
 
+                            version_trace.pop();
                             continue;
                         }
 
@@ -291,6 +291,7 @@ impl AlphaDBVerification {
                                 Err(e) => e.to_verification_issue(&mut self.issues),
                             }
 
+                            version_trace.pop();
                             continue;
                         }
 
@@ -482,7 +483,7 @@ impl AlphaDBVerification {
                             version_trace.push(format!("item:{i}"));
                             let columns = get_object_keys(&consolidated_table, &mut self.issues, &table_version_trace);
 
-                            for column in object_iter(&dataset, &mut self.issues, &version_trace) {
+                            for column in object_iter(dataset, &mut self.issues, &version_trace) {
                                 if !columns.contains(&column) {
                                     self.issues.push(VerificationIssue {
                                         level: VerificationIssueLevel::Critical,
@@ -522,10 +523,10 @@ impl AlphaDBVerification {
                         if needs_default_data {
                             for (i, dataset) in array_iter(&consolidated_default_data[table], &mut self.issues, &table_version_trace).iter().enumerate() {
                                 version_trace.push(format!("item:{i}"));
-                                let col_type = get_json_string(&&consolidated_table[column]["type"], &mut self.issues, &table_version_trace);
+                                let col_type = get_json_string(&consolidated_table[column]["type"], &mut self.issues, &table_version_trace);
 
                                 // Check if the default data for the current column exists
-                                if !exists_in_object(&dataset, column, &mut self.issues, &version_trace) {
+                                if !exists_in_object(dataset, column, &mut self.issues, &version_trace) {
                                     self.issues.push(VerificationIssue {
                                         level: VerificationIssueLevel::Critical,
                                         message: format!("Column {column} is not allowed to be NULL, so default data is required to be specified."),
@@ -594,7 +595,7 @@ impl AlphaDBVerification {
 
                                         self.issues.push(VerificationIssue {
                                             level: VerificationIssueLevel::Critical,
-                                            message: message,
+                                            message,
                                             version_trace: version_trace.clone(),
                                         });
                                     }

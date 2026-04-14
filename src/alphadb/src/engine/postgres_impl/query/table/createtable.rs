@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::core::query::build::StructureQuery;
+use crate::core::query::primary_key::format_primary_key_columns;
 use crate::core::utils::error_messages::incomplete_version_object_err;
 use crate::core::utils::errors::AlphaDBError;
 use crate::core::utils::json::{get_json_object, get_json_string, get_object_keys};
@@ -39,16 +40,16 @@ pub fn createtable(version: &serde_json::Value, table_name: &str, version_number
     let mut query = StructureQuery::createtable();
     query.table(table_name);
 
-    for (column_name, column_value) in get_json_object(&table_data)? {
+    for (column_name, column_value) in get_json_object(table_data)? {
         if let Some(column) = definecolumn(column_value, table_name, column_name, version_number)? {
             query.definition(column);
         }
     }
 
-    let table_keys = get_object_keys(&table_data)?;
+    let table_keys = get_object_keys(table_data)?;
 
     if table_keys.iter().any(|&i| i == "primary_key") {
-        query.constraint(format!("PRIMARY KEY ({})", get_json_string(&table_data["primary_key"])?));
+        query.constraint(format!("PRIMARY KEY ({})", format_primary_key_columns(&table_data["primary_key"])?));
     }
 
     if table_keys.iter().any(|&i| i == "foreign_key") {
@@ -102,7 +103,7 @@ pub fn createtable(version: &serde_json::Value, table_name: &str, version_number
         }
     }
 
-    return Ok(query.build());
+    Ok(query.build())
 }
 
 #[cfg(test)]

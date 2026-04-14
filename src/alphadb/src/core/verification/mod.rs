@@ -18,3 +18,4 @@ pub mod foreign_key;
 pub mod index;
 pub mod issue;
 pub mod json;
+pub mod primary_key;

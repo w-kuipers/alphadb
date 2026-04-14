@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::core::utils::errors::AlphaDBError;
+
 /// **Verification issue level**
 ///
 /// Version source verifictaion generates issues of three priorities.
@@ -120,6 +122,51 @@ pub struct VerificationIssue {
     pub level: VerificationIssueLevel,
     pub message: String,
     pub version_trace: VersionTrace,
+}
+
+pub trait VerificationIssueAccess {
+    fn level(&self) -> VerificationIssueLevel;
+    fn message(&self) -> String;
+    fn version_trace(&self) -> &VersionTrace;
+    fn set_level(&mut self, level: VerificationIssueLevel);
+    fn set_message(&mut self, message: String);
+    fn set_version_trace(&mut self, version_trace: &VersionTrace);
+}
+
+impl VerificationIssueAccess for VerificationIssue {
+    fn level(&self) -> VerificationIssueLevel {
+        self.level
+    }
+
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn version_trace(&self) -> &VersionTrace {
+        &self.version_trace
+    }
+
+    fn set_level(&mut self, level: VerificationIssueLevel) {
+        self.level = level;
+    }
+
+    fn set_message(&mut self, message: String) {
+        self.message = message;
+    }
+
+    fn set_version_trace(&mut self, version_trace: &VersionTrace) {
+        self.version_trace = version_trace.clone();
+    }
+}
+
+impl From<AlphaDBError> for VerificationIssue {
+    fn from(error: AlphaDBError) -> Self {
+        Self {
+            level: VerificationIssueLevel::Critical,
+            message: error.message,
+            version_trace: error.version_trace,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
