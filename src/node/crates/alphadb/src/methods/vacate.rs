@@ -15,7 +15,7 @@
 
 use crate::types::PooledConnWrap;
 use crate::utils::get_connection;
-use alphadb::engine::mysql::methods::vacate;
+use alphadb::engine::mysql_impl::methods::vacate;
 use alphadb::prelude::*;
 use neon::prelude::*;
 use std::cell::RefCell;
