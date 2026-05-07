@@ -17,11 +17,12 @@ use crate::core::method_types::{Query, QueryValue};
 use crate::core::utils::consolidate::default_data::consolidate_default_data;
 use crate::core::utils::errors::AlphaDBError;
 use crate::core::utils::globals::CONFIG_TABLE_NAME;
-use crate::core::utils::json::{array_iter, get_object_keys, object_iter};
+use crate::core::utils::json::{array_iter, exists_in_object, get_object_keys, object_iter};
 use crate::core::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
 use crate::core::utils::version_source::{get_version_array, parse_version_source_string};
 use crate::core::verification::issue::VersionTrace;
 use crate::engine::mysql_impl::methods::status;
+use crate::engine::mysql_impl::query::create_check_constraint;
 use crate::engine::mysql_impl::query::default_data::default_data;
 use crate::engine::mysql_impl::query::table::altertable::altertable;
 use crate::engine::mysql_impl::query::table::createtable::createtable;
@@ -172,6 +173,15 @@ pub fn update_queries(db_name: &str, connection: &mut PooledConn, version_source
             for table in object_iter(&version["createtable"])? {
                 let q = createtable(version, table, version_number)?;
                 queries.push(Query { query: q, data: None });
+
+                if exists_in_object(&version["createtable"][table], "check")? {
+                    for check in array_iter(&version["createtable"][table]["check"])? {
+                        queries.push(Query {
+                            query: create_check_constraint(check, table, version_number)?,
+                            data: None,
+                        });
+                    }
+                }
             }
         }
 
