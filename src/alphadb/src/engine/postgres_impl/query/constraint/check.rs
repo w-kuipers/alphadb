@@ -34,7 +34,7 @@ pub fn create_check_constraint(check: &Value, table_name: &str, version_number: 
     let name = get_json_string(&check["name"])?;
     let condition = condition_to_sql(&check["condition"])?;
 
-    Ok(format!("ALTER TABLE {table_name} ADD CONSTRAINT {name} CHECK ({condition});"))
+    Ok(format!("CONSTRAINT {name} CHECK ({condition})"))
 }
 
 #[cfg(test)]
@@ -82,6 +82,6 @@ mod createcheckconstraint_tests {
 
         let result = create_check_constraint(&check, "events", "0.0.1").unwrap();
 
-        assert_eq!(result, "ALTER TABLE events ADD CONSTRAINT events_valid_time CHECK (end_at > start_at);");
+        assert_eq!(result, "CONSTRAINT events_valid_time CHECK (end_at > start_at)");
     }
 }

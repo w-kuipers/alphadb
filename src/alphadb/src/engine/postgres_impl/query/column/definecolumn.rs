@@ -118,14 +118,18 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             }
         }
 
-        let mut default: Option<&str> = None;
+        let mut default: Option<String> = None;
         if column_keys.iter().any(|&i| i == "default") {
             let default_value = get_json_value_as_string(&column_data["default"])?;
 
-            if default_value == "true" {
-                default = Some("true");
+            if column_type == "BOOLEAN" {
+                if default_value == "true" {
+                    default = Some("true".to_string());
+                } else {
+                    default = Some("false".to_string());
+                }
             } else {
-                default = Some("false");
+                default = Some(default_value);
             }
         }
 
@@ -153,7 +157,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         }
 
         if let Some(d) = default {
-            query.default(d).default_raw(true);
+            query.default(&d).default_raw(column_type == "BOOLEAN");
 
             // PostgreSQL default functions and keywords should not contain quotes
             if d.parse::<f64>().is_err() {

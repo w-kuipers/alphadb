@@ -19,7 +19,9 @@ use crate::core::utils::errors::AlphaDBError;
 use crate::core::utils::json::{get_json_object, get_object_keys};
 
 use crate::engine::postgres_impl::query::column::definecolumn::definecolumn;
-use crate::engine::postgres_impl::query::create_foreign_key_constraints;
+use crate::engine::postgres_impl::query::{create_check_constraint, create_foreign_key_constraint};
+use crate::prelude::Get;
+use crate::verification::VersionTrace;
 
 /// Generate a PostgreSQL CREATE TABLE query
 ///
@@ -35,6 +37,7 @@ use crate::engine::postgres_impl::query::create_foreign_key_constraints;
 /// * Returns `AlphaDBError` if table definition is invalid
 pub fn createtable(version: &serde_json::Value, table_name: &str, version_number: &str) -> Result<String, AlphaDBError> {
     let table_data = &version["createtable"][table_name];
+    let version_trace = VersionTrace::from([version_number, "createtable", table_name]);
 
     let mut query = StructureQuery::createtable();
     query.table(table_name);
@@ -52,8 +55,42 @@ pub fn createtable(version: &serde_json::Value, table_name: &str, version_number
     }
 
     if table_keys.iter().any(|&i| i == "foreign_key") {
-        for foreign_key in create_foreign_key_constraints(&table_data["foreign_key"], table_name, version_number)? {
-            query.constraint(foreign_key);
+        let foreign_keys = table_data["foreign_key"]
+            .as_array()
+            .ok_or_else(|| AlphaDBError {
+                message: "foreign_key must be an array of objects".to_string(),
+                error: "invalid-structure".to_string(),
+                version_trace: version_trace.clone(),
+            })?
+            .to_vec();
+
+        for fk_data in foreign_keys {
+            let fk = create_foreign_key_constraint(&fk_data, table_name, version_number).map_err(|mut e| {
+                e.set_version_trace(&version_trace);
+                e
+            })?;
+
+            query.constraint(fk);
+        }
+    }
+
+    if table_keys.iter().any(|&i| i == "check") {
+        let check_constraints = table_data["check"]
+            .as_array()
+            .ok_or_else(|| AlphaDBError {
+                message: "check must be an array of objects".to_string(),
+                error: "invalid-structure".to_string(),
+                version_trace: version_trace.clone(),
+            })?
+            .to_vec();
+
+        for check_data in check_constraints {
+            let check = create_check_constraint(&check_data, table_name, version_number).map_err(|mut e| {
+                e.set_version_trace(&version_trace);
+                e
+            })?;
+
+            query.constraint(check);
         }
     }
 
