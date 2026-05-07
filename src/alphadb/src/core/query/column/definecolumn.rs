@@ -46,6 +46,12 @@ pub struct DefineColumn {
     method: Option<String>,
 }
 
+impl Default for DefineColumn {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DefineColumn {
     /// Creates a new `DefineColumn` instance with default values.
     ///
@@ -92,7 +98,7 @@ impl DefineColumn {
     ///
     /// let column = DefineColumn::new()
     ///     .name("user_id")
-    ///     .to_string();
+    ///     .to_sql();
     /// // Result: "user_id"
     /// ```
     pub fn name<S: Into<String>>(&mut self, name: S) -> &mut Self {
@@ -124,7 +130,7 @@ impl DefineColumn {
     ///     .name("email")
     ///     .datatype("VARCHAR")
     ///     .size("255")
-    ///     .to_string();
+    ///     .to_sql();
     /// // Result: "ADD COLUMN email VARCHAR(255)"
     /// ```
     pub fn method<S: Into<String>>(&mut self, method: S) -> &mut Self {
@@ -154,7 +160,7 @@ impl DefineColumn {
     /// let column = DefineColumn::new()
     ///     .name("description")
     ///     .datatype("varchar")  // Will be converted to uppercase
-    ///     .to_string();
+    ///     .to_sql();
     /// // Result: "description VARCHAR"
     /// ```
     pub fn datatype<S: Into<String>>(&mut self, value: S) -> &mut Self {
@@ -184,7 +190,7 @@ impl DefineColumn {
     ///     .name("title")
     ///     .datatype("VARCHAR")
     ///     .size("255")
-    ///     .to_string();
+    ///     .to_sql();
     /// // Result: "title VARCHAR(255)"
     /// ```
     pub fn size<S: Into<String>>(&mut self, value: S) -> &mut Self {
@@ -218,7 +224,7 @@ impl DefineColumn {
     ///     .size("255")
     ///     .constraint("NOT NULL")
     ///     .constraint("UNIQUE")
-    ///     .to_string();
+    ///     .to_sql();
     /// // Result: "email VARCHAR(255) NOT NULL UNIQUE"
     /// ```
     pub fn constraint<S: Into<String>>(&mut self, constraint: S) -> &mut Self {
@@ -250,7 +256,7 @@ impl DefineColumn {
     ///     .datatype("VARCHAR")
     ///     .size("20")
     ///     .default("active")
-    ///     .to_string();
+    ///     .to_sql();
     /// // Result: "status VARCHAR(20) DEFAULT 'active'"
     /// ```
     pub fn default<S: Into<String>>(&mut self, value: S) -> &mut Self {
@@ -282,7 +288,7 @@ impl DefineColumn {
     ///     .datatype("INT")
     ///     .default("0")
     ///     .default_raw(true)
-    ///     .to_string();
+    ///     .to_sql();
     /// // Result: "count INT DEFAULT 0"
     /// ```
     pub fn default_raw(&mut self, value: bool) -> &mut Self {
@@ -319,11 +325,11 @@ impl DefineColumn {
     ///     .size("255")
     ///     .constraint("NOT NULL")
     ///     .default("user@example.com")
-    ///     .to_string();
+    ///     .to_sql();
     /// // Result: "ADD COLUMN email VARCHAR(255) NOT NULL DEFAULT 'user@example.com'"
     /// ```
-    pub fn to_string(&self) -> String {
-        let mut query = format!("{}", self.name);
+    pub fn to_sql(&self) -> String {
+        let mut query = self.name.to_string();
 
         if !self.column_type.is_empty() {
             query = format!("{query} {}", self.column_type.to_uppercase());
@@ -349,18 +355,48 @@ impl DefineColumn {
             }
         }
 
-        return query.clone();
+        query.clone()
     }
 }
 
 impl fmt::Display for DefineColumn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.to_string().fmt(f)
+        self.to_sql().fmt(f)
     }
 }
 
 impl fmt::Debug for DefineColumn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("DefineColumn").field(&self.to_string()).finish()
+        f.debug_tuple("DefineColumn").field(&self.to_sql()).finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DefineColumn;
+
+    #[test]
+    fn builds_full_column_definition() {
+        let sql = DefineColumn::new()
+            .method("ADD COLUMN")
+            .name("email")
+            .datatype("varchar")
+            .size("255")
+            .constraint("not null")
+            .constraint("unique")
+            .default("user@example.com")
+            .to_sql();
+
+        assert_eq!(sql, "ADD COLUMN email VARCHAR(255) NOT NULL UNIQUE DEFAULT 'user@example.com'");
+    }
+
+    #[test]
+    fn uses_raw_default_and_formats_as_sql() {
+        let mut column = DefineColumn::new();
+        column.name("created_at").datatype("timestamp").default("CURRENT_TIMESTAMP").default_raw(true);
+
+        assert_eq!(column.to_sql(), "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+        assert_eq!(column.to_string(), column.to_sql());
+        assert_eq!(format!("{column:?}"), "DefineColumn(\"created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\")");
     }
 }

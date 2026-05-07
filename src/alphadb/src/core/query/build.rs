@@ -331,7 +331,7 @@ impl StructureQuery {
             query = format!("{query} {table}");
         }
 
-        let mut column_definitions = self.definitions.iter().map(ToString::to_string).collect::<Vec<_>>();
+        let mut column_definitions = self.definitions.iter().map(DefineColumn::to_sql).collect::<Vec<_>>();
         column_definitions.extend(self.constraints.clone());
 
         // Column definitions for createtable method have to be wrapped in parentheses
