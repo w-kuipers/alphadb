@@ -144,6 +144,6 @@ jobs:
 
   publish-github-release:
     needs:
-      - build-node
+      # - build-node
       - package-cli
     uses: ./.github/workflows/publish-github-release.yml
