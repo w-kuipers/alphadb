@@ -40,7 +40,7 @@ mod connect_tests {
     static USER: &str = "postgres";
     static PASSWORD: &str = "test";
     static DATABASE: &str = "adb_test1";
-    static PORT: u16 = 5432;
+    static PORT: u16 = 544;
 
     #[test]
     fn test_connect() {
