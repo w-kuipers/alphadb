@@ -4,7 +4,7 @@ use crate::core::utils::json::{array_iter, get_json_boolean, get_json_string, ge
 use crate::core::verification::issue::VersionTrace;
 use serde_json::Value;
 
-use crate::engine::postgres_impl::query::index::condition::condition_to_sql;
+use crate::core::utils::condition_to_sql;
 
 /// Generate a PostgreSQL CREATE INDEX query
 ///

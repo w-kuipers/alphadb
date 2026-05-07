@@ -29,7 +29,7 @@ pub fn connect(host: &str, user: &str, password: &str, database: &str, port: u16
 
     let client = Client::connect(&url, NoTls)?;
 
-    return Ok(client);
+    Ok(client)
 }
 
 #[cfg(test)]

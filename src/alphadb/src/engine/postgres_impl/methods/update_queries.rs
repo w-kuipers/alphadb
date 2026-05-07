@@ -22,10 +22,10 @@ use crate::core::utils::version_number::{get_latest_version, parse_version_numbe
 use crate::core::utils::version_source::{get_version_array, parse_version_source_string};
 use crate::core::verification::issue::VersionTrace;
 use crate::engine::postgres_impl::methods::status;
-use crate::engine::postgres_impl::query::createindex;
 use crate::engine::postgres_impl::query::default_data::default_data;
 use crate::engine::postgres_impl::query::table::altertable::altertable;
 use crate::engine::postgres_impl::query::table::createtable::createtable;
+use crate::engine::postgres_impl::query::{create_check_constraint, createindex};
 use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 use postgres::Client;
 
@@ -174,6 +174,15 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
                     for index in array_iter(&version["createtable"][table]["index"])? {
                         queries.push(Query {
                             query: createindex(index, table, version_number)?,
+                            data: None,
+                        });
+                    }
+                }
+
+                if exists_in_object(&version["createtable"][table], "check")? {
+                    for check in array_iter(&version["createtable"][table]["check"])? {
+                        queries.push(Query {
+                            query: create_check_constraint(check, table, version_number)?,
                             data: None,
                         });
                     }

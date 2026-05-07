@@ -1,7 +1,8 @@
 pub mod column;
+mod constraint;
 pub mod default_data;
 mod index;
 pub mod table;
 
-pub use index::condition::condition_to_sql;
+pub use constraint::check::create_check_constraint;
 pub use index::index::createindex;
