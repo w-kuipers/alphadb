@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use crate::core::utils::errors::{Get, ToVerificationIssue};
 use crate::core::utils::json::{
     array_iter as adb_array_iter, exists_in_object as adb_exists_in_object, get_json_boolean as adb_get_json_boolean, get_json_object as adb_get_json_object,
-    get_json_string as adb_get_json_string, get_object_keys as adb_get_object_keys, object_iter as adb_object_iter,
+    get_json_string as adb_get_json_string, get_json_value_as_string as adb_get_json_value_as_string, get_object_keys as adb_get_object_keys, object_iter as adb_object_iter,
 };
 use crate::core::utils::version_number::parse_version_number as adb_parse_version_number;
 use crate::core::verification::issue::{VerificationIssue, VersionTrace};
@@ -41,7 +41,7 @@ pub fn get_object_keys<'a>(object: &'a serde_json::Value, issues: &mut Vec<Verif
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return Vec::new();
+            Vec::new()
         }
     }
 }
@@ -62,7 +62,7 @@ pub fn exists_in_object(object: &serde_json::Value, key: &str, issues: &mut Vec<
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return false;
+            false
         }
     }
 }
@@ -83,7 +83,7 @@ pub fn get_json_boolean(object: &serde_json::Value, issues: &mut Vec<Verificatio
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return false;
+            false
         }
     }
 }
@@ -103,7 +103,7 @@ pub fn get_json_object(object: &serde_json::Value, issues: &mut Vec<Verification
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return Map::new();
+            Map::new()
         }
     }
 }
@@ -123,7 +123,27 @@ pub fn get_json_string<'a>(string: &'a serde_json::Value, issues: &mut Vec<Verif
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return "";
+            ""
+        }
+    }
+}
+
+/// Get JSON value as string with error handling for verification
+///
+/// # Arguments
+/// * `value` - The JSON value to convert to string
+/// * `issues` - Vector to store any verification issues
+/// * `version_trace` - Trace of version numbers for error reporting
+///
+/// # Returns
+/// * `String` - String representation if successful, empty string otherwise
+pub fn get_json_value_as_string(value: &serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> String {
+    match adb_get_json_value_as_string(value) {
+        Ok(v) => v,
+        Err(mut e) => {
+            e.set_version_trace(version_trace);
+            e.to_verification_issue(issues);
+            String::new()
         }
     }
 }
@@ -143,7 +163,7 @@ pub fn object_is_empty(object: &serde_json::Value, issues: &mut Vec<Verification
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return true;
+            true
         }
     }
 }
@@ -163,7 +183,7 @@ pub fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return Vec::new();
+            Vec::new()
         }
     }
 }
@@ -178,14 +198,14 @@ pub fn array_iter(array: &serde_json::Value, issues: &mut Vec<VerificationIssue>
 /// # Returns
 /// * `serde_json::map::Keys<'a>` - Iterator over object keys if successful, empty iterator otherwise
 pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> serde_json::map::Keys<'a> {
-    static EMPTY_MAP: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock::new(|| serde_json::Map::new());
+    static EMPTY_MAP: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock::new(serde_json::Map::new);
 
     match adb_object_iter(object) {
         Ok(v) => v,
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return EMPTY_MAP.keys();
+            EMPTY_MAP.keys()
         }
     }
 }
@@ -201,11 +221,11 @@ pub fn object_iter<'a>(object: &'a serde_json::Value, issues: &mut Vec<Verificat
 /// * `i32` - Parsed version number if successful, 0 otherwise
 pub fn parse_version_number(version_number: &str, issues: &mut Vec<VerificationIssue>, version_trace: &VersionTrace) -> u32 {
     match adb_parse_version_number(version_number) {
-        Ok(v) => v as u32,
+        Ok(v) => v,
         Err(mut e) => {
             e.set_version_trace(version_trace);
             e.to_verification_issue(issues);
-            return 0;
+            0
         }
     }
 }

@@ -33,7 +33,9 @@ use crate::core::{
         version_number::parse_version_number as adb_parse_version_number,
         version_source::get_version_array,
     },
-    verification::json::{array_iter, exists_in_object, get_json_boolean, get_json_object, get_json_string, get_object_keys, object_iter, parse_version_number},
+    verification::json::{
+        array_iter, exists_in_object, get_json_boolean, get_json_object, get_json_string, get_json_value_as_string, get_object_keys, object_iter, parse_version_number,
+    },
 };
 use serde_json::Value;
 
@@ -538,32 +540,28 @@ impl AlphaDBVerification {
                                 }
 
                                 // Verify if the specified default data value is the right type
-                                if self.config.string_columns.contains(&col_type) {
-                                    if adb_get_json_string(&dataset[column]).is_err() {
-                                        self.issues.push(VerificationIssue {
-                                            level: VerificationIssueLevel::Critical,
-                                            message: format!("Default data for column type `{col_type}` is required to be of type string"),
-                                            version_trace: version_trace.clone(),
-                                        });
-                                    }
+                                if self.config.string_columns.contains(&col_type) && adb_get_json_string(&dataset[column]).is_err() {
+                                    self.issues.push(VerificationIssue {
+                                        level: VerificationIssueLevel::Critical,
+                                        message: format!("Default data for column type `{col_type}` is required to be of type string"),
+                                        version_trace: version_trace.clone(),
+                                    });
                                 }
-                                if self.config.int_columns.contains(&col_type) {
-                                    if adb_get_json_int(&dataset[column]).is_err() {
-                                        self.issues.push(VerificationIssue {
-                                            level: VerificationIssueLevel::Critical,
-                                            message: format!("Default data for column type `{col_type}` is required to be of type int"),
-                                            version_trace: version_trace.clone(),
-                                        });
-                                    }
+
+                                if self.config.int_columns.contains(&col_type) && adb_get_json_int(&dataset[column]).is_err() {
+                                    self.issues.push(VerificationIssue {
+                                        level: VerificationIssueLevel::Critical,
+                                        message: format!("Default data for column type `{col_type}` is required to be of type int"),
+                                        version_trace: version_trace.clone(),
+                                    });
                                 }
-                                if self.config.float_columns.contains(&col_type) {
-                                    if adb_get_json_float(&dataset[column]).is_err() {
-                                        self.issues.push(VerificationIssue {
-                                            level: VerificationIssueLevel::Critical,
-                                            message: format!("Default data for column type `{col_type}` is required to be of type float"),
-                                            version_trace: version_trace.clone(),
-                                        });
-                                    }
+
+                                if self.config.float_columns.contains(&col_type) && adb_get_json_float(&dataset[column]).is_err() {
+                                    self.issues.push(VerificationIssue {
+                                        level: VerificationIssueLevel::Critical,
+                                        message: format!("Default data for column type `{col_type}` is required to be of type float"),
+                                        version_trace: version_trace.clone(),
+                                    });
                                 }
 
                                 version_trace.pop();
@@ -572,10 +570,7 @@ impl AlphaDBVerification {
                             // Check if unique values have duplicate data
                             // TODO right now the issue is generated for every following version as well. Find
                             // a way to only add the issue once
-                            let primary_key = match get_primary_key(&self.version_list, table, version_number)? {
-                                Some(p) => p,
-                                None => "",
-                            };
+                            let primary_key = get_primary_key(&self.version_list, table, version_number)?.unwrap_or_default();
 
                             if primary_key == column
                                 || (exists_in_object(&consolidated_table[column], "unique", &mut self.issues, &table_version_trace)
@@ -671,6 +666,19 @@ impl AlphaDBVerification {
         if let Some(column_type) = column_type {
             if !column_type.is_empty() {
                 verify_column_type_compatibility(&mut self.issues, &column_type, self.config.type_compatibility_rules, &data_keys, &version_trace);
+
+                if column_type == "BOOLEAN" && data_keys.contains(&&"default".to_string()) {
+                    let default_value = get_json_value_as_string(&data["default"], &mut self.issues, &version_trace);
+                    const VALID_VALUES: [&str; 4] = ["true", "false", "TRUE", "FALSE"];
+
+                    if !default_value.is_empty() && !VALID_VALUES.contains(&default_value.as_str()) {
+                        self.issues.push(VerificationIssue {
+                            level: VerificationIssueLevel::High,
+                            message: "The default value for a boolean field must be either 'true' or 'false'. Any other defined value will be treated as false.".to_string(),
+                            version_trace: version_trace.clone(),
+                        });
+                    }
+                }
             }
         } else {
             self.issues.push(VerificationIssue {

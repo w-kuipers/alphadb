@@ -68,10 +68,12 @@ pub fn consolidate_column(version_list: &Vec<Value>, column_name: &str, table_na
             }
         }
 
+        // TODO indexes must be handled here, whether ignored or not is for later to decide
         // Createtable
         if version.as_object().unwrap().keys().any(|k| k == "createtable") {
             if version["createtable"].as_object().unwrap().keys().any(|c| c == table_name) {
                 if version["createtable"][table_name].as_object().unwrap().keys().any(|t| t == version_column_name) {
+                    println!("{}, {table_name}, {version_column_name}", version["_id"]);
                     for attr in version["createtable"][table_name][version_column_name].as_object().unwrap().keys() {
                         column[attr] = json!(version["createtable"][table_name][version_column_name][attr]);
                     }

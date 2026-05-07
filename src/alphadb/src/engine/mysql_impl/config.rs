@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::methods;
 use crate::core::{
     method_types::{Init, Query, Status},
     runtime_config::{RuntimeConfig, RuntimeHooks},
     utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel},
 };
-use super::methods;
 use mysql::PooledConn;
 
 fn mysql_connect(host: &str, user: &str, password: &str, database: &str, port: u16) -> Result<PooledConn, AlphaDBError> {

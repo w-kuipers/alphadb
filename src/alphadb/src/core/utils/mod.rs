@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+mod condition;
 pub mod consolidate;
 pub mod error_messages;
 pub mod errors;
@@ -21,3 +22,5 @@ pub mod json;
 pub mod types;
 pub mod version_number;
 pub mod version_source;
+
+pub use condition::condition_to_sql;

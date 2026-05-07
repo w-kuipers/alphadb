@@ -17,4 +17,3 @@ pub mod compatibility;
 pub mod config;
 
 pub use config::MYSQL_CONFIG;
-

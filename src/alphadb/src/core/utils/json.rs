@@ -28,7 +28,7 @@ use serde_json::Value;
 /// * Returns `AlphaDBError` if the value cannot be converted to an object
 pub fn get_object_keys(object: &serde_json::Value) -> Result<Vec<&String>, AlphaDBError> {
     if let Some(obj) = object.as_object() {
-        Ok(obj.keys().into_iter().collect::<Vec<&String>>())
+        Ok(obj.keys().collect::<Vec<&String>>())
     } else {
         Err(AlphaDBError {
             message: "Unable to convert the value to an object".to_string(),
@@ -49,7 +49,7 @@ pub fn get_object_keys(object: &serde_json::Value) -> Result<Vec<&String>, Alpha
 /// * Returns `AlphaDBError` if the value cannot be converted to an object
 pub fn object_iter(object: &serde_json::Value) -> Result<serde_json::map::Keys<'_>, AlphaDBError> {
     if let Some(obj) = object.as_object() {
-        Ok(obj.keys().into_iter())
+        Ok(obj.keys())
     } else {
         Err(AlphaDBError {
             message: "Unable to convert the value into an object".to_string(),
@@ -92,7 +92,7 @@ pub fn array_iter(object: &serde_json::Value) -> Result<&Vec<Value>, AlphaDBErro
 /// * Returns `AlphaDBError` if the value cannot be converted to an object
 pub fn exists_in_object(object: &serde_json::Value, key: &str) -> Result<bool, AlphaDBError> {
     if let Some(obj) = object.as_object() {
-        return Ok(obj.keys().any(|k| k == key));
+        Ok(obj.keys().any(|k| k == key))
     } else {
         Err(AlphaDBError {
             message: "Unable to convert the value into an object".to_string(),
@@ -114,7 +114,7 @@ pub fn exists_in_object(object: &serde_json::Value, key: &str) -> Result<bool, A
 /// * Returns `AlphaDBError` if the value cannot be converted to an object
 pub fn exists_in_array(array: &serde_json::Value, value: &str) -> Result<bool, AlphaDBError> {
     if let Some(array) = array.as_array() {
-        return Ok(array.contains(&Value::from(value)));
+        Ok(array.contains(&Value::from(value)))
     } else {
         Err(AlphaDBError {
             message: "Unable to convert the value into a vector".to_string(),
@@ -134,17 +134,23 @@ pub fn exists_in_array(array: &serde_json::Value, value: &str) -> Result<bool, A
 /// # Errors
 /// * Returns `AlphaDBError` if the value cannot be parsed as a string
 pub fn get_json_value_as_string(value: &Value) -> Result<String, AlphaDBError> {
-    match value.as_str() {
-        Some(v) => Ok(v.to_string()),
-        None => match value.as_i64() {
-            Some(v) => Ok(v.to_string()),
-            None => Err(AlphaDBError {
-                message: format!("The value {} could not be parsed as a string", value.to_string()),
-                error: "invalid-json-string".to_string(),
-                ..Default::default()
-            }),
-        },
+    if let Some(v) = value.as_str() {
+        return Ok(v.to_string());
     }
+
+    if let Some(v) = value.as_i64() {
+        return Ok(v.to_string());
+    }
+
+    if let Some(v) = value.as_bool() {
+        return Ok(v.to_string());
+    }
+
+    Err(AlphaDBError {
+        message: format!("The value {} could not be parsed as a string", value),
+        error: "invalid-json-string".to_string(),
+        ..Default::default()
+    })
 }
 
 /// Get JSON string value from serde_json::Value
@@ -161,7 +167,7 @@ pub fn get_json_string(value: &Value) -> Result<&str, AlphaDBError> {
     match value.as_str() {
         Some(v) => Ok(v),
         None => Err(AlphaDBError {
-            message: format!("The value '{}' could not be parsed as a string", value.to_string()),
+            message: format!("The value '{}' could not be parsed as a string", value),
             error: "invalid-json-string".to_string(),
             ..Default::default()
         }),
@@ -182,7 +188,7 @@ pub fn get_json_boolean(value: &Value) -> Result<bool, AlphaDBError> {
     match value.as_bool() {
         Some(v) => Ok(v),
         None => Err(AlphaDBError {
-            message: format!("The value {} could not be parsed as a boolean", value.to_string()),
+            message: format!("The value {} could not be parsed as a boolean", value),
             error: "invalid-json-boolean".to_string(),
             ..Default::default()
         }),
@@ -229,13 +235,13 @@ pub fn get_json_int(value: &Value) -> Result<i64, AlphaDBError> {
             Some(v) => match v.parse::<i64>() {
                 Ok(v) => Ok(v),
                 Err(_) => Err(AlphaDBError {
-                    message: format!("The value {} could not be parsed as an integer", value.to_string()),
+                    message: format!("The value {} could not be parsed as an integer", value),
                     error: "invalid-json-number".to_string(),
                     ..Default::default()
                 }),
             },
             None => Err(AlphaDBError {
-                message: format!("The value {} could not be parsed as an integer", value.to_string()),
+                message: format!("The value {} could not be parsed as an integer", value),
                 error: "invalid-json-number".to_string(),
                 ..Default::default()
             }),
@@ -262,13 +268,13 @@ pub fn get_json_float(value: &Value) -> Result<f64, AlphaDBError> {
             Some(v) => match v.replace(",", ".").parse::<f64>() {
                 Ok(v) => Ok(v),
                 Err(_) => Err(AlphaDBError {
-                    message: format!("The value {} could not be parsed as a float", value.to_string()),
+                    message: format!("The value {} could not be parsed as a float", value),
                     error: "invalid-json-number".to_string(),
                     ..Default::default()
                 }),
             },
             None => Err(AlphaDBError {
-                message: format!("The value {} could not be parsed as a float", value.to_string()),
+                message: format!("The value {} could not be parsed as a float", value),
                 error: "invalid-json-number".to_string(),
                 ..Default::default()
             }),

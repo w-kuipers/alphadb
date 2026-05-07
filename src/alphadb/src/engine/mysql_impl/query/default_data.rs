@@ -13,11 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::core::{
-    method_types::{Query, QueryValue},
-    query::default_data::parse_default_data,
-    utils::errors::AlphaDBError,
-};
+use crate::core::{method_types::Query, query::default_data::parse_default_data, utils::errors::AlphaDBError};
 use serde_json::Value;
 
 pub fn default_data(table_name: &str, item: &Value) -> Result<Query, AlphaDBError> {
@@ -29,10 +25,10 @@ pub fn default_data(table_name: &str, item: &Value) -> Result<Query, AlphaDBErro
         data.values.iter().map(|_| "?").collect::<Vec<_>>().join(",")
     );
 
-    return Ok(Query {
+    Ok(Query {
         query: q,
         data: Some(data.values),
-    });
+    })
 }
 
 #[cfg(test)]

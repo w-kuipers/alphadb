@@ -46,7 +46,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
     query.table(table_name);
     let mut table_data: Option<&Value> = None;
     let mut version_index: Option<usize> = None;
-    let version_list = get_version_array(&version_source)?;
+    let version_list = get_version_array(version_source)?;
 
     let mut c = 0;
     for table in array_iter(&version_source["version"])? {
@@ -76,8 +76,8 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
                 // The query for the primary key is created after all column modification
                 // There is a chance that the old primary_key has the AUTO_INCREMENT attribute
                 // which must be removed first.
-                if let Some(old_primary_key) = get_primary_key(&version_list, table_name, Some(version))? {
-                    let column_renames = get_column_renames(&version_list, old_primary_key, table_name, "ASC")?;
+                if let Some(old_primary_key) = get_primary_key(version_list, table_name, Some(version))? {
+                    let column_renames = get_column_renames(version_list, old_primary_key, table_name, "ASC")?;
 
                     // If the column is renamed, get hystorical column name for current version
                     let mut version_column_name = old_primary_key;
@@ -146,7 +146,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
                             return Err(AlphaDBError {
                                 message: "Cannot modify a column without knowing it's type, and this column has no type defined".to_string(),
                                 error: "column-has-no-type".to_string(),
-                                version_trace: version_trace,
+                                version_trace,
                             })
                         }
                     };
@@ -198,7 +198,7 @@ pub fn altertable(version_source: &Value, table_name: &str, version: &str) -> Re
         });
     }
 
-    return Ok(query.build());
+    Ok(query.build())
 }
 
 #[cfg(test)]
@@ -232,13 +232,13 @@ mod altertable_tests {
         let column = &json!({
             "name": "test",
             "version": [
-                {"_id": "0.0.1", "createtable": {"table": {"primary_key": "col", "col": {"type": "INT", "auto_increment": true}}}},
+                {"_id": "0.0.1", "createtable": {"table": {"primary_key": "col", "col": {"type": "INTEGER"}}}},
                 {"_id": "0.0.2", "altertable": {"table": {"primary_key": null}}},
             ]
         });
         assert_eq!(
             altertable(column, "table", "0.0.2").unwrap(),
-            "ALTER TABLE table ALTER COLUMN col SERIAL NOT NULL, DROP PRIMARY KEY;"
+            "ALTER TABLE table ALTER COLUMN col TYPE INTEGER, ALTER COLUMN col SET NOT NULL, DROP PRIMARY KEY;"
         );
     }
 }

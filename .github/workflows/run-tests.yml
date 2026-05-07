@@ -22,7 +22,7 @@ jobs:
       - name: Test with Cargo
         run: |
           cd src/alphadb
-          cargo test
+          cargo test --features mysql,postgres
 
   python-tests:
     runs-on: ubuntu-latest

@@ -29,7 +29,7 @@ pub fn connect(host: &str, user: &str, password: &str, database: &str, port: u16
 
     let client = Client::connect(&url, NoTls)?;
 
-    return Ok(client);
+    Ok(client)
 }
 
 #[cfg(test)]
@@ -40,7 +40,7 @@ mod connect_tests {
     static USER: &str = "postgres";
     static PASSWORD: &str = "test";
     static DATABASE: &str = "adb_test1";
-    static PORT: u16 = 5432;
+    static PORT: u16 = 544;
 
     #[test]
     fn test_connect() {

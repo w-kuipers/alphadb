@@ -15,12 +15,13 @@
 
 use crate::core::query::build::StructureQuery;
 use crate::core::query::primary_key::format_primary_key_columns;
-use crate::core::utils::error_messages::incomplete_version_object_err;
 use crate::core::utils::errors::AlphaDBError;
-use crate::core::utils::json::{get_json_object, get_json_string, get_object_keys};
+use crate::core::utils::json::{get_json_object, get_object_keys};
 use crate::core::verification::issue::VersionTrace;
+use crate::prelude::Get;
 
 use crate::engine::mysql_impl::query::column::definecolumn::definecolumn;
+use crate::engine::mysql_impl::query::{create_check_constraint, create_foreign_key_constraint};
 
 /// Generate a MySQL CREATE TABLE query
 ///
@@ -36,6 +37,7 @@ use crate::engine::mysql_impl::query::column::definecolumn::definecolumn;
 /// * Returns `AlphaDBError` if table definition is invalid
 pub fn createtable(version: &serde_json::Value, table_name: &str, version_number: &str) -> Result<String, AlphaDBError> {
     let table_data = &version["createtable"][table_name];
+    let version_trace = VersionTrace::from([version_number, "createtable", table_name]);
 
     let mut query = StructureQuery::createtable();
     query.table(table_name);
@@ -58,47 +60,37 @@ pub fn createtable(version: &serde_json::Value, table_name: &str, version_number
             .ok_or_else(|| AlphaDBError {
                 message: "foreign_key must be an array of objects".to_string(),
                 error: "invalid-structure".to_string(),
-                version_trace: VersionTrace::new(),
+                version_trace: version_trace.clone(),
             })?
             .to_vec();
 
-        for foreign_key_value in &foreign_keys {
-            let foreign_key = foreign_key_value.as_object().ok_or_else(|| AlphaDBError {
-                message: "foreign_key items must be objects".to_string(),
-                error: "invalid-structure".to_string(),
-                version_trace: VersionTrace::new(),
+        for fk_data in foreign_keys {
+            let fk = create_foreign_key_constraint(&fk_data, table_name, version_number).map_err(|mut e| {
+                e.set_version_trace(&version_trace);
+                e
             })?;
-            let foreign_key_keys = foreign_key.keys().collect::<Vec<&String>>();
-            let version_trace = VersionTrace::from([version_number.to_string(), table_name.to_string(), "foreign_key".to_string()]);
 
-            if !foreign_key_keys.iter().any(|&i| i == "from") {
-                return Err(incomplete_version_object_err("from", version_trace));
-            }
+            query.constraint(fk);
+        }
+    }
 
-            if !foreign_key_keys.iter().any(|&i| i == "to") {
-                return Err(incomplete_version_object_err("to", version_trace));
-            }
+    if table_keys.iter().any(|&i| i == "check") {
+        let check_constraints = table_data["check"]
+            .as_array()
+            .ok_or_else(|| AlphaDBError {
+                message: "check must be an array of objects".to_string(),
+                error: "invalid-structure".to_string(),
+                version_trace: version_trace.clone(),
+            })?
+            .to_vec();
 
-            if !foreign_key_keys.iter().any(|&i| i == "references") {
-                return Err(incomplete_version_object_err("references", version_trace));
-            }
+        for check_data in check_constraints {
+            let check = create_check_constraint(&check_data, table_name, version_number).map_err(|mut e| {
+                e.set_version_trace(&version_trace);
+                e
+            })?;
 
-            let mut foreign_key_string = format!(
-                "FOREIGN KEY ({}) REFERENCES {} ({})",
-                get_json_string(&foreign_key_value["from"])?,
-                get_json_string(&foreign_key_value["references"])?,
-                get_json_string(&foreign_key_value["to"])?
-            );
-
-            if foreign_key_keys.iter().any(|&i| i == "on_delete") {
-                foreign_key_string = format!("{foreign_key_string} ON DELETE {}", get_json_string(&foreign_key_value["on_delete"])?.to_uppercase());
-            }
-
-            if foreign_key_keys.iter().any(|&i| i == "on_update") {
-                foreign_key_string = format!("{foreign_key_string} ON UPDATE {}", get_json_string(&foreign_key_value["on_update"])?.to_uppercase());
-            }
-
-            query.constraint(foreign_key_string);
+            query.constraint(check);
         }
     }
 
@@ -110,46 +102,6 @@ pub fn createtable(version: &serde_json::Value, table_name: &str, version_number
 mod createtable_tests {
     use super::createtable;
     use serde_json::json;
-
-    // Foreign key missing key
-    #[test]
-    fn fk_missing_key() {
-        let column = &json!({
-            "createtable": {
-                "table": {
-                    "foreign_key": [
-                        {
-                            "references": "test"
-                        }
-                    ]
-                }
-            }
-        });
-        let q = createtable(column, "table", "0.0.1");
-
-        assert!(q.is_err());
-        assert_eq!(q.unwrap_err().message, "Missing required key 'from'.");
-    }
-
-    // Foreign key missing references
-    #[test]
-    fn fk_missing_references() {
-        let column = &json!({
-            "createtable": {
-                "table": {
-                    "foreign_key": [
-                        {
-                            "from": "test",
-                            "to": "test"
-                        }
-                    ]
-                }
-            }
-        });
-        let q = createtable(column, "table", "0.0.1");
-        assert!(q.is_err());
-        assert_eq!(q.unwrap_err().message, "Missing required key 'references'.");
-    }
 
     #[test]
     fn test_query() {

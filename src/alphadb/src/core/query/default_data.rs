@@ -111,5 +111,5 @@ pub fn parse_default_data<'a>(item: &'a Value) -> Result<DefaultData<'a>, AlphaD
         values.push(QueryValue::from_json(&item[key]));
     }
 
-    return Ok(DefaultData { values, columns: keys });
+    Ok(DefaultData { values, columns: keys })
 }

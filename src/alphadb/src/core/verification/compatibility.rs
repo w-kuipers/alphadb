@@ -47,13 +47,13 @@ pub fn verify_column_type_compatibility(
 }
 
 pub fn column_contains_type(version_list: &Vec<Value>, column_name: &str, table_name: &str, version: u32) -> bool {
-    return match get_column_type(version_list, column_name, table_name, version) {
+    match get_column_type(version_list, column_name, table_name, version) {
         Ok(column_type) => column_type.is_some(),
         // If the function returns an error, it has likely already been adressed earlier in the
         // verification process, this function should not create additional issues as they will be
         // solved by solving earlier ones.
         Err(_) => true,
-    };
+    }
 }
 
 pub fn check_column_type_compatibility(checking_type: &str, rule: &ColumnCompatibilityRule, column_keys: &[&String]) -> bool {
@@ -61,7 +61,7 @@ pub fn check_column_type_compatibility(checking_type: &str, rule: &ColumnCompati
         return false;
     }
 
-    return true;
+    true
 }
 
 pub fn check_column_attributes_compatibility<'a>(rule: &'a ColumnCompatibilityRule, column_keys: &'a [&String]) -> Result<(), Vec<&'a str>> {
@@ -77,5 +77,5 @@ pub fn check_column_attributes_compatibility<'a>(rule: &'a ColumnCompatibilityRu
     if !incompatible_keys.is_empty() {
         return Err(incompatible_keys);
     }
-    return Ok(());
+    Ok(())
 }

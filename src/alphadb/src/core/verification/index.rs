@@ -9,7 +9,7 @@ pub fn verify_index(foreign_key: &Value, issues: &mut Vec<VerificationIssue>, ve
     if !foreign_key.is_array() {
         issues.push(VerificationIssue {
             level: VerificationIssueLevel::High,
-            message: format!("Column index definitions must be specified as an array."),
+            message: "Column index definitions must be specified as an array.".to_string(),
             version_trace: version_trace.clone(),
         });
     }

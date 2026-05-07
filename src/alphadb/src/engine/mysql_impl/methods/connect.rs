@@ -28,7 +28,7 @@ pub fn connect(host: &str, user: &str, password: &str, database: &str, port: u16
     let url = format!("mysql://{}:{}@{}:{}/{}", user, password, host, port, database);
 
     let pool = Pool::new(&url[..])?;
-    return Ok(pool.get_conn()?);
+    Ok(pool.get_conn()?)
 }
 
 #[cfg(test)]
