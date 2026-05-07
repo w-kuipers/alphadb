@@ -51,10 +51,8 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         let column_type = get_json_string(&column_data["type"])?;
 
         let mut null = false;
-        if column_keys.iter().any(|&i| i == "null") {
-            if column_data["null"] == true {
-                null = true;
-            }
+        if column_keys.iter().any(|&i| i == "null") && column_data["null"] == true {
+            null = true;
         }
 
         // Verify column type compatibility against all column keys
@@ -72,6 +70,10 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         for rule in COLUMN_ATTRIBUTE_COMPATIBILITY_RULES {
             if let Err(incompatible_keys) = check_column_attributes_compatibility(&rule, &column_keys) {
                 for key in incompatible_keys {
+                    if key == "null" && !null {
+                        continue;
+                    }
+
                     return Err(incompatible_column_attributes_err(
                         rule.attribute.to_uppercase().as_str(),
                         key.to_uppercase().as_str(),
@@ -89,10 +91,8 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
 
         // Check column type compatibility with UNIQUE
         let mut unique = false;
-        if column_keys.iter().any(|&i| i == "unique") {
-            if column_data["unique"] == true {
-                unique = true;
-            }
+        if column_keys.iter().any(|&i| i == "unique") && column_data["unique"] == true {
+            unique = true;
         }
 
         let mut length: f64 = -1.0;
@@ -110,12 +110,18 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             }
         }
 
-        let mut default: Option<String> = None;
-        if column_keys.iter().any(|&i| i == "default") {
-            default = Some(get_json_value_as_string(&column_data["default"])?);
+        let mut default: Option<&str> = None;
+        if column_keys.contains(&&"default".to_string()) {
+            let default_value = get_json_value_as_string(&column_data["default"])?;
+
+            if default_value == "true" {
+                default = Some("TRUE");
+            } else {
+                default = Some("FALSE");
+            }
         }
 
-        if !SUPPORTED_COLUMN_TYPES.iter().any(|&i| i == column_type) {
+        if !SUPPORTED_COLUMN_TYPES.contains(&column_type) {
             return Err(simple_err(format!("Column type '{}' is not (yet) supported", column_type).as_str(), version_trace));
         }
 
@@ -139,7 +145,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         }
 
         if let Some(d) = default {
-            query.default(d.as_str());
+            query.default(d).default_raw(true);
 
             // MySQL default functions and keywords should not contain quotes
             if d.parse::<f64>().is_err() {
@@ -156,10 +162,10 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
     } else {
         return Ok(None);
     }
-    return Ok(Some(query));
+    Ok(Some(query))
 }
 
-// #[cfg(test)]
+#[cfg(test)]
 mod definecolumn_tests {
     use super::definecolumn;
     use serde_json::json;
