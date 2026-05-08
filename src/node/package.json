@@ -1,5 +1,5 @@
 {
-	"name": "",
+	"name": "alphadb-dev",
 	"version": "1.0.0",
 	"description": "AlphaDB is a versatile tool for managing MySQL database versions, using JSON to define structures and simplify migrations across environments.",
 	"author": "Wibo Kuipers",
@@ -9,12 +9,15 @@
 		"test:mysql": "npm run build:mysql && ALPHADB_ENGINE=mysql vitest run",
 		"test:postgres": "npm run build:postgres && ALPHADB_ENGINE=postgres vitest run",
 		"cargo-build": "tsc &&cargo build --message-format=json-render-diagnostics > cargo.log",
+		"cargo-build:notsc": "cargo build --message-format=json-render-diagnostics > cargo.log",
 		"cross-build": "tsc &&cross build --message-format=json-render-diagnostics > cross.log",
 		"postcargo-build": "neon dist -n alphadb-node < cargo.log",
 		"postcross-build": "neon dist -n alphadb-node -m /target < cross.log",
 		"debug": "npm run cargo-build --",
 		"build:mysql": "npm run cargo-build -- --release --features mysql",
 		"build:postgres": "npm run cargo-build -- --release --features postgres",
+		"build:mysql:notsc": "npm run cargo-build:notsc -- --release --features mysql",
+		"build:postgres:notsc": "npm run cargo-build:notsc -- --release --features postgres",
 		"cross:mysql": "npm run cross-build -- --release --features mysql",
 		"cross:postgres": "npm run cross-build -- --release --features postgres",
 		"postinstall": "node ./postinstall.mjs"
