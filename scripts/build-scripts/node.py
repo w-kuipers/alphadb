@@ -121,7 +121,7 @@ def main():
     print(f'version = "{args.version[1:]}-node"')
 
     update_package_files(paths, args.version, args.engine)
-    run(["yarn"], cwd=node_dir)
+    run(["yarn", "install", "--ignore-scripts"], cwd=node_dir)
 
     platform = "linux" if sys.platform == "linux2" else sys.platform
 
