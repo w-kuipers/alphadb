@@ -110,11 +110,9 @@ jobs:
           python scripts/package-scripts/node.py ${{ github.ref_name }} ${{ matrix.engine }}
 
       - name: Publish to NPM
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           cd node-dist
-          npm publish --access public --tag beta
+          npm publish --access public --tag beta --provenance
 
   package-cli:
     name: Package CLI binaries
