@@ -1,53 +1,109 @@
+import argparse
 import os
 import shutil
 import subprocess
 import sys
-from os.path import join
+from pathlib import Path
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from utils import get_version_number, replace_line
-
-version = get_version_number()
-
-cwd = os.getcwd()
-base_dir = join(cwd, "src/node")
-new_dir = join(cwd, "node-dist/")
-package_path = os.path.join(cwd, base_dir, "package.json")
-cargo_path = os.path.join(cwd, base_dir, "crates/alphadb/Cargo.toml")
-postinstalljs_path = os.path.join(cwd, base_dir, "postinstall.mjs")
-
-os.mkdir(new_dir)
-new_version_line = f'"version": "{version[1:]}",\n'
-cargo_version_line = f'alphadb = "{version[1:]}"\n'
-postinstalljs_line = (
-    'const BASE_URL = "https://github.com/w-kuipers/alphadb/releases/download/'
-    + version
-    + '"'
-)
+from utils import replace_line
 
 
-replace_line('"version":', new_version_line, package_path)
-replace_line("alphadb =", cargo_version_line, cargo_path)
-replace_line("const BASE_URL =", postinstalljs_line, postinstalljs_path)
+PACKAGE_NAMES = {
+    "mysql": "@w-kuipers/alphadb-mysql",
+    "postgres": "@w-kuipers/alphadb-postgres",
+}
 
-subprocess.Popen(
-    ["npm", "install", "--ignore-scripts"], cwd=os.path.join(cwd, base_dir)
-).wait()
-subprocess.Popen(["tsc"], cwd=os.path.join(cwd, base_dir)).wait()
-
-
-def mv(file):
-    shutil.copy(join(base_dir, file), join(new_dir, file))
-
-
-def mvd(directory):
-    shutil.copytree(join(base_dir, directory), join(new_dir, directory))
+PACKAGE_FILES = [
+    "package.json",
+    "postinstall.mjs",
+    "LICENSE",
+    "README.md",
+    "Cargo.toml",
+]
+PACKAGE_DIRECTORIES = ["lib", "crates"]
 
 
-mv("package.json")
-mv("postinstall.mjs")
-mv("LICENSE")
-mv("README.md")
-mv("Cargo.toml")
-mvd("lib")
-mvd("crates")
+def parse_args():
+    parser = argparse.ArgumentParser(description="Create the Node package for AlphaDB.")
+    parser.add_argument("version", help='Release version, for example "v1.0.0".')
+    parser.add_argument("engine", choices=PACKAGE_NAMES.keys())
+    args = parser.parse_args()
+
+    if not args.version.startswith("v"):
+        parser.error('version must start with "v"')
+
+    return args
+
+
+def run(command, cwd=None):
+    if sys.platform == "win32" and command[0] in ["yarn", "npm", "tsc"]:
+        command = [f"{command[0]}.cmd", *command[1:]]
+
+    subprocess.run(command, cwd=cwd, check=True)
+
+
+def update_package_files(paths, version, engine):
+    package_version = version[1:]
+    release_url = f'https://github.com/w-kuipers/alphadb/releases/download/{version}'
+
+    replace_line(
+        '"name":',
+        f'\t"name": "{PACKAGE_NAMES[engine]}",\n',
+        str(paths["package"]),
+    )
+    replace_line(
+        '"version":',
+        f'\t"version": "{package_version}",\n',
+        str(paths["package"]),
+    )
+    replace_line(
+        '"engine":',
+        f'\t\t"engine": "{engine}"\n',
+        str(paths["package"]),
+    )
+    replace_line(
+        "alphadb =",
+        f'alphadb = {{ version = "{package_version}", default-features = false }}\n',
+        str(paths["node_cargo"]),
+    )
+    replace_line(
+        "const BASE_URL =",
+        f'const BASE_URL = "{release_url}";\n',
+        str(paths["postinstall"]),
+    )
+
+
+def build_typescript(node_dir):
+    run(["npm", "install", "--ignore-scripts"], cwd=node_dir)
+    run(["npm", "exec", "--", "tsc"], cwd=node_dir)
+
+
+def copy_package_contents(node_dir, dist_dir):
+    for file in PACKAGE_FILES:
+        shutil.copy(node_dir / file, dist_dir / file)
+
+    for directory in PACKAGE_DIRECTORIES:
+        shutil.copytree(node_dir / directory, dist_dir / directory)
+
+
+def main():
+    args = parse_args()
+    root_dir = Path.cwd()
+    node_dir = root_dir / "src/node"
+    dist_dir = root_dir / "node-dist"
+    paths = {
+        "package": node_dir / "package.json",
+        "node_cargo": node_dir / "crates/alphadb/Cargo.toml",
+        "postinstall": node_dir / "postinstall.mjs",
+    }
+
+    dist_dir.mkdir()
+
+    update_package_files(paths, args.version, args.engine)
+    build_typescript(node_dir)
+    copy_package_contents(node_dir, dist_dir)
+
+
+if __name__ == "__main__":
+    main()

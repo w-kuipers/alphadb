@@ -6,7 +6,7 @@
 	"main": "./lib/index.cjs",
 	"license": "GPL-3.0",
 	"alphadb": {
-		"engine": "mysql"
+		"engine": "postgres"
 	},
 	"scripts": {
 		"test:mysql": "npm run build:mysql && ALPHADB_ENGINE=mysql vitest run",

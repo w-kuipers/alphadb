@@ -1,74 +1,146 @@
+import argparse
 import os
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from utils import get_version_number, replace_line
+from utils import replace_line
 
-version = get_version_number()
 
-base_dir = "src/node"
-package_path = os.path.join(os.getcwd(), base_dir, "package.json")
-adb_path = os.path.join(os.getcwd(), "src/alphadb", "Cargo.toml")
-node_path = os.path.join(os.getcwd(), base_dir, "crates/alphadb/", "Cargo.toml")
-setup_paths = [adb_path, node_path]
-node_bin_dir = os.path.join(base_dir, "node-bin")
+PACKAGE_NAMES = {
+    "mysql": "@w-kuipers/alphadb-mysql",
+    "postgres": "@w-kuipers/alphadb-postgres",
+}
 
-os.mkdir(node_bin_dir)
+NODE_PLATFORMS = {
+    "darwin": {
+        "node": ["darwin-x64", "darwin-arm64"],
+        "rust": ["x86_64-apple-darwin", "aarch64-apple-darwin"],
+    },
+    "linux": {
+        "node": ["linux-x64-gnu"],
+        "rust": ["x86_64-unknown-linux-gnu"],
+    },
+    "win32": {
+        "node": ["win32-x64-msvc"],
+        "rust": ["x86_64-pc-windows-msvc"],
+    },
+}
 
-new_version_line = f'"version": "{version[1:]}",\n'
-adb_version_line = f'version = "{version[1:]}"\n'
-node_version_line = f'version = "{version[1:]}-node"\n'
-print(version)
-print(node_version_line)
 
-replace_line('"version":', new_version_line, package_path)
-replace_line("version =", adb_version_line, adb_path)
-replace_line("version =", node_version_line, node_path)
+def parse_args():
+    parser = argparse.ArgumentParser(description="Build Node binaries for AlphaDB.")
+    parser.add_argument("version", help='Release version, for example "v1.0.0".')
+    parser.add_argument("engine", choices=PACKAGE_NAMES.keys())
+    args = parser.parse_args()
 
-mac = ["darwin-x64", "darwin-arm64"]
-win = ["win32-x64-msvc"]
-linux = ["linux-x64-gnu"]
-# linux = ["linux-x64-gnu", "linux-arm64-gnu"]
+    if not args.version.startswith("v"):
+        parser.error('version must start with "v"')
 
-mac_r = ["x86_64-apple-darwin", "aarch64-apple-darwin"]
-win_r = ["x86_64-pc-windows-msvc"]
-linux_r = ["x86_64-unknown-linux-gnu"]
-# linux_r = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]
+    return args
 
-cwd = os.path.abspath(os.path.join(os.getcwd(), base_dir))
 
-subprocess.Popen(["yarn"], cwd=cwd, shell=True).wait()
+def run(command, cwd=None):
+    if sys.platform == "win32" and command[0] in ["yarn", "npm", "tsc"]:
+        command = [f"{command[0]}.cmd", *command[1:]]
 
-if sys.platform == "linux" or sys.platform == "linux2":
-    subprocess.Popen(["sudo", "apt", "install", "-y", "gcc-aarch64-linux-gnu"]).wait()
-    subprocess.Popen(
-        ["sudo", "apt", "install", "-y", "pkg-config", "libssl-dev"]
-    ).wait()
-    subprocess.Popen(["echo", '"OPENSSL_DIR=/usr/lib/ssl"', ">>", "$GITHUB_ENV"]).wait()
-    for i, system in enumerate(linux_r):
-        subprocess.Popen(["rustup", "target", "add", system], cwd=cwd).wait()
-        subprocess.Popen(["yarn", "build", "--target", system], cwd=cwd).wait()
+    subprocess.run(command, cwd=cwd, check=True)
+
+
+def set_github_env(name, value):
+    github_env = os.environ.get("GITHUB_ENV")
+    if github_env:
+        with open(github_env, "a") as f:
+            f.write(f"{name}={value}\n")
+
+
+def update_package_files(paths, version, engine):
+    package_version = version[1:]
+    alphadb_path = paths["alphadb_crate"].as_posix()
+
+    replace_line(
+        '"name":',
+        f'\t"name": "{PACKAGE_NAMES[engine]}",\n',
+        str(paths["package"]),
+    )
+    replace_line(
+        '"version":',
+        f'\t"version": "{package_version}",\n',
+        str(paths["package"]),
+    )
+    replace_line(
+        '"engine":',
+        f'\t\t"engine": "{engine}"\n',
+        str(paths["package"]),
+    )
+    replace_line(
+        "version =",
+        f'version = "{package_version}"\n',
+        str(paths["alphadb_cargo"]),
+    )
+    replace_line(
+        "version =",
+        f'version = "{package_version}-node"\n',
+        str(paths["node_cargo"]),
+    )
+    replace_line(
+        "alphadb =",
+        f'alphadb = {{ path = "{alphadb_path}", default-features = false }}\n',
+        str(paths["node_cargo"]),
+    )
+
+
+def install_linux_dependencies():
+    run(["sudo", "apt", "install", "-y", "gcc-aarch64-linux-gnu"])
+    run(["sudo", "apt", "install", "-y", "pkg-config", "libssl-dev"])
+    set_github_env("OPENSSL_DIR", "/usr/lib/ssl")
+
+
+def build_platform_binaries(platform, node_dir, node_bin_dir, engine):
+    platform_config = NODE_PLATFORMS[platform]
+
+    for node_platform, rust_target in zip(
+        platform_config["node"], platform_config["rust"]
+    ):
+        run(["rustup", "target", "add", rust_target], cwd=node_dir)
+        run(["yarn", f"build:{engine}", "--target", rust_target], cwd=node_dir)
 
         shutil.move(
-            "src/node/index.node", os.path.join(node_bin_dir, f"{linux[i]}.node")
+            "src/node/index.node",
+            node_bin_dir / f"{node_platform}-{engine}.node",
         )
 
-if sys.platform == "darwin":
-    for i, system in enumerate(mac_r):
-        subprocess.Popen(["rustup", "target", "add", system], cwd=cwd).wait()
-        subprocess.Popen(["yarn", "build", "--target", system], cwd=cwd).wait()
 
-        shutil.move("src/node/index.node", os.path.join(node_bin_dir, f"{mac[i]}.node"))
+def main():
+    args = parse_args()
+    root_dir = Path.cwd()
+    node_dir = root_dir / "src/node"
+    node_bin_dir = root_dir / "src/node/node-bin"
+    paths = {
+        "package": node_dir / "package.json",
+        "alphadb_cargo": root_dir / "src/alphadb/Cargo.toml",
+        "alphadb_crate": root_dir / "src/alphadb",
+        "node_cargo": node_dir / "crates/alphadb/Cargo.toml",
+    }
 
-if sys.platform == "win32":
-    for i, system in enumerate(win_r):
-        subprocess.Popen(
-            ["rustup", "target", "add", system], cwd=cwd, shell=True
-        ).wait()
-        subprocess.Popen(
-            ["yarn", "build", "--target", system], cwd=cwd, shell=True
-        ).wait()
+    node_bin_dir.mkdir()
 
-        shutil.move("src/node/index.node", os.path.join(node_bin_dir, f"{win[i]}.node"))
+    print(args.version)
+    print(f'version = "{args.version[1:]}-node"')
+
+    update_package_files(paths, args.version, args.engine)
+    run(["yarn", "install", "--ignore-scripts"], cwd=node_dir)
+
+    platform = "linux" if sys.platform == "linux2" else sys.platform
+
+    if platform == "linux":
+        install_linux_dependencies()
+
+    if platform in NODE_PLATFORMS:
+        build_platform_binaries(platform, node_dir, node_bin_dir, args.engine)
+
+
+if __name__ == "__main__":
+    main()
