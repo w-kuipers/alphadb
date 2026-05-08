@@ -5,6 +5,9 @@
 	"author": "Wibo Kuipers",
 	"main": "./lib/index.cjs",
 	"license": "GPL-3.0",
+	"alphadb": {
+		"engine": "mysql"
+	},
 	"scripts": {
 		"test:mysql": "npm run build:mysql && ALPHADB_ENGINE=mysql vitest run",
 		"test:postgres": "npm run build:postgres && ALPHADB_ENGINE=postgres vitest run",

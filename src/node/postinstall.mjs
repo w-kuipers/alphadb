@@ -7,10 +7,10 @@ import fetch from "node-fetch";
 
 const BASE_URL = "https://github.com/w-kuipers/alphadb/releases/download/version-number";
 const SUPPORTED_BINARIES = {
-	"linux-x64": "linux-x64-gnu.node",
-	"darwin-arm64": "darwin-arm64.node",
-	"darwin-x64": "darwin-x64.node",
-	"win32-x64": "win32-x64-msvc.node",
+	"linux-x64": "linux-x64-gnu",
+	"darwin-arm64": "darwin-arm64",
+	"darwin-x64": "darwin-x64",
+	"win32-x64": "win32-x64-msvc",
 };
 
 const __filename = fileURLToPath(import.meta.url);
@@ -19,7 +19,12 @@ const platform = os.platform();
 const arch = os.arch();
 const platformArch = `${platform}-${arch}`;
 const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, "./package.json"), "utf8"));
-const isPostgresPackage = packageJson.name.includes("postgres");
+const engine = packageJson.alphadb?.engine;
+
+if (!["mysql", "postgres"].includes(engine)) {
+	console.error("Missing or invalid package.json alphadb.engine. Expected \"mysql\" or \"postgres\".");
+	process.exit(1);
+}
 
 function getBinaryURL() {
 	const fileName = SUPPORTED_BINARIES[platformArch];
@@ -28,7 +33,7 @@ function getBinaryURL() {
 		return null;
 	}
 
-	return `${BASE_URL}/${fileName}`;
+	return `${BASE_URL}/${fileName}-${engine}.node`;
 }
 
 async function downloadBinary(url) {
@@ -76,7 +81,7 @@ function buildFromSource() {
 	}
 
 	try {
-		execSync(isPostgresPackage ? "npm run build:postgres:notsc" : "npm run build:mysql:notsc", {
+		execSync(engine === "postgres" ? "npm run build:postgres:notsc" : "npm run build:mysql:notsc", {
 			cwd: __dirname,
 			stdio: "inherit",
 		});

@@ -6,8 +6,8 @@
 //   https://www.npmjs.com/package/@neon-rs/cli
 
 
-const packageName = require('../package.json').name as string;
-const binaryScope = packageName.includes('postgres') ? '@alphadb-postgres' : '@alphadb';
+const packageJson = require('../package.json') as { alphadb?: { engine?: string } };
+const binaryScope = packageJson.alphadb?.engine === 'postgres' ? '@alphadb-postgres' : '@alphadb-mysql';
 
 module.exports = require('@neon-rs/load').proxy({
 	platforms: {
