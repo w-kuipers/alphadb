@@ -37,6 +37,9 @@ def parse_args():
 
 
 def run(command, cwd=None):
+    if sys.platform == "win32" and command[0] in ["yarn", "npm", "tsc"]:
+        command = [f"{command[0]}.cmd", *command[1:]]
+
     subprocess.run(command, cwd=cwd, check=True)
 
 
