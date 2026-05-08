@@ -23,41 +23,7 @@
           "col4": {
             "type": "INTEGER",
             "length": 7
-          },
-          "index": [
-            {
-              "name": "test_index",
-              "type": "btree",
-              "columns": ["col3"],
-              "condition": {
-                "type": "and",
-                "conditions": [
-                  {
-                    "type": "comparison",
-                    "op": "=",
-                    "left": { "type": "column", "name": "status" },
-                    "right": { "type": "value", "value": "pending" }
-                  }
-                ]
-              }
-            },
-            {
-              "name": "test_index_2",
-              "columns": ["col3"],
-              "unique": true,
-              "condition": {
-                "type": "and",
-                "conditions": [
-                  {
-                    "type": "comparison",
-                    "op": "=",
-                    "left": { "type": "column", "name": "status" },
-                    "right": { "type": "value", "value": "pending" }
-                  }
-                ]
-              }
-            }
-          ]
+          }
         }
       },
       "default_data": {

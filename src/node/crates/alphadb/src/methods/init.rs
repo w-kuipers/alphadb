@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::engine::init;
 use crate::types::PooledConnWrap;
 use crate::utils::get_connection;
 use alphadb::core::method_types::Init;
-use alphadb::engine::mysql_impl::methods::init;
 use alphadb::prelude::*;
 use neon::prelude::*;
 use std::cell::RefCell;

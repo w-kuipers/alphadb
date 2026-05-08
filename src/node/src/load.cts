@@ -5,13 +5,17 @@
 //
 //   https://www.npmjs.com/package/@neon-rs/cli
 
+
+const packageName = require('../package.json').name as string;
+const binaryScope = packageName.includes('postgres') ? '@alphadb-postgres' : '@alphadb';
+
 module.exports = require('@neon-rs/load').proxy({
 	platforms: {
-		'win32-x64-msvc': () => require('@alphadb/win32-x64-msvc'),
-		'darwin-x64': () => require('@alphadb/darwin-x64'),
-		'darwin-arm64': () => require('@alphadb/darwin-arm64'),
-		'linux-x64-gnu': () => require('@alphadb/linux-x64-gnu'),
-		'linux-arm64-gnu': () => require('@alphadb/linux-arm64-gnu')
+		'win32-x64-msvc': () => require(`${binaryScope}/win32-x64-msvc`),
+		'darwin-x64': () => require(`${binaryScope}/darwin-x64`),
+		'darwin-arm64': () => require(`${binaryScope}/darwin-arm64`),
+		'linux-x64-gnu': () => require(`${binaryScope}/linux-x64-gnu`),
+		'linux-arm64-gnu': () => require(`${binaryScope}/linux-arm64-gnu`)
 	},
 	debug: () => require('../index.node')
 });

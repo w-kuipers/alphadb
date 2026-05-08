@@ -1,8 +1,8 @@
+use crate::engine::Connection;
 use neon::prelude::*;
-use mysql::PooledConn;
 
 pub struct PooledConnWrap {
-    pub inner: Option<PooledConn>,
+    pub inner: Option<Connection>,
 }
 
 impl Finalize for PooledConnWrap {}

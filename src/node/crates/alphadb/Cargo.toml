@@ -13,5 +13,11 @@ crate-type = ["cdylib"]
 
 [dependencies]
 neon = "1"
-alphadb = { path = "../../../alphadb", features = ["mysql"] }
-mysql = "25.0.1"
+alphadb = { path = "../../../alphadb", default-features = false }
+mysql = { version = "25.0.1", optional = true }
+postgres = { version = "0.19", optional = true }
+
+[features]
+default = ["mysql"]
+mysql = ["dep:mysql", "alphadb/mysql"]
+postgres = ["dep:postgres", "alphadb/postgres"]

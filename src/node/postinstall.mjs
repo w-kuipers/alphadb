@@ -9,6 +9,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const platform = os.platform();
 const arch = os.arch();
+const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, "./package.json"), "utf8"));
+const isPostgresPackage = packageJson.name.includes("postgres");
 
 function getBinaryURL() {
 	const BASE_URL = "https://github.com/w-kuipers/alphadb/releases/download/version-number";
@@ -98,7 +100,7 @@ async function main() {
 
 function buildFromSource() {
 	try {
-		execSync("yarn build", { stdio: "inherit" });
+		execSync(isPostgresPackage ? "yarn build:postgres" : "yarn build:mysql", { stdio: "inherit" });
 	} catch (error) {
 		console.error('Failed to build from source:', error.message);
 		process.exit(1);

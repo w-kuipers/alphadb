@@ -53,6 +53,7 @@ declare module "./load.cjs" {
 	const internalisconnected: any;
 	function get_is_connected(internalisconnected: any): boolean;
 	function get_db_name(internaldbname: any): string | undefined;
+	function default_port(): number;
 	function connect(conn: any, internaldbname: any, internalisconnected: any, host: string, user: string, password: string, database: string, port: number): void;
 	function init(conn: any, internaldbname: any): void;
 	function status(conn: any, internaldbname: any): Status;
@@ -71,7 +72,7 @@ class AlphaDB {
 	}
 
 	public connect(props: ConnectProps) {
-		if (typeof props.port === "undefined") props.port = 3306;
+		if (typeof props.port === "undefined") props.port = addon.default_port();
 		addon.connect(this.conn, this.internaldbname, this.internalisconnected, props.host, props.user, props.password, props.database, props.port);
 
 		this.db_name = addon.get_db_name(this.internaldbname);

@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+mod engine;
 mod methods;
 mod types;
 mod utils;
@@ -20,14 +21,18 @@ mod utils;
 use crate::methods::connect::connect_wrap;
 use crate::methods::init::init_wrap;
 use crate::methods::status::status_wrap;
-use crate::methods::update_queries::update_queries_wrap;
 use crate::methods::update::update_wrap;
+use crate::methods::update_queries::update_queries_wrap;
 use crate::methods::vacate::vacate_wrap;
 use crate::types::PooledConnWrap;
 use neon::prelude::*;
-use utils::{get_db_name, get_is_connected};
 use std::cell::RefCell;
 use std::rc::Rc;
+use utils::{get_db_name, get_is_connected};
+
+fn default_port(mut cx: FunctionContext) -> JsResult<JsNumber> {
+    Ok(cx.number(engine::DEFAULT_PORT))
+}
 
 #[neon::main]
 fn main(mut cx: ModuleContext) -> NeonResult<()> {
@@ -45,6 +50,7 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
     cx.export_value("conn", conn_rc)?;
     cx.export_function("get_db_name", get_db_name)?;
     cx.export_function("get_is_connected", get_is_connected)?;
+    cx.export_function("default_port", default_port)?;
     cx.export_function("connect", connect_wrap)?;
     cx.export_function("init", init_wrap)?;
     cx.export_function("status", status_wrap)?;
