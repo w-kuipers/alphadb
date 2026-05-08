@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::engine::connect;
 use crate::types::PooledConnWrap;
-use alphadb::engine::mysql::methods::connect;
 use alphadb::prelude::*;
 use neon::prelude::*;
 use std::cell::RefCell;

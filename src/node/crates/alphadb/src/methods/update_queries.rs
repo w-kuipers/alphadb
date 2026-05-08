@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::engine::update_queries;
 use crate::types::PooledConnWrap;
 use crate::utils::get_connection;
-use alphadb::engine::mysql::methods::update_queries;
 use alphadb::prelude::*;
 use neon::prelude::*;
 use std::cell::RefCell;
