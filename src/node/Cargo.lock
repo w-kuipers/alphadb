@@ -46,7 +46,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "alphadb-mysql"
+name = "alphadb-node"
 version = "23.0.22-dev.238-node"
 dependencies = [
  "alphadb",

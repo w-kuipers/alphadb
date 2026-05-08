@@ -1,5 +1,5 @@
 [package]
-name = "alphadb-mysql"
+name = "alphadb-node"
 version = "23.0.22-dev.238-node"
 authors = ["Wibo Kuipers"]
 license = "GPL-3.0"
@@ -18,6 +18,6 @@ mysql = { version = "25.0.1", optional = true }
 postgres = { version = "0.19", optional = true }
 
 [features]
-default = ["mysql"]
+default = []
 mysql = ["dep:mysql", "alphadb/mysql"]
 postgres = ["dep:postgres", "alphadb/postgres"]
