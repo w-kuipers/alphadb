@@ -10,7 +10,7 @@
 
 # AlphaDB
 
-AlphaDB is a powerful and flexible tool for managing MySQL database versions. It allows you to define the structure of your database in a JSON format and simplifies the process of applying and managing migrations across multiple databases. With AlphaDB, you can ensure consistency and control in your database schema evolution, whether you’re working in development, staging, or production environments.
+AlphaDB is a SQL schema versioning tool that lets you define your database structure in a JSON format and handles applying migrations across multiple databases. It gives you consistency and control over schema evolution, whether you're working in development, staging, or production environments.
 
 ---
 
