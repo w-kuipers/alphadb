@@ -55,6 +55,7 @@ def set_github_env(name, value):
 
 def update_package_files(paths, version, engine):
     package_version = version[1:]
+    alphadb_path = paths["alphadb_crate"].as_posix()
 
     replace_line(
         '"name":',
@@ -79,6 +80,11 @@ def update_package_files(paths, version, engine):
     replace_line(
         "version =",
         f'version = "{package_version}-node"\n',
+        str(paths["node_cargo"]),
+    )
+    replace_line(
+        "alphadb =",
+        f'alphadb = {{ path = "{alphadb_path}", default-features = false }}\n',
         str(paths["node_cargo"]),
     )
 
@@ -112,6 +118,7 @@ def main():
     paths = {
         "package": node_dir / "package.json",
         "alphadb_cargo": root_dir / "src/alphadb/Cargo.toml",
+        "alphadb_crate": root_dir / "src/alphadb",
         "node_cargo": node_dir / "crates/alphadb/Cargo.toml",
     }
 
