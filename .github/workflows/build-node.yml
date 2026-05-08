@@ -11,6 +11,7 @@ jobs:
       matrix:
         # os: [macos-latest]
         os: [ubuntu-latest, macos-latest, windows-latest]
+        engine: [mysql, postgres]
 
     runs-on: ${{ matrix.os }}
 
@@ -43,10 +44,10 @@ jobs:
 
       - name: Build node package
         run: |
-          python scripts/build-scripts/node.py ${{ github.ref_name }}
+          python scripts/build-scripts/node.py ${{ github.ref_name }} ${{ matrix.engine }}
 
       - name: Store Node binary
         uses: actions/upload-artifact@v4
         with:
-          name: node-bin-${{ matrix.os }}
+          name: node-bin-${{ matrix.os }}-${{ matrix.engine }}
           path: ./src/node/node-bin/
