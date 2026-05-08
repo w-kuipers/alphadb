@@ -89,16 +89,19 @@ def install_linux_dependencies():
     set_github_env("OPENSSL_DIR", "/usr/lib/ssl")
 
 
-def build_platform_binaries(platform, node_dir, node_bin_dir):
+def build_platform_binaries(platform, node_dir, node_bin_dir, engine):
     platform_config = NODE_PLATFORMS[platform]
 
     for node_platform, rust_target in zip(
         platform_config["node"], platform_config["rust"]
     ):
         run(["rustup", "target", "add", rust_target], cwd=node_dir)
-        run(["yarn", "build", "--target", rust_target], cwd=node_dir)
+        run(["yarn", f"build:{engine}", "--target", rust_target], cwd=node_dir)
 
-        shutil.move("src/node/index.node", node_bin_dir / f"{node_platform}.node")
+        shutil.move(
+            "src/node/index.node",
+            node_bin_dir / f"{node_platform}-{engine}.node",
+        )
 
 
 def main():
@@ -126,7 +129,7 @@ def main():
         install_linux_dependencies()
 
     if platform in NODE_PLATFORMS:
-        build_platform_binaries(platform, node_dir, node_bin_dir)
+        build_platform_binaries(platform, node_dir, node_bin_dir, args.engine)
 
 
 if __name__ == "__main__":
