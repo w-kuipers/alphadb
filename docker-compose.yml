@@ -13,6 +13,11 @@ services:
       - "333:3306"
     networks:
       - alphadb_network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   postgres:
     container_name: alphadb_postgres
@@ -22,11 +27,17 @@ services:
       POSTGRES_PASSWORD: test
     volumes:
       - ./scripts/init-dev-db-postgres.sql:/docker-entrypoint-initdb.d/init.sql
-      - alphadb_postgres:/var/lib/postgresql/data
+      - alphadb_postgres:/var/lib/postgresql
     ports:
       - "544:5432"
     networks:
       - alphadb_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
 networks:
   alphadb_network:
