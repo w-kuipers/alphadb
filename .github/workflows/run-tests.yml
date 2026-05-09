@@ -29,6 +29,10 @@ jobs:
 
   python-tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [mysql, postgres]
 
     steps:
       - uses: actions/checkout@v6
@@ -37,6 +41,8 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -47,8 +53,8 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           pip install -r requirements.txt
-          maturin develop
-          pytest
+          maturin develop --features ${{ matrix.engine }}
+          ALPHADB_ENGINE=${{ matrix.engine }} pytest
 
       - name: Stop Docker Compose services
         if: always()
@@ -56,6 +62,10 @@ jobs:
 
   node-tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [mysql, postgres]
 
     steps:
       - uses: actions/checkout@v6
@@ -74,9 +84,8 @@ jobs:
       - name: Test with Vitest
         run: |
           cd src/node
-          yarn
-          yarn build
-          yarn test
+          yarn --ignore-scripts
+          yarn test:${{ matrix.engine }}
 
       - name: Stop Docker Compose services
         if: always()

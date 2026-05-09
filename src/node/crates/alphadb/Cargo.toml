@@ -13,7 +13,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 neon = "1"
-alphadb = { path = "/home/wibo/code/alphadb/alphadb/src/alphadb", default-features = false }
+alphadb = { path = "../../../alphadb", default-features = false }
 mysql = { version = "25.0.1", optional = true }
 postgres = { version = "0.19", optional = true }
 
