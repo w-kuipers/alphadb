@@ -15,6 +15,7 @@ jobs:
         # os: [macos-latest, windows-latest, ubuntu-22.04]
         os: [macos-latest, ubuntu-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        engine: [mysql, postgres]
 
     needs:
       - build-py
@@ -26,10 +27,10 @@ jobs:
       id-token: write
     steps:
       - name: Download all the dists
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
-          name: python-api-${{ matrix.os }}-${{ matrix.python-version }}
+          name: python-api-${{ matrix.engine }}-${{ matrix.os }}-${{ matrix.python-version }}
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -42,7 +43,7 @@ jobs:
       name: release
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -52,7 +53,7 @@ jobs:
           override: true
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -97,9 +98,9 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "lts/*"
           registry-url: "https://registry.npmjs.org"
@@ -127,7 +128,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -141,7 +142,7 @@ jobs:
           python scripts/build-scripts/cli.py ${{ github.ref_name }}
 
       - name: Store binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cli-bin-${{ matrix.os }}
           path: ./dist/

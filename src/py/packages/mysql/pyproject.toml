@@ -8,17 +8,14 @@ version = "1.0.0"
 author = "Wibo Kuipers"
 author-email = "wkuipersoss@gmail.com"
 description = "AlphaDB is a versatile tool for managing MySQL database versions, using JSON to define structures and simplify migrations across environments."
-long-description = {file = "README.md"}
-long-description-content-type = "text/markdown"
 readme = {file = "README.md", content-type = "text/markdown"}
-license = { file = "LICENSE" }
+license = "GPL-3.0"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
-	"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3 :: Only"
 ]
@@ -30,4 +27,9 @@ Repository = "https://github.com/w-kuipers/alphadb"
 "Bug Tracker" = "https://github.com/w-kuipers/alphadb/issues"
 
 [tool.maturin]
-features = ["pyo3/extension-module"]
+manifest-path = "../../Cargo.toml"
+features = ["pyo3/extension-module", "mysql"]
+include = [
+    { path = "README.md", format = "sdist" },
+    { path = "LICENSE", format = "sdist" },
+]

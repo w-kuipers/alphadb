@@ -16,7 +16,7 @@ PACKAGE_NAMES = {
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Build Python wheels for AlphaDB.")
+    parser = argparse.ArgumentParser(description="Create the Python package for AlphaDB.")
     parser.add_argument("version", help='Release version, for example "v1.0.0".')
     parser.add_argument("engine", choices=PACKAGE_NAMES.keys())
     args = parser.parse_args()
@@ -46,20 +46,17 @@ def main():
     root_dir = Path.cwd()
     py_dir = root_dir / "src/py"
     package_dir = py_dir / "packages" / args.engine
-    wheels_dir = py_dir / "target/wheels"
+    dist_dir = root_dir / "py-dist" / args.engine
     paths = {
         "pyproject": package_dir / "pyproject.toml",
     }
 
-    wheels_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(py_dir / "LICENSE", package_dir / "LICENSE")
-
-    print(args.version)
-    print(f'package = "{PACKAGE_NAMES[args.engine]}"')
-    print(f'version = "{args.version[1:]}"')
+    if dist_dir.exists():
+        shutil.rmtree(dist_dir)
+    dist_dir.mkdir(parents=True)
 
     update_package_files(paths, args.version)
-    run(["maturin", "build", "--sdist", "--release", "--out", str(wheels_dir)], cwd=package_dir)
+    run(["maturin", "build", "--sdist", "--release", "--out", str(dist_dir)], cwd=package_dir)
 
 
 if __name__ == "__main__":
