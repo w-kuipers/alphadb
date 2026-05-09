@@ -13,6 +13,11 @@ services:
       - "333:3306"
     networks:
       - alphadb_network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   postgres:
     container_name: alphadb_postgres
@@ -27,6 +32,11 @@ services:
       - "544:5432"
     networks:
       - alphadb_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 networks:
   alphadb_network:
