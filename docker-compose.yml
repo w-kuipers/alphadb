@@ -27,7 +27,7 @@ services:
       POSTGRES_PASSWORD: test
     volumes:
       - ./scripts/init-dev-db-postgres.sql:/docker-entrypoint-initdb.d/init.sql
-      - alphadb_postgres:/var/lib/postgresql/data
+      - alphadb_postgres:/var/lib/postgresql
     ports:
       - "544:5432"
     networks:
@@ -36,7 +36,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 30s
 
 networks:
   alphadb_network:
