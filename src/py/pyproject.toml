@@ -31,3 +31,4 @@ Repository = "https://github.com/w-kuipers/alphadb"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+include = [{ path = "README.md", format = "sdist" }]
