@@ -30,3 +30,9 @@ AlphaDB is currently in `beta` stage. Breaking changes should be expected.
 ## Documentation
 
 Visit the [official documentation](https://alphadb.w-kuipers.com/)
+
+## Building Packages
+
+The MySQL package metadata lives in `pyproject.mysql.toml`.
+
+The PostgreSQL package metadata lives in `pyproject.postgres.toml`.

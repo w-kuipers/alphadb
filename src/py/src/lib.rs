@@ -13,24 +13,50 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#[cfg(all(feature = "mysql", feature = "postgres"))]
+compile_error!("Enable only one database engine feature: mysql or postgres");
+
+#[cfg(not(any(feature = "mysql", feature = "postgres")))]
+compile_error!("Enable one database engine feature: mysql or postgres");
+
 use alphadb::core::method_types::{Init, Query as AdbQuery};
-use alphadb::engine::mysql::methods::connect;
-use alphadb::engine::mysql::methods::init;
-use alphadb::engine::mysql::methods::status;
-use alphadb::engine::mysql::methods::update;
-use alphadb::engine::mysql::methods::update_queries;
-use alphadb::engine::mysql::methods::vacate;
-use alphadb::engine::mysql::utils::connection::get_connection;
 use alphadb::prelude::*;
+#[cfg(all(feature = "mysql", not(feature = "postgres")))]
 use mysql::PooledConn;
+#[cfg(all(feature = "postgres", not(feature = "mysql")))]
+use postgres::Client;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-#[pyclass]
+#[cfg(any(
+    all(feature = "mysql", feature = "postgres"),
+    not(any(feature = "mysql", feature = "postgres"))
+))]
+struct DisabledConnection;
+
+#[cfg(all(feature = "mysql", not(feature = "postgres")))]
+type DbConnection = PooledConn;
+#[cfg(all(feature = "postgres", not(feature = "mysql")))]
+type DbConnection = Client;
+#[cfg(any(
+    all(feature = "mysql", feature = "postgres"),
+    not(any(feature = "mysql", feature = "postgres"))
+))]
+type DbConnection = DisabledConnection;
+
+#[cfg(all(feature = "mysql", not(feature = "postgres")))]
+const DEFAULT_PORT: u16 = 3306;
+#[cfg(all(feature = "postgres", not(feature = "mysql")))]
+const DEFAULT_PORT: u16 = 5432;
+#[cfg(any(
+    all(feature = "mysql", feature = "postgres"),
+    not(any(feature = "mysql", feature = "postgres"))
+))]
+const DEFAULT_PORT: u16 = 0;
+
+#[pyclass(unsendable)]
 struct AlphaDB {
-    connection: Option<PooledConn>,
-    db_name: Option<String>,
-    is_connected: bool,
+    inner: alphadb::AlphaDB<DbConnection>,
 }
 
 #[derive(Debug, IntoPyObject, IntoPyObjectRef)]
@@ -50,7 +76,11 @@ pub struct Query {
 impl From<AdbQuery> for Query {
     fn from(q: AdbQuery) -> Self {
         Query {
-            data: q.data,
+            data: q.data.map(|data| {
+                data.into_iter()
+                    .map(|value| value.to_string_lossy())
+                    .collect()
+            }),
             query: q.query,
         }
     }
@@ -73,19 +103,29 @@ enum PyToleratedVerificationIssueLevel {
 impl AlphaDB {
     #[new]
     fn __new__() -> Self {
+        #[cfg(all(feature = "mysql", not(feature = "postgres")))]
+        let config = alphadb::engine::mysql();
+
+        #[cfg(all(feature = "postgres", not(feature = "mysql")))]
+        let config = alphadb::engine::postgres();
+
+        #[cfg(any(
+            all(feature = "mysql", feature = "postgres"),
+            not(any(feature = "mysql", feature = "postgres"))
+        ))]
+        let config = unreachable!();
+
         Self {
-            connection: None,
-            db_name: None,
-            is_connected: false,
+            inner: alphadb::AlphaDB::new(config),
         }
     }
 
     #[getter]
     fn is_connected(&self) -> bool {
-        self.is_connected
+        self.inner.is_connected
     }
 
-    #[pyo3(signature = (host, user, password, database, port=3306))]
+    #[pyo3(signature = (host, user, password, database, port=DEFAULT_PORT))]
     fn connect(
         &mut self,
         host: &str,
@@ -94,24 +134,14 @@ impl AlphaDB {
         database: &str,
         port: u16,
     ) -> PyResult<()> {
-        match connect(host, user, password, database, port) {
-            Ok(c) => {
-                self.connection = Some(c);
-                self.db_name = Some(database.to_string());
-                self.is_connected = true;
-                Ok(())
-            }
+        match self.inner.connect(host, user, password, database, port) {
+            Ok(()) => Ok(()),
             Err(e) => Err(PyRuntimeError::new_err(e.message())),
         }
     }
 
     fn init(&mut self) -> PyResult<()> {
-        let (db_name, connection) = match get_connection(&mut self.db_name, &mut self.connection) {
-            Ok(c) => c,
-            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
-        };
-
-        match init(db_name, connection) {
+        match self.inner.init() {
             Ok(i) => match i {
                 Init::AlreadyInitialized => Err(PyRuntimeError::new_err(
                     "The database is already initialized",
@@ -123,12 +153,7 @@ impl AlphaDB {
     }
 
     fn status(&mut self) -> PyResult<Py<PyAny>> {
-        let (db_name, connection) = match get_connection(&mut self.db_name, &mut self.connection) {
-            Ok(c) => c,
-            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
-        };
-
-        Python::with_gil(|py| match status(db_name, connection) {
+        Python::with_gil(|py| match self.inner.status() {
             Ok(s) => {
                 let status = Status {
                     init: s.init,
@@ -154,13 +179,11 @@ impl AlphaDB {
         target_version: Option<&str>,
         no_data: bool,
     ) -> PyResult<Vec<Query>> {
-        let (db_name, connection) = match get_connection(&mut self.db_name, &mut self.connection) {
-            Ok(c) => c,
-            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
-        };
-
         Python::with_gil(|_py| {
-            match update_queries(db_name, connection, version_source, target_version, no_data) {
+            match self
+                .inner
+                .update_queries(version_source, target_version, no_data)
+            {
                 Ok(queries) => {
                     let mut queries_converted: Vec<Query> = Vec::new();
 
@@ -184,11 +207,6 @@ impl AlphaDB {
         verify: Option<bool>,
         tolerated_verification_issue_level: PyToleratedVerificationIssueLevel,
     ) -> PyResult<()> {
-        let (db_name, connection) = match get_connection(&mut self.db_name, &mut self.connection) {
-            Ok(c) => c,
-            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
-        };
-
         let allowed_error_priority = match tolerated_verification_issue_level {
             PyToleratedVerificationIssueLevel::Low => ToleratedVerificationIssueLevel::Low,
             PyToleratedVerificationIssueLevel::High => ToleratedVerificationIssueLevel::High,
@@ -208,9 +226,7 @@ impl AlphaDB {
             None => false,
         };
 
-        match update(
-            db_name,
-            connection,
+        match self.inner.update(
             version_source,
             target_version.as_deref(),
             verify,
@@ -223,11 +239,7 @@ impl AlphaDB {
     }
 
     fn vacate(&mut self) -> PyResult<()> {
-        let (_, connection) = match get_connection(&mut self.db_name, &mut self.connection) {
-            Ok(c) => c,
-            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
-        };
-        match vacate(connection) {
+        match self.inner.vacate() {
             Ok(_) => Ok(()),
             Err(e) => Err(PyRuntimeError::new_err(e.message())),
         }

@@ -3,11 +3,11 @@ requires = ["maturin>=1.6,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "alphadb-mysql"
+name = "alphadb-postgres"
 version = "1.0.0"
 author = "Wibo Kuipers"
 author-email = "wkuipersoss@gmail.com"
-description = "AlphaDB is a versatile tool for managing MySQL database versions, using JSON to define structures and simplify migrations across environments."
+description = "AlphaDB is a versatile tool for managing PostgreSQL database versions, using JSON to define structures and simplify migrations across environments."
 long-description = {file = "README.md"}
 long-description-content-type = "text/markdown"
 readme = {file = "README.md", content-type = "text/markdown"}
@@ -17,12 +17,11 @@ classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
-	"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3 :: Only"
 ]
-keywords = ["database", "rust", "extension", "mysql database management", "mysql version management", "database migration tool", "database version management"]
+keywords = ["database", "rust", "extension", "postgres database management", "postgres version management", "database migration tool", "database version management"]
 
 [project.urls]
 Documentation = "https://alphadb.w-kuipers.com"
@@ -30,5 +29,5 @@ Repository = "https://github.com/w-kuipers/alphadb"
 "Bug Tracker" = "https://github.com/w-kuipers/alphadb/issues"
 
 [tool.maturin]
-features = ["pyo3/extension-module", "mysql"]
+features = ["pyo3/extension-module", "postgres"]
 include = [{ path = "README.md", format = "sdist" }]
