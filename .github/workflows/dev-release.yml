@@ -15,6 +15,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        engine: [mysql, postgres]
         # os: [ubuntu-22.04]
         # python-version: ["3.12"]
 
@@ -30,7 +31,7 @@ jobs:
       - name: Download all the dists
         uses: actions/download-artifact@v4
         with:
-          name: python-api-${{ matrix.os }}-${{ matrix.python-version }}
+          name: python-api-${{ matrix.engine }}-${{ matrix.os }}-${{ matrix.python-version }}
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
