@@ -9,8 +9,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: adambirds/docker-compose-action@v1.5.0
+      - uses: actions/checkout@v6
+      - name: Start Docker Compose services
+        run: docker compose up -d
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -24,15 +25,20 @@ jobs:
           cd src/alphadb
           cargo test --features mysql,postgres
 
+      - name: Stop Docker Compose services
+        if: always()
+        run: docker compose down
+
   python-tests:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: adambirds/docker-compose-action@v1.5.0
+      - uses: actions/checkout@v6
+      - name: Start Docker Compose services
+        run: docker compose up -d
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -50,15 +56,20 @@ jobs:
           maturin develop 
           pytest
 
+      - name: Stop Docker Compose services
+        if: always()
+        run: docker compose down
+
   node-tests:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: adambirds/docker-compose-action@v1.5.0
+      - uses: actions/checkout@v6
+      - name: Start Docker Compose services
+        run: docker compose up -d
 
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
@@ -76,3 +87,7 @@ jobs:
           yarn
           yarn build
           yarn test
+
+      - name: Stop Docker Compose services
+        if: always()
+        run: docker compose down
