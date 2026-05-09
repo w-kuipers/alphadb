@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -51,6 +52,7 @@ def main():
     }
 
     wheels_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(py_dir / "LICENSE", package_dir / "LICENSE")
 
     print(args.version)
     print(f'package = "{PACKAGE_NAMES[args.engine]}"')

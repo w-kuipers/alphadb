@@ -29,4 +29,7 @@ Repository = "https://github.com/w-kuipers/alphadb"
 [tool.maturin]
 manifest-path = "../../Cargo.toml"
 features = ["pyo3/extension-module", "postgres"]
-include = [{ path = "README.md", format = "sdist" }]
+include = [
+    { path = "README.md", format = "sdist" },
+    { path = "LICENSE", format = "sdist" },
+]
