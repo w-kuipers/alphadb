@@ -1,6 +1,6 @@
 ![AlphaDB](https://github.com/w-kuipers/alphadb/blob/main/assets/alphadb-banner.png?raw=true)
 
-[![GitHub releases](https://img.shields.io/github/v/release/w-kuipers/alphadb)](https://github.com/w-kuipers/alphadb/releases)
+[![GitHub releases](https://img.shields.io/github/v/release/w-kuipers/alphadb?include_prereleases)](https://github.com/w-kuipers/alphadb/releases)
 [![Crates.io Version](https://img.shields.io/crates/v/alphadb)](https://crates.io/crates/alphadb)
 [![PyPI release](https://img.shields.io/pypi/v/alphadb-mysql.svg)](https://pypi.org/project/alphadb-mysql/)
 [![NPM release](https://img.shields.io/npm/v/%40w-kuipers%2Falphadb-postgres)](https://www.npmjs.com/package/@w-kuipers/alphadb-postgres)
