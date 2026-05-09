@@ -33,6 +33,18 @@ Visit the [official documentation](https://alphadb.w-kuipers.com/)
 
 ## Building Packages
 
-The MySQL package metadata lives in `pyproject.mysql.toml`.
+Build the MySQL package from `packages/mysql`:
 
-The PostgreSQL package metadata lives in `pyproject.postgres.toml`.
+```bash
+cd packages/mysql
+maturin build
+```
+
+Build the PostgreSQL package from `packages/postgres`:
+
+```bash
+cd packages/postgres
+maturin build
+```
+
+Do not use `maturin build --config pyproject.postgres.toml`; maturin's `--config` option is a key/value override and does not select an alternate pyproject file.
