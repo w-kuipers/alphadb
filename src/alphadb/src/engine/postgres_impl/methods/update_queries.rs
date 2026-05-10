@@ -164,33 +164,6 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
 
         let version_keys = get_object_keys(version)?;
 
-        // Createtable
-        if version_keys.contains(&&"createtable".to_string()) {
-            for table in object_iter(&version["createtable"])? {
-                let q = createtable(version, table, version_number)?;
-                queries.push(Query { query: q, data: None });
-
-                if exists_in_object(&version["createtable"][table], "index")? {
-                    for index in array_iter(&version["createtable"][table]["index"])? {
-                        queries.push(Query {
-                            query: createindex(index, table, version_number)?,
-                            data: None,
-                        });
-                    }
-                }
-            }
-        }
-
-        // Altertable
-        if version_keys.contains(&&"altertable".to_string()) {
-            for table in object_iter(&version["altertable"])? {
-                queries.push(Query {
-                    query: altertable(&version_source, table, version_number)?,
-                    data: None,
-                });
-            }
-        }
-
         // Create extension
         if version_keys.contains(&&"createextension".to_string()) {
             for extension in array_iter(&version["createextension"])? {
@@ -219,6 +192,33 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
                 let extension = UpdateExtension::from_json(extension)?;
                 queries.push(Query {
                     query: update_extension(&extension),
+                    data: None,
+                });
+            }
+        }
+
+        // Createtable
+        if version_keys.contains(&&"createtable".to_string()) {
+            for table in object_iter(&version["createtable"])? {
+                let q = createtable(version, table, version_number)?;
+                queries.push(Query { query: q, data: None });
+
+                if exists_in_object(&version["createtable"][table], "index")? {
+                    for index in array_iter(&version["createtable"][table]["index"])? {
+                        queries.push(Query {
+                            query: createindex(index, table, version_number)?,
+                            data: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Altertable
+        if version_keys.contains(&&"altertable".to_string()) {
+            for table in object_iter(&version["altertable"])? {
+                queries.push(Query {
+                    query: altertable(&version_source, table, version_number)?,
                     data: None,
                 });
             }
