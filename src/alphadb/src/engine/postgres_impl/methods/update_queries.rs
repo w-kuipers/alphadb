@@ -25,7 +25,7 @@ use crate::engine::postgres_impl::methods::status;
 use crate::engine::postgres_impl::query::default_data::default_data;
 use crate::engine::postgres_impl::query::table::altertable::altertable;
 use crate::engine::postgres_impl::query::table::createtable::createtable;
-use crate::engine::postgres_impl::query::{create_extension, createindex};
+use crate::engine::postgres_impl::query::{create_extension, createindex, drop_extension, update_extension};
 use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 use postgres::Client;
 
@@ -191,11 +191,31 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
             }
         }
 
-        // Extension
-        if version_keys.contains(&&"extension".to_string()) {
-            for extension in array_iter(&version["extension"])? {
+        // Create extension
+        if version_keys.contains(&&"createextension".to_string()) {
+            for extension in array_iter(&version["createextension"])? {
                 queries.push(Query {
                     query: create_extension(extension)?,
+                    data: None,
+                });
+            }
+        }
+
+        // Drop extension
+        if version_keys.contains(&&"dropextension".to_string()) {
+            for extension in array_iter(&version["dropextension"])? {
+                queries.push(Query {
+                    query: drop_extension(extension)?,
+                    data: None,
+                });
+            }
+        }
+
+        // Alter extension
+        if version_keys.contains(&&"alterextension".to_string()) {
+            for extension in array_iter(&version["alterextension"])? {
+                queries.push(Query {
+                    query: update_extension(extension)?,
                     data: None,
                 });
             }
