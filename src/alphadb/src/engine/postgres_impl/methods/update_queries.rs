@@ -25,7 +25,7 @@ use crate::engine::postgres_impl::methods::status;
 use crate::engine::postgres_impl::query::default_data::default_data;
 use crate::engine::postgres_impl::query::table::altertable::altertable;
 use crate::engine::postgres_impl::query::table::createtable::createtable;
-use crate::engine::postgres_impl::query::{create_extension, createindex, drop_extension, update_extension};
+use crate::engine::postgres_impl::query::{create_extension, createindex, drop_extension, update_extension, CreateExtension, DropExtension, FromExtensionValue, UpdateExtension};
 use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 use postgres::Client;
 
@@ -194,8 +194,9 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
         // Create extension
         if version_keys.contains(&&"createextension".to_string()) {
             for extension in array_iter(&version["createextension"])? {
+                let extension = CreateExtension::from_json(extension)?;
                 queries.push(Query {
-                    query: create_extension(extension)?,
+                    query: create_extension(&extension),
                     data: None,
                 });
             }
@@ -204,8 +205,9 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
         // Drop extension
         if version_keys.contains(&&"dropextension".to_string()) {
             for extension in array_iter(&version["dropextension"])? {
+                let extension = DropExtension::from_json(extension)?;
                 queries.push(Query {
-                    query: drop_extension(extension)?,
+                    query: drop_extension(&extension),
                     data: None,
                 });
             }
@@ -214,8 +216,9 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
         // Alter extension
         if version_keys.contains(&&"alterextension".to_string()) {
             for extension in array_iter(&version["alterextension"])? {
+                let extension = UpdateExtension::from_json(extension)?;
                 queries.push(Query {
-                    query: update_extension(extension)?,
+                    query: update_extension(&extension),
                     data: None,
                 });
             }
