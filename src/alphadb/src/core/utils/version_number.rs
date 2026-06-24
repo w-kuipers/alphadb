@@ -28,7 +28,7 @@ use crate::core::{utils::errors::AlphaDBError, verification::issue::VersionTrace
 /// # Errors
 /// * Returns `AlphaDBError` if the version number is invalid
 pub fn validate_version_number(version_number: &str) -> Result<bool, AlphaDBError> {
-    match version_number.replace(".", ",").parse::<u32>() {
+    match version_number.replace(".", "").parse::<u32>() {
         Ok(_) => Ok(true),
         Err(_) => Err(AlphaDBError {
             message: format!("'{}' is not a valid version number", version_number),
