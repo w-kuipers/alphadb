@@ -16,6 +16,8 @@ pub mod core;
 pub mod engine;
 pub mod prelude;
 pub mod verification;
+#[cfg(feature = "version-source")]
+pub mod version_source;
 
 use crate::core::{
     method_types::{Init, Query, Status},
