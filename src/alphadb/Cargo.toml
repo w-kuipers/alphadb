@@ -14,6 +14,7 @@ readme = "README.md"
 default = []
 mysql = ["dep:mysql"]
 postgres = ["dep:postgres"]
+version-source = []
 
 [dependencies]
 mysql = { version = "25.0.1", optional = true }
