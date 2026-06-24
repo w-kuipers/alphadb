@@ -20,8 +20,7 @@ use std::str::FromStr;
 use serde_json::{Map, Value};
 
 use crate::core::utils::errors::AlphaDBError;
-use crate::core::utils::version_number::{parse_version_number, validate_version_number};
-use crate::core::utils::version_source::{get_version_array, parse_version_source_string};
+use crate::core::utils::version_number::validate_version_number;
 use crate::engine::AlphaDBEngine;
 use crate::verification::VersionTrace;
 
@@ -57,10 +56,9 @@ pub fn combine_version_source_files(files: &[PathBuf], name: String, engine: Alp
             Err(_) => panic!("An error occured while opening the version source file!"),
         };
 
-        let parsed = parse_version_source_string(file_contents)?;
-        let versions = get_version_array(&parsed)?;
+        let parsed: serde_json::Value = serde_json::from_str(&file_contents)?;
 
-        combined_versions.extend(versions.iter().cloned());
+        combined_versions.push(parsed);
     }
 
     let mut root = Map::new();
@@ -68,8 +66,6 @@ pub fn combine_version_source_files(files: &[PathBuf], name: String, engine: Alp
     root.insert("name".to_string(), Value::String(name));
     root.insert("engine".to_string(), Value::String(engine.to_string()));
     root.insert("version".to_string(), Value::Array(combined_versions));
-
-    println!("{:?}", root);
 
     Ok(Value::Object(root))
 }
