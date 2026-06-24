@@ -39,7 +39,7 @@ use crate::verification::VersionTrace;
 /// # Errors
 /// * Returns `AlphaDBError` if any of the provided strings cannot be
 ///   deserialized or does not contain a valid version array.
-pub fn combine_version_source_files(files: &[PathBuf], name: String, engine: AlphaDBEngine) -> Result<Value, AlphaDBError> {
+pub fn combine_version_source_files(files: &[(String, PathBuf)], name: String, engine: AlphaDBEngine) -> Result<Value, AlphaDBError> {
     if files.is_empty() {
         return Err(AlphaDBError {
             message: "No version source files were provided. At least one version source is required to build a combined version source.".to_string(),
@@ -48,24 +48,40 @@ pub fn combine_version_source_files(files: &[PathBuf], name: String, engine: Alp
         });
     }
 
-    let mut combined_versions: Vec<Value> = Vec::new();
+    let mut version: Vec<Value> = Vec::new();
 
     for file in files {
-        let file_contents = match fs::read_to_string(file) {
+        let file_contents = match fs::read_to_string(&file.1) {
             Ok(f) => f,
             Err(_) => panic!("An error occured while opening the version source file!"),
         };
 
-        let parsed: serde_json::Value = serde_json::from_str(&file_contents)?;
+        let mut parsed: serde_json::Value = serde_json::from_str(&file_contents)?;
 
-        combined_versions.push(parsed);
+        let parsed_map = match parsed.as_object_mut() {
+            Some(map) => map,
+            None => {
+                return Err(AlphaDBError {
+                    message: format!(
+                        "The version source file \"{}\" does not contain a JSON object. Each version source file must define a JSON object keyed by method names.",
+                        file.1.display()
+                    ),
+                    error: "version-source-not-an-object".to_string(),
+                    version_trace: VersionTrace::new(),
+                })
+            }
+        };
+
+        parsed_map.insert("_id".to_string(), Value::String(file.0.clone()));
+        version.push(parsed);
     }
 
     let mut root = Map::new();
 
     root.insert("name".to_string(), Value::String(name));
     root.insert("engine".to_string(), Value::String(engine.to_string()));
-    root.insert("version".to_string(), Value::Array(combined_versions));
+
+    root.insert("version".to_string(), Value::Array(version));
 
     Ok(Value::Object(root))
 }
@@ -112,7 +128,7 @@ const ALLOWED_CONFIG_FILENAMES: [&str; 2] = ["adb-config.json", "_adb-config.jso
 
 pub struct VersionSourceParts {
     config: VersionSourceConfig,
-    files: Vec<PathBuf>,
+    files: Vec<(String, PathBuf)>,
 }
 
 pub fn gather_version_source_files(path: &PathBuf) -> Result<VersionSourceParts, AlphaDBError> {
@@ -162,7 +178,7 @@ pub fn gather_version_source_files(path: &PathBuf) -> Result<VersionSourceParts,
         }
     };
 
-    let mut file_paths: Vec<PathBuf> = Vec::new();
+    let mut file_paths: Vec<(String, PathBuf)> = Vec::new();
     for file in dir_contents {
         let file = match file {
             Ok(f) => f,
@@ -181,8 +197,12 @@ pub fn gather_version_source_files(path: &PathBuf) -> Result<VersionSourceParts,
             }
 
             // Check if valid version number is present in filename
-            match filename.split("-").next() {
-                Some(rv) => validate_version_number(rv)?,
+            let version = match filename.split("-").next() {
+                Some(rv) => {
+                    validate_version_number(rv)?;
+
+                    rv
+                }
                 None => {
                     return Err(AlphaDBError {
                         message: format!(
@@ -195,7 +215,7 @@ pub fn gather_version_source_files(path: &PathBuf) -> Result<VersionSourceParts,
                 }
             };
 
-            file_paths.push(path.join(filename));
+            file_paths.push((version.to_string(), path.join(filename)));
         }
     }
 
