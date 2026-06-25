@@ -24,8 +24,8 @@ use crate::core::verification::issue::VersionTrace;
 use crate::engine::mysql_impl::methods::status;
 use crate::engine::mysql_impl::query::create_check_constraint;
 use crate::engine::mysql_impl::query::default_data::default_data;
-use crate::engine::mysql_impl::query::table::altertable::altertable;
-use crate::engine::mysql_impl::query::table::createtable::createtable;
+use crate::core::query::table::{alter_table, create_table};
+use crate::engine::mysql_impl::query::table::config::MYSQL_TABLE_CONFIG;
 use crate::engine::mysql_impl::utils::errors::AlphaDBMysqlError;
 use mysql::*;
 
@@ -171,7 +171,7 @@ pub fn update_queries(db_name: &str, connection: &mut PooledConn, version_source
         // Createtable
         if version_keys.contains(&&"createtable".to_string()) {
             for table in object_iter(&version["createtable"])? {
-                let q = createtable(version, table, version_number)?;
+                let q = create_table(&MYSQL_TABLE_CONFIG, version, table, version_number)?;
                 queries.push(Query { query: q, data: None });
 
                 if exists_in_object(&version["createtable"][table], "check")? {
@@ -189,7 +189,7 @@ pub fn update_queries(db_name: &str, connection: &mut PooledConn, version_source
         if version_keys.contains(&&"altertable".to_string()) {
             for table in object_iter(&version["altertable"])? {
                 queries.push(Query {
-                    query: altertable(&version_source, table, version_number)?,
+                    query: alter_table(&MYSQL_TABLE_CONFIG, &version_source, table, version_number)?,
                     data: None,
                 });
             }

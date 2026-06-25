@@ -23,8 +23,8 @@ use crate::core::utils::version_source::{get_version_array, parse_version_source
 use crate::core::verification::issue::VersionTrace;
 use crate::engine::postgres_impl::methods::status;
 use crate::engine::postgres_impl::query::default_data::default_data;
-use crate::engine::postgres_impl::query::table::altertable::altertable;
-use crate::engine::postgres_impl::query::table::createtable::createtable;
+use crate::core::query::table::{alter_table, create_table};
+use crate::engine::postgres_impl::query::table::config::POSTGRES_TABLE_CONFIG;
 use crate::engine::postgres_impl::query::{create_extension, createindex, drop_extension, update_extension, CreateExtension, DropExtension, FromExtensionValue, UpdateExtension};
 use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 use postgres::Client;
@@ -200,7 +200,7 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
         // Createtable
         if version_keys.contains(&&"createtable".to_string()) {
             for table in object_iter(&version["createtable"])? {
-                let q = createtable(version, table, version_number)?;
+                let q = create_table(&POSTGRES_TABLE_CONFIG, version, table, version_number)?;
                 queries.push(Query { query: q, data: None });
 
                 if exists_in_object(&version["createtable"][table], "index")? {
@@ -218,7 +218,7 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
         if version_keys.contains(&&"altertable".to_string()) {
             for table in object_iter(&version["altertable"])? {
                 queries.push(Query {
-                    query: altertable(&version_source, table, version_number)?,
+                    query: alter_table(&POSTGRES_TABLE_CONFIG, &version_source, table, version_number)?,
                     data: None,
                 });
             }
