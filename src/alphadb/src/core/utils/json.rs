@@ -17,15 +17,6 @@ use crate::core::utils::errors::AlphaDBError;
 use serde_json::Value;
 
 /// Get object keys from a serde_json::Value as a vector with strings
-///
-/// # Arguments
-/// * `object` - The JSON value to get keys from
-///
-/// # Returns
-/// * `Result<Vec<&String>, AlphaDBError>` - Vector of object keys if successful
-///
-/// # Errors
-/// * Returns `AlphaDBError` if the value cannot be converted to an object
 pub fn get_object_keys(object: &serde_json::Value) -> Result<Vec<&String>, AlphaDBError> {
     if let Some(obj) = object.as_object() {
         Ok(obj.keys().collect::<Vec<&String>>())
@@ -38,15 +29,6 @@ pub fn get_object_keys(object: &serde_json::Value) -> Result<Vec<&String>, Alpha
 }
 
 /// Get an iterator from a serde_json::Value
-///
-/// # Arguments
-/// * `object` - The JSON value to get iterator from
-///
-/// # Returns
-/// * `Result<serde_json::map::Keys<'_>, AlphaDBError>` - Iterator over object keys if successful
-///
-/// # Errors
-/// * Returns `AlphaDBError` if the value cannot be converted to an object
 pub fn object_iter(object: &serde_json::Value) -> Result<serde_json::map::Keys<'_>, AlphaDBError> {
     if let Some(obj) = object.as_object() {
         Ok(obj.keys())
@@ -59,15 +41,6 @@ pub fn object_iter(object: &serde_json::Value) -> Result<serde_json::map::Keys<'
 }
 
 /// Get an iterator from a serde_json::Value array
-///
-/// # Arguments
-/// * `object` - The JSON value to get array iterator from
-///
-/// # Returns
-/// * `Result<&Vec<Value>, AlphaDBError>` - Reference to array if successful
-///
-/// # Errors
-/// * Returns `AlphaDBError` if the value cannot be converted to an array
 pub fn array_iter(object: &serde_json::Value) -> Result<&Vec<Value>, AlphaDBError> {
     if let Some(arr) = object.as_array() {
         Ok(arr)
@@ -80,16 +53,6 @@ pub fn array_iter(object: &serde_json::Value) -> Result<&Vec<Value>, AlphaDBErro
 }
 
 /// Verify whether a key exists in serde_json::Value
-///
-/// # Arguments
-/// * `object` - The JSON value to check
-/// * `key` - The key to check for existence
-///
-/// # Returns
-/// * `Result<bool, AlphaDBError>` - True if key exists, false otherwise
-///
-/// # Errors
-/// * Returns `AlphaDBError` if the value cannot be converted to an object
 pub fn exists_in_object(object: &serde_json::Value, key: &str) -> Result<bool, AlphaDBError> {
     if let Some(obj) = object.as_object() {
         Ok(obj.keys().any(|k| k == key))
@@ -102,16 +65,6 @@ pub fn exists_in_object(object: &serde_json::Value, key: &str) -> Result<bool, A
 }
 
 /// Verify whether a value exists in serde_json::Value array
-///
-/// # Arguments
-/// * `array` - The JSON value to check
-/// * `value` - The value to check for existence
-///
-/// # Returns
-/// * `Result<bool, AlphaDBError>` - True if key exists, false otherwise
-///
-/// # Errors
-/// * Returns `AlphaDBError` if the value cannot be converted to an object
 pub fn exists_in_array(array: &serde_json::Value, value: &str) -> Result<bool, AlphaDBError> {
     if let Some(array) = array.as_array() {
         Ok(array.contains(&Value::from(value)))
@@ -124,15 +77,6 @@ pub fn exists_in_array(array: &serde_json::Value, value: &str) -> Result<bool, A
 }
 
 /// Get JSON value as string
-///
-/// # Arguments
-/// * `value` - The JSON value to convert to string
-///
-/// # Returns
-/// * `Result<String, AlphaDBError>` - String representation of the value
-///
-/// # Errors
-/// * Returns `AlphaDBError` if the value cannot be parsed as a string
 pub fn get_json_value_as_string(value: &Value) -> Result<String, AlphaDBError> {
     if let Some(v) = value.as_str() {
         return Ok(v.to_string());
@@ -154,15 +98,6 @@ pub fn get_json_value_as_string(value: &Value) -> Result<String, AlphaDBError> {
 }
 
 /// Get JSON string value from serde_json::Value
-///
-/// # Arguments
-/// * `value` - The JSON value to get string from
-///
-/// # Returns
-/// * `Result<&str, AlphaDBError>` - String reference if successful
-///
-/// # Errors
-/// * Returns `AlphaDBError` if the value cannot be parsed as a string
 pub fn get_json_string(value: &Value) -> Result<&str, AlphaDBError> {
     match value.as_str() {
         Some(v) => Ok(v),
@@ -175,15 +110,6 @@ pub fn get_json_string(value: &Value) -> Result<&str, AlphaDBError> {
 }
 
 /// Get JSON boolean value from serde_json::Value
-///
-/// # Arguments
-/// * `value` - The JSON value to get boolean from
-///
-/// # Returns
-/// * `Result<bool, AlphaDBError>` - Boolean value if successful
-///
-/// # Errors
-/// * Returns `AlphaDBError` if the value cannot be parsed as a boolean
 pub fn get_json_boolean(value: &Value) -> Result<bool, AlphaDBError> {
     match value.as_bool() {
         Some(v) => Ok(v),
@@ -196,15 +122,6 @@ pub fn get_json_boolean(value: &Value) -> Result<bool, AlphaDBError> {
 }
 
 /// Get JSON object value from serde_json::Value
-///
-/// # Arguments
-/// * `value` - The JSON value to get object from
-///
-/// # Returns
-/// * `Result<&serde_json::Map<String, Value>, AlphaDBError>` - Object reference if successful
-///
-/// # Errors
-/// * Returns `AlphaDBError` if the value cannot be parsed as an object
 pub fn get_json_object(value: &Value) -> Result<&serde_json::Map<String, Value>, AlphaDBError> {
     match value.as_object() {
         Some(v) => Ok(v),
@@ -217,15 +134,6 @@ pub fn get_json_object(value: &Value) -> Result<&serde_json::Map<String, Value>,
 }
 
 /// Get JSON int value from serde_json::Value
-///
-/// # Arguments
-/// * `value` - The JSON value to get integer from
-///
-/// # Returns
-/// * `Result<i64, AlphaDBError>` - Integer value if successful
-///
-/// # Errors
-/// * Returns `AlphaDBError` if the value cannot be parsed as an integer
 pub fn get_json_int(value: &Value) -> Result<i64, AlphaDBError> {
     match value.as_i64() {
         Some(v) => Ok(v),
@@ -250,15 +158,6 @@ pub fn get_json_int(value: &Value) -> Result<i64, AlphaDBError> {
 }
 
 /// Get JSON float value from serde_json::Value
-///
-/// # Arguments
-/// * `value` - The JSON value to get float from
-///
-/// # Returns
-/// * `Result<f64, AlphaDBError>` - Float value if successful
-///
-/// # Errors
-/// * Returns `AlphaDBError` if the value cannot be parsed as a float
 pub fn get_json_float(value: &Value) -> Result<f64, AlphaDBError> {
     match value.as_f64() {
         Some(v) => Ok(v),
@@ -284,19 +183,12 @@ pub fn get_json_float(value: &Value) -> Result<f64, AlphaDBError> {
 
 /// Check if a JSON value is empty
 ///
-/// This function checks if a JSON value is considered empty based on its type:
 /// - Null: Always empty
 /// - Boolean: Never empty
 /// - Number: Never empty
 /// - String: Empty if string length is 0
 /// - Array: Empty if array length is 0
 /// - Object: Empty if object has no keys
-///
-/// # Arguments
-/// * `value` - The JSON value to check
-///
-/// # Returns
-/// * `bool` - True if the value is considered empty, false otherwise
 pub fn is_empty_json(value: &Value) -> bool {
     match value {
         Value::Null => true,

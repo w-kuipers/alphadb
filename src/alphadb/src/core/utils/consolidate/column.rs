@@ -29,20 +29,6 @@ pub struct ColumnRename {
 ///
 /// This function processes a list of versions to determine the final state of a column,
 /// taking into account all modifications including creation, alterations, and renames.
-///
-/// # Arguments
-/// * `version_list` - List of versions from version source containing column modifications
-/// * `column_name` - Name of the column to be consolidated
-/// * `table_name` - Name of the table containing the column
-/// * `target_version` - An optional string slice representing the maximum version number to
-///                      include in the consolidation. If `None`, all relevant versions in `version_list`
-///                      will be processed for the table.
-///
-/// # Returns
-/// * `Result<Value, AlphaDBError>` - JSON value containing the consolidated column properties
-///
-/// # Errors
-/// * Returns `AlphaDBError` if there are issues parsing version numbers or JSON values
 pub fn consolidate_column(version_list: &Vec<Value>, column_name: &str, table_name: &str, target_version: Option<&str>) -> Result<Value, AlphaDBError> {
     let mut column = json!({});
     let mut version_column_name = column_name;
@@ -136,20 +122,6 @@ pub fn consolidate_column(version_list: &Vec<Value>, column_name: &str, table_na
 ///     "new_name": Column name after renaming
 ///     "rename_version": Version in which the column was renamed (parsed to int)
 /// }
-///
-/// Get column rename data from version source
-///
-/// # Arguments
-/// * `version_list` - List of versions from version source
-/// * `column_name` - Name of the column to check for renames
-/// * `table_name` - Name of the table containing the column
-/// * `order` - Order to process versions ("ASC" or "DESC")
-///
-/// # Returns
-/// * `Result<Vec<RenameData>, AlphaDBError>` - Vector of rename data if successful
-///
-/// # Errors
-/// * Returns `AlphaDBError` if order is not "ASC" or "DESC"
 pub fn get_column_renames(version_list: &Vec<Value>, column_name: &str, table_name: &str, order: &str) -> Result<Vec<ColumnRename>, AlphaDBError> {
     let mut rename_data: Vec<ColumnRename> = Vec::new();
 
@@ -242,20 +214,6 @@ pub fn get_column_renames(version_list: &Vec<Value>, column_name: &str, table_na
 }
 
 /// Get the list of version numbers in which a column was dropped.
-///
-/// This function iterates through the provided version list and collects all version numbers
-/// where the specified column was dropped from the given table.
-///
-/// # Arguments
-/// * `version_list` - List of versions from version source
-/// * `column_name` - Name of the column to check for drops
-/// * `table_name` - Name of the table containing the column
-///
-/// # Returns
-/// * `Result<Vec<u32>, AlphaDBError>` - Vector of version numbers where the column was dropped
-///
-/// # Errors
-/// * Returns `AlphaDBError` if there are issues parsing version numbers or JSON values
 pub fn get_column_drops(version_list: &Vec<Value>, column_name: &str, table_name: &str) -> Result<Vec<u32>, AlphaDBError> {
     let mut column_drops: Vec<u32> = Vec::new();
 
@@ -277,21 +235,6 @@ pub fn get_column_drops(version_list: &Vec<Value>, column_name: &str, table_name
 }
 
 /// Determine if a column will be dropped in or after a specific version.
-///
-/// This function checks if the specified column will be dropped in the given version or any later version
-/// by searching for drop events in the version list.
-///
-/// # Arguments
-/// * `version_list` - List of versions from version source
-/// * `column_name` - Name of the column to check for drops
-/// * `table_name` - Name of the table containing the column
-/// * `version` - The version number to check against
-///
-/// # Returns
-/// * `Result<bool, AlphaDBError>` - True if the column will be dropped in or after the specified version, false otherwise
-///
-/// # Errors
-/// * Returns `AlphaDBError` if there are issues parsing version numbers or JSON values
 pub fn will_column_be_dropped(version_list: &Vec<Value>, column_name: &str, table_name: &str, version: u32) -> Result<bool, AlphaDBError> {
     let column_drops = get_column_drops(version_list, column_name, table_name)?;
 
@@ -308,18 +251,6 @@ pub fn will_column_be_dropped(version_list: &Vec<Value>, column_name: &str, tabl
 /// This function traverses the version list to determine what type a column has
 /// at a specific version, taking into account column creation, modifications,
 /// renames, drops, and additions across different versions.
-///
-/// # Arguments
-/// * `version_list` - List of versions from version source containing column modifications
-/// * `column_name` - Name of the column to get the type for
-/// * `table_name` - Name of the table containing the column
-/// * `version` - The version number to check the column type at
-///
-/// # Returns
-/// * `Result<Option<String>, AlphaDBError>` - The column type as a string if it exists, None if column doesn't exist or has no type
-///
-/// # Errors
-/// * Returns `AlphaDBError` if there are issues parsing version numbers or JSON values
 pub fn get_column_type(version_list: &Vec<Value>, column_name: &str, table_name: &str, version: u32) -> Result<Option<String>, AlphaDBError> {
     let mut column_type: Option<String> = None;
     let mut version_column_name: &str;

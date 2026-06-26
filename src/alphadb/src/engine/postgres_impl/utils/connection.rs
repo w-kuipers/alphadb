@@ -18,17 +18,6 @@ use postgres::Client;
 
 /// Helper function for the AlphaDB lib. Unwraps the db_name and connection
 /// arguments for usage in the separated methods.
-///
-/// # Arguments
-/// * `db_name` - Optional database name
-/// * `connection` - Mutable reference to an optional client connection
-///
-/// # Returns
-/// * `Result<(&str, &mut Client), AlphaDBError>` - Tuple containing database name and connection if successful
-///
-/// # Errors
-/// * Returns `AlphaDBError` if no active database connection exists
-/// * Returns `AlphaDBError` if no database name is provided
 pub fn get_connection<'a>(db_name: &'a mut Option<String>, connection: &'a mut Option<Client>) -> Result<(&'a mut String, &'a mut Client), AlphaDBError> {
     let connection = match connection {
         Some(c) => c,

@@ -13,29 +13,13 @@ use super::{
 
 /// Consolidate table information from multiple versions into a single table definition
 ///
-/// This function processes a list of versions to create a consolidated table definition,
-/// including all columns that have been added through create table or alter table operations.
+/// This includes all columns that have been added through create table or alter table operations.
 /// If a `target_version` is specified, the consolidation will only include versions up to and including
 /// the specified target version.
-///
-/// # Arguments
-/// * `version_list` - List of version JSON objects containing table definitions.
-/// * `table_name` - Name of the table to consolidate.
-/// * `target_version` - An optional string slice representing the maximum version number to
-///                      include in the consolidation. If `None`, all relevant versions in `version_list`
-///                      will be processed for the table.
-///
-/// # Returns
-/// * `Result<Value, AlphaDBError>` - Consolidated table definition as a JSON object.
-///
-/// # Errors
-/// * Returns `AlphaDBError` if there are issues accessing JSON properties or consolidating columns,
-///   or if the `target_version` string is not a valid version number format.
 pub fn consolidate_table(version_list: &Vec<Value>, table_name: &str, target_version: Option<&str>) -> Result<Value, AlphaDBError> {
     let mut table = json!({});
     let mut columns: Vec<String> = Vec::new();
 
-    // Get the tables primary key
     let primary_key = get_primary_key(version_list, table_name, None)?;
     if let Some(primary_key) = primary_key {
         table["primary_key"] = Value::from(primary_key);

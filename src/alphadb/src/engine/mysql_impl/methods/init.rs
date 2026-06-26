@@ -21,25 +21,13 @@ use mysql::prelude::*;
 use mysql::*;
 
 /// Initialize the database with configuration table
-///
-/// # Arguments
-/// * `db_name` - The name of the database to initialize
-/// * `connection` - Active connection pool to the database
-///
-/// # Returns
-/// * `Result<Init, InitError>` - Init enum indicating initialization status
-///
-/// # Errors
-/// * Returns `InitError` if initialization fails
 pub fn init(db_name: &str, connection: &mut PooledConn) -> Result<Init, AlphaDBMysqlError> {
-    // Check if the table is already initialized
     let checked = check(db_name, connection);
 
     if checked.is_ok() && checked.unwrap().check {
         return Ok(Init::AlreadyInitialized);
     }
 
-    // Create the configuration table
     connection.query_drop(format!(
         "CREATE TABLE {} (
                 db VARCHAR(100) NOT NULL,
@@ -50,7 +38,6 @@ pub fn init(db_name: &str, connection: &mut PooledConn) -> Result<Init, AlphaDBM
         CONFIG_TABLE_NAME
     ))?;
 
-    // Insert db version
     connection.exec_drop(format!("INSERT INTO {} (db, version) VALUES (?, ?)", CONFIG_TABLE_NAME), (db_name, "0.0.0"))?;
 
     return Ok(Init::Success);

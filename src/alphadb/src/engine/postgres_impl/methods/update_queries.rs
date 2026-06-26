@@ -30,19 +30,6 @@ use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 use postgres::Client;
 
 /// Generate PostgreSQL queries to update the tables
-///
-/// # Arguments
-/// * `db_name` - The name of the database to update
-/// * `connection` - Active connection to the database
-/// * `version_source` - Complete JSON version source
-/// * `target_version` - Optional version number to update to
-/// * `no_data` - Whether to skip data updates
-///
-/// # Returns
-/// * `Result<Vec<Query>, AlphaDBPostgresError>` - Vector of update queries
-///
-/// # Errors
-/// * Returns `AlphaDBPostgresError` if query generation fails
 pub fn update_queries(db_name: &str, connection: &mut Client, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, AlphaDBPostgresError> {
     let mut queries: Vec<Query> = Vec::new();
     let version_source = parse_version_source_string(version_source)?;
@@ -59,10 +46,8 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
         }
     }
 
-    // Check if database is initialized
     let status = status(db_name, connection)?;
 
-    // Verify if the database is initialized
     if !status.init {
         return Err(AlphaDBError {
             message: "The database is not initialized".to_string(),
@@ -72,7 +57,6 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
         .into());
     }
 
-    // Verify if the database configuration contains a version number
     let database_version = match status.version {
         Some(v) => v,
         None => {
@@ -107,7 +91,6 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
         }
     }
 
-    // Get the latest version
     let latest_version = match target_version {
         Some(v) => match validate_version_number(v) {
             Ok(v) => v.to_string(),
@@ -126,7 +109,6 @@ pub fn update_queries(db_name: &str, connection: &mut Client, version_source: St
     let latest_version_int = parse_version_number(latest_version.as_str())?;
     let database_version_int = parse_version_number(database_version.as_str())?;
 
-    // Check if database is up to date
     if latest_version_int <= database_version_int {
         return Err(AlphaDBError {
             message: "The database is already up-to-date".to_string(),

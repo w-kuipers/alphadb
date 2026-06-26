@@ -32,21 +32,6 @@ fn query_value_to_mysql_value(value: &QueryValue) -> mysql::Value {
 }
 
 /// Generate and execute MySQL queries to update the tables
-///
-/// # Arguments
-/// * `db_name` - The name of the database to update
-/// * `connection` - Active connection pool to the database
-/// * `version_source` - Complete JSON version source
-/// * `target_version` - Optional version number to update to
-/// * `no_data` - Whether to skip data updates
-/// * `verify` - Whether to verify the update
-/// * `tolerated_verification_issue_level` - Level of verification issues to tolerate
-///
-/// # Returns
-/// * `Result<(), AlphaDBMysqlError>` - Ok if update successful
-///
-/// # Errors
-/// * Returns `AlphaDBMysqlError` if update fails
 pub fn update(
     db_name: &str,
     connection: &mut PooledConn,

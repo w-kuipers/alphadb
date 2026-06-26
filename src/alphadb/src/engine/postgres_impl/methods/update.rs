@@ -31,21 +31,6 @@ fn query_value_to_postgres_param(value: &QueryValue) -> Box<dyn ToSql + Sync> {
 }
 
 /// Generate and execute PostgreSQL queries to update the tables
-///
-/// # Arguments
-/// * `db_name` - The name of the database to update
-/// * `connection` - Active connection pool to the database
-/// * `version_source` - Complete JSON version source
-/// * `target_version` - Optional version number to update to
-/// * `no_data` - Whether to skip data updates
-/// * `verify` - Whether to verify the update
-/// * `tolerated_verification_issue_level` - Level of verification issues to tolerate
-///
-/// # Returns
-/// * `Result<(), AlphaDBPostgresError>` - Ok if update successful
-///
-/// # Errors
-/// * Returns `AlphaDBPostgresError` if update fails
 pub fn update(
     db_name: &str,
     connection: &mut Client,

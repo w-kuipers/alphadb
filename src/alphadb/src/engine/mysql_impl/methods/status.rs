@@ -20,22 +20,11 @@ use mysql::prelude::*;
 use mysql::*;
 
 /// Get database status including initialization state, version, name and template
-///
-/// # Arguments
-/// * `db_name` - The name of the database to check
-/// * `connection` - Active connection pool to the database
-///
-/// # Returns
-/// * `Result<Status, AlphaDBMysqlError>` - Status struct containing database information
-///
-/// # Errors
-/// * Returns `AlphaDBMysqlError` if there are any database or AlphaDB errors
 pub fn status(db_name: &str, connection: &mut PooledConn) -> Result<Status, AlphaDBMysqlError> {
     let mut init = false;
     let mut version: Option<String> = None;
     let mut template: Option<String> = None;
 
-    // Check if the configuration table exists
     let table_check: Option<String> = connection.exec_first(
         "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
         (db_name, CONFIG_TABLE_NAME),
@@ -50,7 +39,6 @@ pub fn status(db_name: &str, connection: &mut PooledConn) -> Result<Status, Alph
             template = c.1;
         }
 
-        // Check true means database is initialized
         init = true;
     }
 

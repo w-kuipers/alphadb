@@ -16,14 +16,9 @@
 use crate::core::query::column::definecolumn::DefineColumn;
 
 /// Enumeration of supported SQL structure query methods.
-///
-/// This enum defines the types of table structure operations that can be performed.
-/// Each variant corresponds to a different SQL operation with distinct syntax requirements.
 #[derive(PartialEq, Eq)]
 pub enum StructureQueryMethod {
-    /// ALTER TABLE operation for modifying existing table structure
     Altertable,
-    /// CREATE TABLE operation for creating new tables
     Createtable,
 }
 
@@ -32,23 +27,6 @@ pub enum StructureQueryMethod {
 /// `StructureQuery` provides a fluent interface for building SQL queries that modify
 /// database table structure. It supports both `CREATE TABLE` and `ALTER TABLE` operations
 /// with flexible column definitions, constraints, and options.
-///
-/// # Fields
-///
-/// - `method`: The SQL operation type (CREATE TABLE or ALTER TABLE)
-/// - `table`: The target table name
-/// - `constraints`: Table-level constraints (PRIMARY KEY, FOREIGN KEY, etc.)
-/// - `options`: Additional SQL options (ENGINE, CHARSET, etc.)
-/// - `definitions`: Column definitions using DefineColumn instances
-///
-/// # Usage Pattern
-///
-/// 1. Create a new instance using `createtable()` or `altertable()`
-/// 2. Set the table name with `table()`
-/// 3. Add column definitions with `definition()`
-/// 4. Add constraints with `constraint()`
-/// 5. Add options with `options()`
-/// 6. Generate the SQL with `build()`
 pub struct StructureQuery {
     method: StructureQueryMethod,
     table: Option<String>,
@@ -58,14 +36,6 @@ pub struct StructureQuery {
 }
 
 impl Default for StructureQuery {
-    /// Creates a default `StructureQuery` instance.
-    ///
-    /// The default configuration uses the `Createtable` method with all other
-    /// fields initialized to empty values.
-    ///
-    /// # Returns
-    ///
-    /// A new `StructureQuery` instance with default values.
     fn default() -> Self {
         Self {
             method: StructureQueryMethod::Createtable,
@@ -80,13 +50,8 @@ impl Default for StructureQuery {
 impl StructureQuery {
     /// Creates a new `StructureQuery` for CREATE TABLE operations.
     ///
-    /// This initializes a query builder specifically for creating new database tables.
     /// The resulting query will use CREATE TABLE syntax with column definitions
     /// wrapped in parentheses.
-    ///
-    /// # Returns
-    ///
-    /// A new `StructureQuery` instance configured for CREATE TABLE operations.
     ///
     /// # Examples
     ///
@@ -110,13 +75,8 @@ impl StructureQuery {
 
     /// Creates a new `StructureQuery` for ALTER TABLE operations.
     ///
-    /// This initializes a query builder specifically for modifying existing database tables.
     /// The resulting query will use ALTER TABLE syntax with column definitions
     /// not wrapped in parentheses.
-    ///
-    /// # Returns
-    ///
-    /// A new `StructureQuery` instance configured for ALTER TABLE operations.
     ///
     /// # Examples
     ///
@@ -141,17 +101,8 @@ impl StructureQuery {
 
     /// Adds a column definition to the query.
     ///
-    /// Column definitions specify the structure and properties of individual columns.
     /// Multiple definitions can be added by calling this method repeatedly.
     /// Each definition is built using the `DefineColumn` builder.
-    ///
-    /// # Parameters
-    ///
-    /// - `column_definition`: A `DefineColumn` instance describing the column.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining.
     ///
     /// # Examples
     ///
@@ -181,14 +132,6 @@ impl StructureQuery {
     /// Table constraints apply to the entire table or multiple columns, such as
     /// primary keys, foreign keys, unique constraints, or check constraints.
     /// Multiple constraints can be added by calling this method repeatedly.
-    ///
-    /// # Parameters
-    ///
-    /// - `constraint`: The constraint specification as a string.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining.
     ///
     /// # Examples
     ///
@@ -220,14 +163,6 @@ impl StructureQuery {
     /// such as storage engine, character set, collation, or other table options.
     /// Multiple options can be added by calling this method repeatedly.
     ///
-    /// # Parameters
-    ///
-    /// - `option`: The SQL option specification as a string.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining.
-    ///
     /// # Examples
     ///
     /// ```rust
@@ -255,16 +190,7 @@ impl StructureQuery {
 
     /// Sets the target table name for the query.
     ///
-    /// The table name specifies which database table the operation will affect.
     /// This is required for both CREATE TABLE and ALTER TABLE operations.
-    ///
-    /// # Parameters
-    ///
-    /// - `table`: The name of the target table.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining.
     ///
     /// # Examples
     ///
@@ -286,18 +212,10 @@ impl StructureQuery {
 
     /// Generates the final SQL query string.
     ///
-    /// This method combines all the configured components into a properly formatted
-    /// SQL query. The structure varies based on the query method:
+    /// The structure varies based on the query method:
     ///
     /// - **CREATE TABLE**: Column definitions are wrapped in parentheses
     /// - **ALTER TABLE**: Column definitions are not wrapped in parentheses
-    ///
-    /// The generated query includes the method, table name, column definitions,
-    /// constraints, options, and ends with a semicolon.
-    ///
-    /// # Returns
-    ///
-    /// A `String` containing the complete SQL query.
     ///
     /// # Examples
     ///
@@ -334,12 +252,10 @@ impl StructureQuery {
         let mut column_definitions = self.definitions.iter().map(DefineColumn::to_sql).collect::<Vec<_>>();
         column_definitions.extend(self.constraints.clone());
 
-        // Column definitions for createtable method have to be wrapped in parentheses
         if self.method == StructureQueryMethod::Createtable {
             query = format!("{query} ({})", column_definitions.join(", "));
         }
 
-        // Column definitions for altertable method should not be wrapped in parentheses
         if self.method == StructureQueryMethod::Altertable {
             query = format!("{query} {}", column_definitions.join(", "));
         }

@@ -18,12 +18,6 @@ use mysql::*;
 use crate::engine::mysql_impl::utils::errors::AlphaDBMysqlError;
 
 /// Create a connection pool to the database and return it.
-///
-/// - host: MySQL host
-/// - user: Database user
-/// - password: User password for the database
-/// - database: Database name
-/// - port: MySQL port
 pub fn connect(host: &str, user: &str, password: &str, database: &str, port: u16) -> Result<PooledConn, AlphaDBMysqlError> {
     let url = format!("mysql://{}:{}@{}:{}/{}", user, password, host, port, database);
 

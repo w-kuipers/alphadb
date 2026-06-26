@@ -26,11 +26,6 @@ use crate::engine::mysql_impl::verification::compatibility::{ALLOW_DECIMAL_LENGT
 /// **Define column**
 ///
 /// Generate a MySQL query part that defines a single column
-///
-/// - column_data: Current column object from version source
-/// - table_name: Name of the table to be created
-/// - column_name: Name of the column to be defined
-/// - version: Current version in version source loop
 pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String, version: &str) -> Result<Option<DefineColumn>, AlphaDBError> {
     let mut query = DefineColumn::new();
     let column_keys = get_object_keys(column_data);
@@ -55,7 +50,6 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             null = true;
         }
 
-        // Verify column type compatibility against all column keys
         for rule in COLUMN_TYPE_COMPATIBILITY_RULES {
             if !check_column_type_compatibility(column_type, &rule, &column_keys) {
                 return Err(incompatible_column_attributes_err(
@@ -66,7 +60,6 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             }
         }
 
-        // Verify column attribute compatibility against all other attributes
         for rule in COLUMN_ATTRIBUTE_COMPATIBILITY_RULES {
             if let Err(incompatible_keys) = check_column_attributes_compatibility(&rule, &column_keys) {
                 for key in incompatible_keys {
@@ -83,13 +76,11 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             }
         }
 
-        // Check column type compatibility with AUTO_INCREMENT
         let mut auto_increment = false;
         if column_keys.iter().any(|&i| i == "auto_increment") {
             auto_increment = true;
         }
 
-        // Check column type compatibility with UNIQUE
         let mut unique = false;
         if column_keys.iter().any(|&i| i == "unique") && column_data["unique"] == true {
             unique = true;

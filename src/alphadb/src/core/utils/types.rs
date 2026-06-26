@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// ** Allowed verification issue level**
+/// **Allowed verification issue level**
 ///
 /// Matches VerificationIssueLevel, but adds an additional value: All.
 /// Used for functions where VerificationIssueLevel is decided by the user.

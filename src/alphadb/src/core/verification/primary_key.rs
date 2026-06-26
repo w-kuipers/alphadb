@@ -12,7 +12,6 @@ use crate::{
 pub fn verify_primary_key(primary_key: &Value, table: &Value) -> Result<(), VerificationIssue> {
     format_primary_key_columns(primary_key)?;
 
-    // Check if the primary key exists as a column in the table
     if let Some(primary_keys) = primary_key.as_array() {
         for value in primary_keys {
             // Unwrap is safe here because of format_primary_key_columns function

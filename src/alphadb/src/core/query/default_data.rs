@@ -25,25 +25,14 @@ use serde_json::Value;
 /// format. It contains parallel vectors of column names and their corresponding
 /// values, with automatic type conversion and null filtering applied.
 ///
-/// # Fields
-///
-/// - `columns`: A vector of column names extracted from JSON object keys
-/// - `values`: A vector of QueryValue instances of the corresponding values
-///
-/// # Lifetime
-///
 /// The struct has a lifetime parameter `'a` that ties the column names to the
 /// source JSON data, allowing for zero-copy string references where possible.
-///
-/// # Usage
 ///
 /// This struct is typically created by the `parse_default_data` function rather
 /// than constructed manually. The parallel structure of the `columns` and `values`
 /// vectors ensures that `columns[i]` corresponds to `values[i]`.
 pub struct DefaultData<'a> {
-    /// Column names extracted from JSON object keys
     pub columns: Vec<&'a str>,
-    /// QueryValue instances of the corresponding values
     pub values: Vec<QueryValue>,
 }
 
@@ -59,23 +48,6 @@ pub struct DefaultData<'a> {
 /// - **Number**: Converted to appropriate `QueryValue` numeric type (Integer, Unsigned, or Float)
 /// - **String**: Converted to `QueryValue::String`
 /// - **Null**: Filtered out (not included in results)
-///
-/// # Parameters
-///
-/// - `item`: A reference to a JSON `Value` that should be an object
-///
-/// # Returns
-///
-/// Returns a `Result` containing:
-/// - `Ok(DefaultData)`: Successfully parsed data with columns and values
-/// - `Err(AlphaDBError)`: If parsing fails or the JSON structure is invalid
-///
-/// # Errors
-///
-/// This function can return errors in the following cases:
-/// - The input JSON is not an object
-/// - JSON value extraction fails for supported types
-/// - Internal JSON utility functions encounter errors
 ///
 /// # Examples
 ///

@@ -22,17 +22,6 @@ use serde_json::Value;
 ///
 /// Searches through version history to find the most recent primary key definition
 /// for the specified table, optionally stopping before a specific version.
-///
-/// # Arguments
-/// * `version_list` - List with versions from version_source
-/// * `table_name` - Name of the table to get the primary key for
-/// * `target_version` - Optional version before which to search for the primary key
-///
-/// # Returns
-/// * `Result<Option<&str>, AlphaDBError>` - The primary key column name if found, None if no primary key exists
-///
-/// # Errors
-/// * Returns `AlphaDBError` if there are issues parsing version numbers or accessing JSON properties
 pub fn get_primary_key<'a>(version_list: &'a Vec<Value>, table_name: &str, target_version: Option<&str>) -> Result<Option<&'a str>, AlphaDBError> {
     let mut primary_key: Option<&str> = None;
 
@@ -76,7 +65,6 @@ pub fn get_primary_key<'a>(version_list: &'a Vec<Value>, table_name: &str, targe
                         }
                     }
 
-                    // Handle column renames
                     if let Some(pk) = primary_key {
                         if exists_in_object(&version["altertable"][table_name], "renamecolumn")? {
                             if exists_in_object(&version["altertable"][table_name]["renamecolumn"], pk)? {

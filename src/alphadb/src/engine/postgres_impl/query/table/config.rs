@@ -34,6 +34,7 @@ pub const POSTGRES_TABLE_CONFIG: TableQueryConfig = TableQueryConfig {
     table_options: None,
     modify_column,
     drop_primary_key,
+    drop_foreign_key,
     preprocess: None,
 };
 
@@ -60,11 +61,15 @@ fn modify_column(version_list: &Vec<Value>, modify_entry: &mut Value, table_name
 }
 
 fn drop_primary_key(table_name: &str) -> Vec<DefineColumn> {
-    // PostgreSQL drops the primary key by name. Inline PRIMARY KEY
-    // constraints created by createtable are auto-named "<table>_pkey".
     let mut definition = DefineColumn::new();
     definition.method("DROP CONSTRAINT").name(format!("{}_pkey", table_name));
     vec![definition]
+}
+
+fn drop_foreign_key(foreign_key_name: &str) -> DefineColumn {
+    let mut definition = DefineColumn::new();
+    definition.method("DROP CONSTRAINT").name(foreign_key_name);
+    definition
 }
 
 #[cfg(test)]
@@ -86,6 +91,7 @@ mod createtable_tests {
                     "col1": {"type": "VARCHAR", "length": 30, "unique": true},
                     "foreign_key": [
                         {
+                            "name": "table_key_fk",
                             "references": "other_table",
                             "from": "key",
                             "to": "key",
@@ -98,7 +104,7 @@ mod createtable_tests {
 
         assert_eq!(
             create_table(&POSTGRES_TABLE_CONFIG, json, "table", "0.0.1").unwrap(),
-            "CREATE TABLE table (id INTEGER NOT NULL, col1 VARCHAR(30) NOT NULL UNIQUE, PRIMARY KEY (id), FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE);"
+            "CREATE TABLE table (id INTEGER NOT NULL, col1 VARCHAR(30) NOT NULL UNIQUE, PRIMARY KEY (id), CONSTRAINT table_key_fk FOREIGN KEY (key) REFERENCES other_table (key) ON DELETE CASCADE);"
         );
     }
 }
@@ -109,7 +115,6 @@ mod altertable_tests {
     use crate::core::query::table::alter_table;
     use serde_json::json;
 
-    // Drop columns
     #[test]
     fn dropcolumn() {
         let column = &json!({
@@ -129,7 +134,6 @@ mod altertable_tests {
         );
     }
 
-    // Drop primary key
     #[test]
     fn drop_primary_key() {
         let column = &json!({
@@ -142,6 +146,63 @@ mod altertable_tests {
         assert_eq!(
             alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.2").unwrap(),
             "ALTER TABLE table DROP CONSTRAINT table_pkey;"
+        );
+    }
+
+    #[test]
+    fn add_foreign_key() {
+        let column = &json!({
+            "name": "test",
+            "version": [{
+                "_id": "0.0.1",
+                "altertable": {
+                    "table": {
+                        "add_foreign_key": [{ "name": "table_account_fk", "from": "account_id", "references": "accounts", "to": "id" }]
+                    }
+                }
+            }]
+        });
+        assert_eq!(
+            alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.1").unwrap(),
+            "ALTER TABLE table ADD CONSTRAINT table_account_fk FOREIGN KEY (account_id) REFERENCES accounts (id);"
+        );
+    }
+
+    #[test]
+    fn drop_foreign_key() {
+        let column = &json!({
+            "name": "test",
+            "version": [{
+                "_id": "0.0.1",
+                "altertable": {
+                    "table": {
+                        "drop_foreign_key": ["table_account_fk"]
+                    }
+                }
+            }]
+        });
+        assert_eq!(
+            alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.1").unwrap(),
+            "ALTER TABLE table DROP CONSTRAINT table_account_fk;"
+        );
+    }
+
+    #[test]
+    fn modify_foreign_key() {
+        let column = &json!({
+            "name": "test",
+            "version": [{
+                "_id": "0.0.1",
+                "altertable": {
+                    "table": {
+                        "modify_foreign_key": [{ "name": "table_account_fk", "from": "account_id", "references": "accounts", "to": "id", "on_delete": "cascade" }]
+                    }
+                }
+            }]
+        });
+        assert_eq!(
+            alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.1").unwrap(),
+            "ALTER TABLE table DROP CONSTRAINT table_account_fk, ADD CONSTRAINT table_account_fk FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE;"
         );
     }
 }

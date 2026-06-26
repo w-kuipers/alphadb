@@ -18,17 +18,7 @@ use postgres::Client;
 use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 
 /// Remove all tables from the database
-///
-/// # Arguments
-/// * `connection` - Active connection to the database
-///
-/// # Returns
-/// * `Result<(), AlphaDBPostgresError>` - Ok if all tables were removed successfully
-///
-/// # Errors
-/// * Returns `AlphaDBPostgresError` if there are any database or AlphaDB errors
 pub fn vacate(connection: &mut Client) -> Result<(), AlphaDBPostgresError> {
-    // Get all tables
     let rows = connection.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'", &[])?;
 
     let tables: Vec<String> = rows.iter().map(|row| row.get::<_, String>(0)).collect();

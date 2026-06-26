@@ -8,23 +8,16 @@ use crate::core::utils::condition_to_sql;
 
 /// Generate a PostgreSQL CREATE INDEX query
 ///
-/// # Arguments
-/// * `index` - JSON value describing the index, with the shape:
-///   ```json
-///   {
-///     "name": "index_name",
-///     "type": "btree",
-///     "columns": ["col1", "col2"],
-///     "condition": { ... }
-///   }
-///   ```
-///   `type` and `condition` are optional.
-///
-/// # Returns
-/// * `Result<String, AlphaDBError>` - SQL `CREATE INDEX` statement
-///
-/// # Errors
-/// * Returns `AlphaDBError` if required keys (`name`, `columns`) are missing or malformed
+/// `index` is a JSON value describing the index, with the shape:
+/// ```json
+/// {
+///   "name": "index_name",
+///   "type": "btree",
+///   "columns": ["col1", "col2"],
+///   "condition": { ... }
+/// }
+/// ```
+/// `type` and `condition` are optional.
 pub fn createindex(index: &Value, table_name: &str, version_number: &str) -> Result<String, AlphaDBError> {
     let version_trace = VersionTrace::from([version_number.to_string(), table_name.to_string(), "index".to_string()]);
     let keys = get_object_keys(index)?;

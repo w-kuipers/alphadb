@@ -28,11 +28,6 @@ use crate::engine::postgres_impl::verification::compatibility::{
 /// **Alter column**
 ///
 /// Generate PostgreSQL ALTER COLUMN statements for modifying a column
-///
-/// - column_data: Current column object from version source
-/// - table_name: Name of the table being altered
-/// - column_name: Name of the column to be altered
-/// - version: Current version in version source loop
 pub fn altercolumn(column_data: &Value, table_name: &str, column_name: &String, column_type: &String, version: &str) -> Result<Vec<DefineColumn>, AlphaDBError> {
     let mut statements = Vec::new();
     let column_keys = get_object_keys(column_data);

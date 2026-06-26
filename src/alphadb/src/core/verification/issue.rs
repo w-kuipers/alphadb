@@ -24,11 +24,8 @@ use crate::core::utils::errors::AlphaDBError;
 /// Critical: Will not execute.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum VerificationIssueLevel {
-    /// Low: Will work, but will not have any effect on the database
     Low,
-    /// High: Will still work, but might produce a different result than desired.
     High,
-    /// Critical: Will not execute.
     Critical,
 }
 

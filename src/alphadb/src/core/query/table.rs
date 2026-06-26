@@ -13,15 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Engine-agnostic table query builders.
+//! Engine-agnostic `CREATE TABLE` / `ALTER TABLE` builders.
 //!
-//! The orchestration for `CREATE TABLE` / `ALTER TABLE` is identical across
-//! engines; only a handful of leaf operations differ (how a column is defined,
-//! how constraints are rendered, which table options are appended). Those
-//! differences are supplied through [`TableQueryConfig`] — a struct of hooks and
-//! data provided once per engine — so the surrounding logic lives here a single
-//! time. This mirrors the `RuntimeConfig` / `EngineConfig` pattern used
-//! elsewhere in the crate.
+//! Engines differ only in leaf operations (column definitions, constraint
+//! rendering, table options), supplied via [`TableQueryConfig`].
 
 use crate::core::query::build::StructureQuery;
 use crate::core::query::column::DefineColumn;
@@ -47,9 +42,11 @@ pub type ModifyColumnHook = fn(version_list: &Vec<Value>, modify_entry: &mut Val
 /// Hook to build the statement(s) that drop the table's primary key.
 pub type DropPrimaryKeyHook = fn(table_name: &str) -> Vec<DefineColumn>;
 
+/// Hook to build the statement that drops a named foreign-key constraint
+pub type DropForeignKeyHook = fn(foreign_key_name: &str) -> DefineColumn;
+
 /// Hook that runs before any column statements are generated for `ALTER TABLE`,
-/// allowing an engine to pre-process the `altertable` block (e.g. MySQL stripping
-/// the old primary key's `AUTO_INCREMENT` attribute before the key is dropped).
+/// allowing an engine to pre-process the `altertable` block.
 pub type PreprocessHook = fn(version_list: &Vec<Value>, table_data: &mut Value, table_name: &str, version: &str) -> Result<(), AlphaDBError>;
 
 /// Engine-specific behaviour required to build table queries.
@@ -79,6 +76,9 @@ pub struct TableQueryConfig {
 
     /// Builds the statement(s) that drop the table's primary key.
     pub drop_primary_key: DropPrimaryKeyHook,
+
+    /// Builds the statement that drops a named foreign-key constraint.
+    pub drop_foreign_key: DropForeignKeyHook,
 
     /// Optional step run before any column statements are generated for
     /// `ALTER TABLE`. `None` for engines that need none.
@@ -196,14 +196,11 @@ pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name
     let mut cloned_version_source = version_source.clone();
     let mutable_table_data = &mut cloned_version_source["version"][version_index];
 
-    // Engine-specific pre-processing (e.g. MySQL AUTO_INCREMENT removal before
-    // dropping a primary key).
     if let Some(preprocess) = config.preprocess {
         preprocess(version_list, mutable_table_data, table_name, version)?;
     }
 
-    // Drop column
-    let table_data = mutable_table_data.clone(); // Get up-to-date table data
+    let table_data = mutable_table_data.clone();
     if exists_in_object(&table_data["altertable"][table_name], "dropcolumn")? {
         for column in array_iter(&table_data["altertable"][table_name]["dropcolumn"])? {
             let mut definition = DefineColumn::new();
@@ -213,7 +210,7 @@ pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name
     }
 
     // Add column
-    let table_data = mutable_table_data.clone(); // Get up-to-date table data
+    let table_data = mutable_table_data.clone();
     if exists_in_object(&table_data["altertable"][table_name], "addcolumn")? {
         for column in object_iter(&table_data["altertable"][table_name]["addcolumn"])? {
             if let Some(mut definition) = (config.define_column)(&mutable_table_data["altertable"][table_name]["addcolumn"][column], table_name, column, version)? {
@@ -224,10 +221,16 @@ pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name
     }
 
     // Modify column
-    let table_data = mutable_table_data.clone(); // Get up-to-date table data
+    let table_data = mutable_table_data.clone();
     if exists_in_object(&table_data["altertable"][table_name], "modifycolumn")? {
         for column in object_iter(&table_data["altertable"][table_name]["modifycolumn"])? {
-            let definitions = (config.modify_column)(version_list, &mut mutable_table_data["altertable"][table_name]["modifycolumn"][column], table_name, column, version)?;
+            let definitions = (config.modify_column)(
+                version_list,
+                &mut mutable_table_data["altertable"][table_name]["modifycolumn"][column],
+                table_name,
+                column,
+                version,
+            )?;
             for definition in definitions {
                 query.definition(definition);
             }
@@ -235,7 +238,7 @@ pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name
     }
 
     // Rename column
-    let table_data = mutable_table_data.clone(); // Get up-to-date table data
+    let table_data = mutable_table_data.clone();
     if exists_in_object(&table_data["altertable"][table_name], "renamecolumn")? {
         for column in object_iter(&table_data["altertable"][table_name]["renamecolumn"])? {
             let mut definition = DefineColumn::new();
@@ -248,9 +251,8 @@ pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name
     }
 
     // Primary key
-    let table_data = mutable_table_data.clone(); // Get up-to-date table data
+    let table_data = mutable_table_data.clone();
     if exists_in_object(&table_data["altertable"][table_name], "primary_key")? {
-        // Drop primary key
         if Value::is_null(&table_data["altertable"][table_name]["primary_key"]) {
             for definition in (config.drop_primary_key)(table_name) {
                 query.definition(definition);
@@ -258,6 +260,35 @@ pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name
         }
 
         // TODO add changing primary key
+    }
+
+    // Drop foreign key
+    let table_data = mutable_table_data.clone();
+    if exists_in_object(&table_data["altertable"][table_name], "drop_foreign_key")? {
+        for foreign_key in array_iter(&table_data["altertable"][table_name]["drop_foreign_key"])? {
+            query.definition((config.drop_foreign_key)(get_json_string(foreign_key)?));
+        }
+    }
+
+    // modify_foreign_key drops the existing constraint before adding the new one.
+    let table_data = mutable_table_data.clone();
+    for (key, drop_first) in [("modify_foreign_key", true), ("add_foreign_key", false)] {
+        if exists_in_object(&table_data["altertable"][table_name], key)? {
+            for foreign_key in array_iter(&table_data["altertable"][table_name][key])? {
+                if drop_first {
+                    query.definition((config.drop_foreign_key)(get_json_string(&foreign_key["name"])?));
+                }
+
+                let constraint = (config.foreign_key_constraint)(foreign_key, table_name, version).map_err(|mut e| {
+                    e.set_version_trace(&VersionTrace::from([version, "altertable", table_name]));
+                    e
+                })?;
+
+                let mut definition = DefineColumn::new();
+                definition.method("ADD").name(constraint);
+                query.definition(definition);
+            }
+        }
     }
 
     Ok(query.build())

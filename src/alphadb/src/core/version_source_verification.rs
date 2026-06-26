@@ -152,7 +152,6 @@ impl VersionSourceVerification {
         }
     }
 
-    /// Verify a single createtable block
     pub fn createtable(&mut self, createtable: Value, version_output: &str) {
         let version_trace = Vec::from([version_output.to_string(), "createtable".to_string()]);
         match adb_get_json_object(&createtable) {
@@ -196,7 +195,6 @@ impl VersionSourceVerification {
         }
     }
 
-    /// Verify a single altertable block
     pub fn altertable(&mut self, altertable: Value, version_output: &str, version_number: Option<&str>) -> Result<(), AlphaDBError> {
         if altertable.as_object().unwrap().is_empty() {
             self.issues.push(VerificationIssue {
@@ -209,14 +207,12 @@ impl VersionSourceVerification {
         }
 
         for table in altertable.as_object().unwrap().keys() {
-            // Modifycolumn
             if altertable[table].as_object().unwrap().keys().any(|a| a == "modifycolumn") {
                 for (column_name, column) in altertable[table]["modifycolumn"].as_object().unwrap() {
                     self.column_compatibility(table, column_name, column.clone(), "altertable", version_output);
                 }
             }
 
-            // Dropcolumn
             if altertable[table].as_object().unwrap().keys().any(|a| a == "dropcolumn") {
                 // Without a valid version number it's not possible to determine the primary key
                 if version_number.is_some() {
@@ -242,7 +238,6 @@ impl VersionSourceVerification {
                     }
                 }
 
-                // Do primary key checks
                 // Primary key checks should include checking when a column in changed into a
                 // primary key, the key was unique previously. If not there should be a warning.
             }
@@ -251,7 +246,6 @@ impl VersionSourceVerification {
         Ok(())
     }
 
-    /// Verify column compatibility
     pub fn column_compatibility(&mut self, table_name: &str, column_name: &str, data: Value, method: &str, version_output: &str) {
         let data_keys = data.as_object().unwrap().keys().into_iter().collect::<Vec<&String>>();
         let version_trace = vec![
@@ -261,7 +255,6 @@ impl VersionSourceVerification {
             format!("column:{column_name}"),
         ];
 
-        // NULL and AUTO_INCREMENT
         if data_keys.contains(&&String::from("null")) && data_keys.contains(&&String::from("a_i")) {
             self.issues.push(VerificationIssue {
                 level: VerificationIssueLevel::Critical,
@@ -270,7 +263,6 @@ impl VersionSourceVerification {
             });
         }
 
-        // If type is defined
         if !data_keys.contains(&&String::from("type")) {
             if !data_keys.contains(&&String::from("recreate")) || data["recreate"].as_bool().unwrap() == true {
                 self.issues.push(VerificationIssue {
@@ -342,7 +334,6 @@ impl VersionSourceVerification {
                     }
                 };
 
-                // Check if the columns specified in the default data exist in the table
                 // TODO right now the issue is generated for every following version as well. Find
                 // a way to only add the issue once
                 if let Some(version_number) = version_number {
@@ -388,7 +379,6 @@ impl VersionSourceVerification {
                                 version_trace.push(format!("item:{i}"));
                                 let col_type = get_json_string(&&consolidated_table[column]["type"], &mut self.issues, table_version_trace.clone());
 
-                                // Check if the default data for the current column exists
                                 if !exists_in_object(&dataset, column, &mut self.issues, version_trace.clone()) {
                                     insert_issue(
                                         &mut self.issues,
@@ -403,7 +393,6 @@ impl VersionSourceVerification {
                                     continue;
                                 }
 
-                                // Verify if the specified default data value is the right type
                                 if STRING_COLUMNS.contains(&col_type) {
                                     if adb_get_json_string(&dataset[column]).is_err() {
                                         insert_issue(
@@ -444,7 +433,6 @@ impl VersionSourceVerification {
                                 version_trace.pop();
                             }
 
-                            // Check if unique values have duplicate data
                             // TODO right now the issue is generated for every following version as well. Find
                             // a way to only add the issue once
                             let primary_key = match get_primary_key(&self.version_list, table, version_number)? {
