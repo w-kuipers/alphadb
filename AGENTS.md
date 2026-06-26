@@ -42,4 +42,5 @@ cargo build --features mysql
 
 - Match existing style in the file you're editing.
 - Don't commit unless asked.
+- Never run git commands (commit, push, branch, merge, rebase, tag, add, reset, etc.). Leave all version-control actions to the user.
 - Don't add new dependencies without checking what's already used.
