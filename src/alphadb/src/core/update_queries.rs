@@ -21,7 +21,7 @@
 use crate::core::method_types::{Query, Status};
 use crate::core::query::table::{alter_table, create_table, TableQueryConfig};
 use crate::core::utils::consolidate::default_data::consolidate_default_data;
-use crate::core::utils::errors::AlphaDBError;
+use crate::core::utils::errors::{AlphaDBError, Get};
 use crate::core::utils::json::{array_iter, exists_in_object, get_object_keys, object_iter};
 use crate::core::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
 use crate::core::utils::version_source::{get_version_array, parse_version_source_string};
@@ -31,16 +31,13 @@ use serde_json::Value;
 
 pub type StatusHook<C> = fn(db_name: &str, connection: &mut C) -> Result<Status, AlphaDBError>;
 
-pub type CreateIndexHook = fn(index: &Value, table_name: &str, version_number: &str) -> Result<String, AlphaDBError>;
+pub type CreateIndexHook = fn(index: &Value, table_name: &str) -> Result<String, AlphaDBError>;
 
 /// `table_name` is supplied for engines that scope index names to a table (MySQL);
 /// engines with globally-named indexes (PostgreSQL) ignore it.
 pub type DropIndexHook = fn(index_name: &Value, table_name: &str) -> Result<String, AlphaDBError>;
-
 pub type DefaultDataHook = fn(table_name: &str, item: &Value) -> Result<Query, AlphaDBError>;
-
 pub type ConfigUpdateQueryHook = fn(latest_version: &str, template_name: &str, db_name: &str) -> Query;
-
 pub type VersionExtrasHook = fn(version: &Value) -> Result<Vec<Query>, AlphaDBError>;
 
 /// Engine-specific behaviour for [`update_queries`]. `C` is the engine connection
@@ -57,6 +54,14 @@ pub struct UpdateQueriesConfig<C> {
 
     /// Runs once per version, before that version's tables. `None` if unused.
     pub version_extras: Option<VersionExtrasHook>,
+}
+
+/// Attach `trace` to errors from structural helpers that carry none of their own.
+fn with_trace(trace: &VersionTrace) -> impl Fn(AlphaDBError) -> AlphaDBError + '_ {
+    move |mut e| {
+        e.set_version_trace(trace);
+        e
+    }
 }
 
 /// Generate the queries to update a database to `target_version` (the latest
@@ -168,25 +173,25 @@ pub fn update_queries<C>(
             continue;
         }
 
-        let version_keys = get_object_keys(version)?;
+        let version_keys = get_object_keys(version).map_err(with_trace(&version_trace))?;
 
         if let Some(version_extras) = config.version_extras {
-            queries.extend(version_extras(version)?);
+            queries.extend(version_extras(version).map_err(with_trace(&version_trace))?);
         }
 
         if version_keys.contains(&&"createtable".to_string()) {
             version_trace.push("createtable".to_string());
 
-            for table in object_iter(&version["createtable"])? {
+            for table in object_iter(&version["createtable"]).map_err(with_trace(&version_trace))? {
                 version_trace.push(table.clone());
 
                 let q = create_table(config.table_config, version, table, version_number)?;
                 queries.push(Query { query: q, data: None });
 
-                if exists_in_object(&version["createtable"][table], "index")? {
-                    for index in array_iter(&version["createtable"][table]["index"])? {
+                if exists_in_object(&version["createtable"][table], "index").map_err(with_trace(&version_trace))? {
+                    for index in array_iter(&version["createtable"][table]["index"]).map_err(with_trace(&version_trace))? {
                         queries.push(Query {
-                            query: (config.create_index)(index, table, version_number)?,
+                            query: (config.create_index)(index, table).map_err(with_trace(&version_trace))?,
                             data: None,
                         });
                     }
@@ -201,7 +206,7 @@ pub fn update_queries<C>(
         if version_keys.contains(&&"altertable".to_string()) {
             version_trace.push("altertable".to_string());
 
-            for table in object_iter(&version["altertable"])? {
+            for table in object_iter(&version["altertable"]).map_err(with_trace(&version_trace))? {
                 version_trace.push(table.clone());
 
                 queries.push(Query {
@@ -211,33 +216,33 @@ pub fn update_queries<C>(
 
                 // Indexes are standalone CREATE/DROP INDEX statements, emitted
                 // separately from the ALTER TABLE query.
-                if exists_in_object(&version["altertable"][table], "drop_index")? {
-                    for index in array_iter(&version["altertable"][table]["drop_index"])? {
+                if exists_in_object(&version["altertable"][table], "drop_index").map_err(with_trace(&version_trace))? {
+                    for index in array_iter(&version["altertable"][table]["drop_index"]).map_err(with_trace(&version_trace))? {
                         queries.push(Query {
-                            query: (config.drop_index)(index, table)?,
+                            query: (config.drop_index)(index, table).map_err(with_trace(&version_trace))?,
                             data: None,
                         });
                     }
                 }
 
                 // No in-place index modify; drop by name, then recreate.
-                if exists_in_object(&version["altertable"][table], "modify_index")? {
-                    for index in array_iter(&version["altertable"][table]["modify_index"])? {
+                if exists_in_object(&version["altertable"][table], "modify_index").map_err(with_trace(&version_trace))? {
+                    for index in array_iter(&version["altertable"][table]["modify_index"]).map_err(with_trace(&version_trace))? {
                         queries.push(Query {
-                            query: (config.drop_index)(&index["name"], table)?,
+                            query: (config.drop_index)(&index["name"], table).map_err(with_trace(&version_trace))?,
                             data: None,
                         });
                         queries.push(Query {
-                            query: (config.create_index)(index, table, version_number)?,
+                            query: (config.create_index)(index, table).map_err(with_trace(&version_trace))?,
                             data: None,
                         });
                     }
                 }
 
-                if exists_in_object(&version["altertable"][table], "add_index")? {
-                    for index in array_iter(&version["altertable"][table]["add_index"])? {
+                if exists_in_object(&version["altertable"][table], "add_index").map_err(with_trace(&version_trace))? {
+                    for index in array_iter(&version["altertable"][table]["add_index"]).map_err(with_trace(&version_trace))? {
                         queries.push(Query {
-                            query: (config.create_index)(index, table, version_number)?,
+                            query: (config.create_index)(index, table).map_err(with_trace(&version_trace))?,
                             data: None,
                         });
                     }

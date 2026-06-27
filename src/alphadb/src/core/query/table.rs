@@ -128,6 +128,7 @@ pub fn create_table(config: &TableQueryConfig, version: &Value, table_name: &str
 
             query.constraint(fk);
         }
+        version_trace.pop();
     }
 
     if table_keys.iter().any(|&i| i == "check") {
@@ -146,6 +147,7 @@ pub fn create_table(config: &TableQueryConfig, version: &Value, table_name: &str
 
             query.constraint(check);
         }
+        version_trace.pop();
     }
 
     if let Some(options) = config.table_options {

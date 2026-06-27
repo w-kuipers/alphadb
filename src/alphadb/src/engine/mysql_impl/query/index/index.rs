@@ -15,16 +15,15 @@ use serde_json::Value;
 /// }
 /// ```
 /// `type` is optional. Partial indexes (`condition`) are not supported by MySQL.
-pub fn createindex(index: &Value, table_name: &str, version_number: &str) -> Result<String, AlphaDBError> {
-    let version_trace = VersionTrace::from([version_number.to_string(), table_name.to_string(), "index".to_string()]);
+pub fn createindex(index: &Value, table_name: &str) -> Result<String, AlphaDBError> {
     let keys = get_object_keys(index)?;
 
     if !keys.iter().any(|k| *k == "name") {
-        return Err(incomplete_version_object_err("name", &version_trace));
+        return Err(incomplete_version_object_err("name", &VersionTrace::new()));
     }
 
     if !keys.iter().any(|k| *k == "columns") {
-        return Err(incomplete_version_object_err("columns", &version_trace));
+        return Err(incomplete_version_object_err("columns", &VersionTrace::new()));
     }
 
     // MySQL has no support for partial indexes.
@@ -32,7 +31,7 @@ pub fn createindex(index: &Value, table_name: &str, version_number: &str) -> Res
         return Err(AlphaDBError {
             message: "Partial indexes ('condition') are not supported by MySQL.".to_string(),
             error: "unsupported-feature".to_string(),
-            version_trace,
+            ..Default::default()
         });
     }
 
@@ -54,7 +53,7 @@ pub fn createindex(index: &Value, table_name: &str, version_number: &str) -> Res
         return Err(AlphaDBError {
             message: "Index 'columns' must contain at least one column.".to_string(),
             error: "incomplete-version-object".to_string(),
-            version_trace,
+            ..Default::default()
         });
     }
 
@@ -89,7 +88,7 @@ mod createindex_tests {
     #[test]
     fn missing_name() {
         let index = json!({ "columns": ["col1"] });
-        let result = createindex(&index, "my_table", "0.0.1");
+        let result = createindex(&index, "my_table");
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().message, "Missing required key 'name'.");
     }
@@ -97,7 +96,7 @@ mod createindex_tests {
     #[test]
     fn missing_columns() {
         let index = json!({ "name": "idx" });
-        let result = createindex(&index, "my_table", "0.0.1");
+        let result = createindex(&index, "my_table");
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().message, "Missing required key 'columns'.");
     }
@@ -105,14 +104,14 @@ mod createindex_tests {
     #[test]
     fn empty_columns() {
         let index = json!({ "name": "idx", "columns": [] });
-        let result = createindex(&index, "my_table", "0.0.1");
+        let result = createindex(&index, "my_table");
         assert!(result.is_err());
     }
 
     #[test]
     fn condition_unsupported() {
         let index = json!({ "name": "idx", "columns": ["col1"], "condition": { "type": "and", "conditions": [] } });
-        let result = createindex(&index, "my_table", "0.0.1");
+        let result = createindex(&index, "my_table");
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().message, "Partial indexes ('condition') are not supported by MySQL.");
     }
@@ -120,35 +119,35 @@ mod createindex_tests {
     #[test]
     fn basic_index() {
         let index = json!({ "name": "idx_col1", "columns": ["col1"] });
-        let result = createindex(&index, "my_table", "0.0.1").unwrap();
+        let result = createindex(&index, "my_table").unwrap();
         assert_eq!(result, "CREATE INDEX idx_col1 ON my_table (col1);");
     }
 
     #[test]
     fn index_with_type() {
         let index = json!({ "name": "idx_col1", "type": "btree", "columns": ["col1"] });
-        let result = createindex(&index, "my_table", "0.0.1").unwrap();
+        let result = createindex(&index, "my_table").unwrap();
         assert_eq!(result, "CREATE INDEX idx_col1 USING BTREE ON my_table (col1);");
     }
 
     #[test]
     fn multi_column_index() {
         let index = json!({ "name": "idx_multi", "columns": ["col1", "col2", "col3"] });
-        let result = createindex(&index, "my_table", "0.0.1").unwrap();
+        let result = createindex(&index, "my_table").unwrap();
         assert_eq!(result, "CREATE INDEX idx_multi ON my_table (col1, col2, col3);");
     }
 
     #[test]
     fn unique_index() {
         let index = json!({ "name": "idx_unique", "unique": true, "columns": ["col1"] });
-        let result = createindex(&index, "my_table", "0.0.1").unwrap();
+        let result = createindex(&index, "my_table").unwrap();
         assert_eq!(result, "CREATE UNIQUE INDEX idx_unique ON my_table (col1);");
     }
 
     #[test]
     fn unique_index_with_type() {
         let index = json!({ "name": "idx_unique_btree", "unique": true, "type": "btree", "columns": ["col1"] });
-        let result = createindex(&index, "my_table", "0.0.1").unwrap();
+        let result = createindex(&index, "my_table").unwrap();
         assert_eq!(result, "CREATE UNIQUE INDEX idx_unique_btree USING BTREE ON my_table (col1);");
     }
 }
