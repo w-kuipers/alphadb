@@ -98,12 +98,11 @@ impl<C> AlphaDB<C> {
         version_source: String,
         target_version: Option<&str>,
         no_data: bool,
-        verify: bool,
         tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
     ) -> Result<(), AlphaDBError> {
         let hook = self.config.hooks.update;
         let (db_name, connection) = self.get_connection()?;
-        hook(db_name, connection, version_source, target_version, no_data, verify, tolerated_verification_issue_level)
+        hook(db_name, connection, version_source, target_version, no_data, tolerated_verification_issue_level)
     }
 
     /// Remove all tables from the database

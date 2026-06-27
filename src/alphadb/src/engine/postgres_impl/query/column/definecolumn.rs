@@ -42,7 +42,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
     if let Ok(column_keys) = column_keys {
         // Must know the type to create a column
         if !column_keys.contains(&&"type".to_string()) {
-            return Err(incomplete_version_object_err("type", version_trace.clone()));
+            return Err(incomplete_version_object_err("type", &version_trace));
         }
 
         let column_type = get_json_string(&column_data["type"])?;

@@ -14,9 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::core::method_types::QueryValue;
+use crate::core::update_queries::update_queries;
 use crate::core::utils::errors::AlphaDBError;
 use crate::core::utils::types::ToleratedVerificationIssueLevel;
-use crate::engine::mysql_impl::methods::update_queries;
+use crate::engine::mysql_impl::methods::MYSQL_UPDATE_QUERIES_CONFIG;
 use crate::engine::mysql_impl::utils::errors::AlphaDBMysqlError;
 use mysql::prelude::*;
 use mysql::*;
@@ -38,14 +39,9 @@ pub fn update(
     version_source: String,
     target_version: Option<&str>,
     no_data: bool,
-    verify: bool,
     _tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBMysqlError> {
-    if verify {
-        // TODO
-    }
-
-    let queries = update_queries(db_name, connection, version_source, target_version, no_data)?;
+    let queries = update_queries(&MYSQL_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)?;
 
     for query in queries {
         if let Some(data) = query.data {

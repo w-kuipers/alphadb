@@ -30,11 +30,11 @@ pub fn simple_err(message: &str, version_trace: VersionTrace) -> AlphaDBError {
     };
 }
 
-pub fn incomplete_version_object_err(key: &str, version_trace: VersionTrace) -> AlphaDBError {
+pub fn incomplete_version_object_err(key: &str, version_trace: &VersionTrace) -> AlphaDBError {
     return AlphaDBError {
         message: format!("Missing required key '{key}'."),
         error: "incomplete-version-object".to_string(),
-        version_trace,
+        version_trace: version_trace.clone(),
         ..Default::default()
     };
 }

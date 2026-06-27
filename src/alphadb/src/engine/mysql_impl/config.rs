@@ -14,10 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::methods;
-use crate::core::{
-    method_types::{Init, Query, Status},
-    runtime_config::{RuntimeConfig, RuntimeHooks},
-    utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel},
+use crate::{
+    core::{
+        method_types::{Init, Status},
+        runtime_config::{RuntimeConfig, RuntimeHooks},
+        update_queries::update_queries,
+        utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel},
+    },
+    engine::mysql_impl::methods::MYSQL_UPDATE_QUERIES_CONFIG,
 };
 use mysql::PooledConn;
 
@@ -33,20 +37,15 @@ fn mysql_status(db_name: &str, connection: &mut PooledConn) -> Result<Status, Al
     methods::status(db_name, connection).map_err(|e| e.into())
 }
 
-fn mysql_update_queries(db_name: &str, connection: &mut PooledConn, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, AlphaDBError> {
-    methods::update_queries(db_name, connection, version_source, target_version, no_data).map_err(|e| e.into())
-}
-
 fn mysql_update(
     db_name: &str,
     connection: &mut PooledConn,
     version_source: String,
     target_version: Option<&str>,
     no_data: bool,
-    verify: bool,
     tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBError> {
-    methods::update(db_name, connection, version_source, target_version, no_data, verify, tolerated_verification_issue_level).map_err(|e| e.into())
+    methods::update(db_name, connection, version_source, target_version, no_data, tolerated_verification_issue_level).map_err(|e| e.into())
 }
 
 fn mysql_vacate(connection: &mut PooledConn) -> Result<(), AlphaDBError> {
@@ -61,7 +60,9 @@ pub fn mysql_runtime_config() -> RuntimeConfig<PooledConn> {
             connect: mysql_connect,
             init: mysql_init,
             status: mysql_status,
-            update_queries: mysql_update_queries,
+            update_queries: |db_name, connection, version_source, target_version, no_data| {
+                update_queries(&MYSQL_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)
+            },
             update: mysql_update,
             vacate: mysql_vacate,
         },

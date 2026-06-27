@@ -24,6 +24,7 @@ use crate::core::query::primary_key::format_primary_key_columns;
 use crate::core::utils::errors::{AlphaDBError, Get};
 use crate::core::utils::json::{array_iter, exists_in_object, get_json_object, get_json_string, get_object_keys, object_iter};
 use crate::core::utils::version_source::get_version_array;
+use crate::core::verification::foreign_key;
 use crate::core::verification::issue::VersionTrace;
 use serde_json::Value;
 
@@ -31,7 +32,7 @@ use serde_json::Value;
 pub type DefineColumnHook = fn(column_data: &Value, table_name: &str, column_name: &String, version: &str) -> Result<Option<DefineColumn>, AlphaDBError>;
 
 /// Hook to render a table-level constraint clause (foreign key, check, ...).
-pub type ConstraintHook = fn(value: &Value, table_name: &str, version_number: &str) -> Result<String, AlphaDBError>;
+pub type ConstraintHook = fn(value: &Value, version_trace: &VersionTrace) -> Result<String, AlphaDBError>;
 
 /// Hook to build the statement(s) that modify an existing column.
 ///
@@ -94,7 +95,7 @@ pub struct TableQueryConfig {
 /// * `version_number` - Current version in the version source loop
 pub fn create_table(config: &TableQueryConfig, version: &Value, table_name: &str, version_number: &str) -> Result<String, AlphaDBError> {
     let table_data = &version["createtable"][table_name];
-    let version_trace = VersionTrace::from([version_number, "createtable", table_name]);
+    let mut version_trace = VersionTrace::from([version_number, "createtable", table_name]);
 
     let mut query = StructureQuery::createtable();
     query.table(table_name);
@@ -118,8 +119,9 @@ pub fn create_table(config: &TableQueryConfig, version: &Value, table_name: &str
             version_trace: version_trace.clone(),
         })?;
 
+        version_trace.push("foreign_key".to_string());
         for fk_data in foreign_keys {
-            let fk = (config.foreign_key_constraint)(fk_data, table_name, version_number).map_err(|mut e| {
+            let fk = (config.foreign_key_constraint)(fk_data, &version_trace).map_err(|mut e| {
                 e.set_version_trace(&version_trace);
                 e
             })?;
@@ -135,8 +137,9 @@ pub fn create_table(config: &TableQueryConfig, version: &Value, table_name: &str
             version_trace: version_trace.clone(),
         })?;
 
+        version_trace.push("check".to_string());
         for check_data in check_constraints {
-            let check = (config.check_constraint)(check_data, table_name, version_number).map_err(|mut e| {
+            let check = (config.check_constraint)(check_data, &version_trace).map_err(|mut e| {
                 e.set_version_trace(&version_trace);
                 e
             })?;
@@ -163,6 +166,7 @@ pub fn create_table(config: &TableQueryConfig, version: &Value, table_name: &str
 /// * `table_name` - Name of the table to be altered
 /// * `version` - Current version number to process
 pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name: &str, version: &str) -> Result<String, AlphaDBError> {
+    let mut version_trace = VersionTrace::from([version, "altertable", table_name]);
     let version_list = get_version_array(version_source)?;
 
     let mut query = StructureQuery::altertable();
@@ -274,12 +278,19 @@ pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name
     let table_data = mutable_table_data.clone();
     for (key, drop_first) in [("modify_foreign_key", true), ("add_foreign_key", false)] {
         if exists_in_object(&table_data["altertable"][table_name], key)? {
-            for foreign_key in array_iter(&table_data["altertable"][table_name][key])? {
+            version_trace.push(key.to_string());
+
+            for (i, foreign_key) in array_iter(&table_data["altertable"][table_name][key])?.iter().enumerate() {
+                version_trace.push(format!("index: {i}"));
+
                 if drop_first {
-                    query.definition((config.drop_foreign_key)(get_json_string(&foreign_key["name"])?));
+                    query.definition((config.drop_foreign_key)(get_json_string(&foreign_key["name"]).map_err(|mut e| {
+                        e.set_version_trace(&VersionTrace::from([version, "altertable", table_name]));
+                        e
+                    })?));
                 }
 
-                let constraint = (config.foreign_key_constraint)(foreign_key, table_name, version).map_err(|mut e| {
+                let constraint = (config.foreign_key_constraint)(foreign_key, &version_trace).map_err(|mut e| {
                     e.set_version_trace(&VersionTrace::from([version, "altertable", table_name]));
                     e
                 })?;
@@ -287,7 +298,11 @@ pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name
                 let mut definition = DefineColumn::new();
                 definition.method("ADD").name(constraint);
                 query.definition(definition);
+
+                version_trace.pop();
             }
+
+            version_trace.pop();
         }
     }
 

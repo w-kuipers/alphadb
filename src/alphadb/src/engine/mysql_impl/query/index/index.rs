@@ -4,20 +4,17 @@ use crate::core::utils::json::{array_iter, get_json_boolean, get_json_string, ge
 use crate::core::verification::issue::VersionTrace;
 use serde_json::Value;
 
-use crate::core::utils::condition_to_sql;
-
-/// Generate a PostgreSQL CREATE INDEX query
+/// Generate a MySQL CREATE INDEX query
 ///
 /// `index` is a JSON value describing the index, with the shape:
 /// ```json
 /// {
 ///   "name": "index_name",
 ///   "type": "btree",
-///   "columns": ["col1", "col2"],
-///   "condition": { ... }
+///   "columns": ["col1", "col2"]
 /// }
 /// ```
-/// `type` and `condition` are optional.
+/// `type` is optional. Partial indexes (`condition`) are not supported by MySQL.
 pub fn createindex(index: &Value, table_name: &str, version_number: &str) -> Result<String, AlphaDBError> {
     let version_trace = VersionTrace::from([version_number.to_string(), table_name.to_string(), "index".to_string()]);
     let keys = get_object_keys(index)?;
@@ -28,6 +25,15 @@ pub fn createindex(index: &Value, table_name: &str, version_number: &str) -> Res
 
     if !keys.iter().any(|k| *k == "columns") {
         return Err(incomplete_version_object_err("columns", &version_trace));
+    }
+
+    // MySQL has no support for partial indexes.
+    if keys.iter().any(|k| *k == "condition") {
+        return Err(AlphaDBError {
+            message: "Partial indexes ('condition') are not supported by MySQL.".to_string(),
+            error: "unsupported-feature".to_string(),
+            version_trace,
+        });
     }
 
     let name = get_json_string(&index["name"])?;
@@ -52,36 +58,27 @@ pub fn createindex(index: &Value, table_name: &str, version_number: &str) -> Res
         });
     }
 
-    let mut sql = match index_type {
+    let sql = match index_type {
         Some(ref t) => format!(
-            "CREATE {}INDEX {} ON {} USING {} ({})",
+            "CREATE {}INDEX {} USING {} ON {} ({});",
             if unique { "UNIQUE " } else { "" },
             name,
-            table_name,
             t,
+            table_name,
             columns.join(", ")
         ),
-        None => format!("CREATE {}INDEX {} ON {} ({})", if unique { "UNIQUE " } else { "" }, name, table_name, columns.join(", ")),
+        None => format!("CREATE {}INDEX {} ON {} ({});", if unique { "UNIQUE " } else { "" }, name, table_name, columns.join(", ")),
     };
-
-    if keys.iter().any(|k| *k == "condition") {
-        let where_clause = condition_to_sql(&index["condition"])?;
-        sql = format!("{sql} WHERE {where_clause}");
-    }
-
-    sql.push(';');
 
     Ok(sql)
 }
 
-/// Generate a PostgreSQL DROP INDEX query.
+/// Generate a MySQL DROP INDEX query.
 ///
-/// `index_name` is the JSON string value holding the index name. In PostgreSQL
-/// indexes are schema-level objects, so they are dropped by name alone (no table
-/// qualifier).
-pub fn dropindex(index_name: &Value) -> Result<String, AlphaDBError> {
+/// `index_name` is the JSON string value holding the index name.
+pub fn dropindex(index_name: &Value, table_name: &str) -> Result<String, AlphaDBError> {
     let name = get_json_string(index_name)?;
-    Ok(format!("DROP INDEX {name};"))
+    Ok(format!("DROP INDEX {name} ON {table_name};"))
 }
 
 #[cfg(test)]
@@ -113,6 +110,14 @@ mod createindex_tests {
     }
 
     #[test]
+    fn condition_unsupported() {
+        let index = json!({ "name": "idx", "columns": ["col1"], "condition": { "type": "and", "conditions": [] } });
+        let result = createindex(&index, "my_table", "0.0.1");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().message, "Partial indexes ('condition') are not supported by MySQL.");
+    }
+
+    #[test]
     fn basic_index() {
         let index = json!({ "name": "idx_col1", "columns": ["col1"] });
         let result = createindex(&index, "my_table", "0.0.1").unwrap();
@@ -123,7 +128,7 @@ mod createindex_tests {
     fn index_with_type() {
         let index = json!({ "name": "idx_col1", "type": "btree", "columns": ["col1"] });
         let result = createindex(&index, "my_table", "0.0.1").unwrap();
-        assert_eq!(result, "CREATE INDEX idx_col1 ON my_table USING BTREE (col1);");
+        assert_eq!(result, "CREATE INDEX idx_col1 USING BTREE ON my_table (col1);");
     }
 
     #[test]
@@ -131,28 +136,6 @@ mod createindex_tests {
         let index = json!({ "name": "idx_multi", "columns": ["col1", "col2", "col3"] });
         let result = createindex(&index, "my_table", "0.0.1").unwrap();
         assert_eq!(result, "CREATE INDEX idx_multi ON my_table (col1, col2, col3);");
-    }
-
-    #[test]
-    fn index_with_condition() {
-        let index = json!({
-            "name": "test_index",
-            "type": "btree",
-            "columns": ["col3"],
-            "condition": {
-                "type": "and",
-                "conditions": [
-                    {
-                        "type": "comparison",
-                        "op": "=",
-                        "left": { "type": "column", "name": "status" },
-                        "right": { "type": "value", "value": "pending" }
-                    }
-                ]
-            }
-        });
-        let result = createindex(&index, "my_table", "0.0.1").unwrap();
-        assert_eq!(result, "CREATE INDEX test_index ON my_table USING BTREE (col3) WHERE (status = 'pending');");
     }
 
     #[test]
@@ -166,7 +149,7 @@ mod createindex_tests {
     fn unique_index_with_type() {
         let index = json!({ "name": "idx_unique_btree", "unique": true, "type": "btree", "columns": ["col1"] });
         let result = createindex(&index, "my_table", "0.0.1").unwrap();
-        assert_eq!(result, "CREATE UNIQUE INDEX idx_unique_btree ON my_table USING BTREE (col1);");
+        assert_eq!(result, "CREATE UNIQUE INDEX idx_unique_btree USING BTREE ON my_table (col1);");
     }
 }
 
@@ -177,13 +160,13 @@ mod dropindex_tests {
 
     #[test]
     fn basic_drop() {
-        let result = dropindex(&json!("idx_col1")).unwrap();
-        assert_eq!(result, "DROP INDEX idx_col1;");
+        let result = dropindex(&json!("idx_col1"), "my_table").unwrap();
+        assert_eq!(result, "DROP INDEX idx_col1 ON my_table;");
     }
 
     #[test]
     fn invalid_name() {
-        let result = dropindex(&json!({ "not": "a string" }));
+        let result = dropindex(&json!({ "not": "a string" }), "my_table");
         assert!(result.is_err());
     }
 }

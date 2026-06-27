@@ -17,7 +17,7 @@ use serde_json::Value;
 ///     "on_update": "restrict"
 ///   }
 /// ```
-pub fn create_foreign_key_constraint(foreign_key_value: &Value, table_name: &str, version_number: &str) -> Result<String, AlphaDBError> {
+pub fn create_foreign_key_constraint(foreign_key_value: &Value, version_trace: &VersionTrace) -> Result<String, AlphaDBError> {
     let foreign_key = foreign_key_value.as_object().ok_or_else(|| AlphaDBError {
         message: "foreign_key items must be objects".to_string(),
         error: "invalid-structure".to_string(),
@@ -25,22 +25,21 @@ pub fn create_foreign_key_constraint(foreign_key_value: &Value, table_name: &str
     })?;
 
     let foreign_key_keys = foreign_key.keys().collect::<Vec<&String>>();
-    let version_trace = VersionTrace::from([version_number.to_string(), table_name.to_string(), "foreign_key".to_string()]);
 
     if !foreign_key_keys.iter().any(|&i| i == "name") {
-        return Err(incomplete_version_object_err("name", version_trace));
+        return Err(incomplete_version_object_err("name", &version_trace));
     }
 
     if !foreign_key_keys.iter().any(|&i| i == "from") {
-        return Err(incomplete_version_object_err("from", version_trace));
+        return Err(incomplete_version_object_err("from", &version_trace));
     }
 
     if !foreign_key_keys.iter().any(|&i| i == "to") {
-        return Err(incomplete_version_object_err("to", version_trace));
+        return Err(incomplete_version_object_err("to", &version_trace));
     }
 
     if !foreign_key_keys.iter().any(|&i| i == "references") {
-        return Err(incomplete_version_object_err("references", version_trace));
+        return Err(incomplete_version_object_err("references", &version_trace));
     }
 
     let mut foreign_key_string = format!(

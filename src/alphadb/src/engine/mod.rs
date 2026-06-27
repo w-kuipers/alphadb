@@ -23,6 +23,16 @@ pub enum AlphaDBEngine {
     MySQL,
 }
 
+impl AlphaDBEngine {
+    /// Cased name for messages ("MySQL"/"PostgreSQL"); `Display` gives the lowercase id.
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            AlphaDBEngine::PostgreSQL => "PostgreSQL",
+            AlphaDBEngine::MySQL => "MySQL",
+        }
+    }
+}
+
 impl fmt::Display for AlphaDBEngine {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let engine = match self {

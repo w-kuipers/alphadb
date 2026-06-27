@@ -47,7 +47,6 @@ pub type UpdateHook<C> = fn(
     version_source: String,
     target_version: Option<&str>,
     no_data: bool,
-    verify: bool,
     tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBError>;
 

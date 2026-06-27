@@ -9,5 +9,5 @@ pub use connect::connect;
 pub use init::init;
 pub use status::status;
 pub use update::update;
-pub use update_queries::update_queries;
+pub use update_queries::POSTGRES_UPDATE_QUERIES_CONFIG;
 pub use vacate::vacate;

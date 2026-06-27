@@ -14,8 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::core::method_types::QueryValue;
+use crate::core::update_queries::update_queries;
 use crate::core::utils::types::ToleratedVerificationIssueLevel;
-use crate::engine::postgres_impl::methods::update_queries;
+use crate::engine::postgres_impl::methods::POSTGRES_UPDATE_QUERIES_CONFIG;
 use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 use postgres::types::ToSql;
 use postgres::Client;
@@ -37,14 +38,9 @@ pub fn update(
     version_source: String,
     target_version: Option<&str>,
     no_data: bool,
-    verify: bool,
     _tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBPostgresError> {
-    if verify {
-        // TODO
-    }
-
-    let queries = update_queries(db_name, connection, version_source, target_version, no_data)?;
+    let queries = update_queries(&POSTGRES_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)?;
 
     for query in queries {
         if let Some(data) = query.data {

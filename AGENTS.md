@@ -28,6 +28,14 @@ Don't comment for the sake of commenting. Most code should describe itself.
 - No filler ("This function is used to...", "Note that..."). Start with the point.
 - No AI-tells: no "leverage", "orchestration", "seamless", no em-dashes where a period works, no restating the task you were given.
 
+## Scope
+
+Do the task you were given, nothing more.
+
+- Don't fix unrelated bugs, refactor unrelated code, or clean up style in code you weren't asked to touch. If you spot an unrelated problem, mention it — don't change it.
+- Only change code the task requires. Leave everything else alone, even if it looks wrong.
+- Exception: if the requested change breaks something else (e.g. you change a function signature), you may update the callers and anything else needed to keep the build working. That's part of the task, not unrelated.
+
 ## Build / verify
 
 Before finishing a change, run from `src/alphadb`:
