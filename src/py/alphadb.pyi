@@ -46,7 +46,6 @@ class AlphaDB:
         version_source: str,
         target_version: Optional[str] = None,
         no_data=False,
-        verify=False,
         tolerated_verification_issue_level: Optional[
             ToleratedVerificationIssueLevel
         ] = "LOW",

@@ -61,7 +61,7 @@ impl DbInstance {
         version_source: String,
         target_version: Option<&str>,
         no_data: bool,
-        verify: bool,
+        _verify: bool,
         tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
     ) -> Result<(), AlphaDBError> {
         match self {
@@ -69,14 +69,12 @@ impl DbInstance {
                 version_source,
                 target_version,
                 no_data,
-                verify,
                 tolerated_verification_issue_level,
             ),
             DbInstance::Postgres(db) => db.update(
                 version_source,
                 target_version,
                 no_data,
-                verify,
                 tolerated_verification_issue_level,
             ),
         }

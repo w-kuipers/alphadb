@@ -198,13 +198,12 @@ impl AlphaDB {
         })
     }
 
-    #[pyo3(signature = (version_source, target_version=None, no_data=false, verify=true, tolerated_verification_issue_level=PyToleratedVerificationIssueLevel::Low))]
+    #[pyo3(signature = (version_source, target_version=None, no_data=false, tolerated_verification_issue_level=PyToleratedVerificationIssueLevel::Low))]
     fn update(
         &mut self,
         version_source: String,
         target_version: Option<String>,
         no_data: Option<bool>,
-        verify: Option<bool>,
         tolerated_verification_issue_level: PyToleratedVerificationIssueLevel,
     ) -> PyResult<()> {
         let allowed_error_priority = match tolerated_verification_issue_level {
@@ -221,15 +220,9 @@ impl AlphaDB {
             None => false,
         };
 
-        let verify = match verify {
-            Some(v) => v,
-            None => false,
-        };
-
         match self.inner.update(
             version_source,
             target_version.as_deref(),
-            verify,
             no_data,
             allowed_error_priority,
         ) {
