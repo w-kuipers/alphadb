@@ -40,7 +40,7 @@ interface AlphaDB {
 	init(): void;
 	status(): Status;
 	updateQueries(version_source: VersionSource, target_version?: string, no_data?: boolean): Array<Query>;
-	update(version_source: VersionSource, target_version?: string, no_data?: boolean, verify?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel): void;
+	update(version_source: VersionSource, target_version?: string, no_data?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel): void;
 	vacate(): void;
 }
 
@@ -58,7 +58,7 @@ declare module "./load.cjs" {
 	function init(conn: any, internaldbname: any): void;
 	function status(conn: any, internaldbname: any): Status;
 	function update_queries(conn: any, internaldbname: any, version_source: string, target_version: string, no_data: boolean): Array<Query>;
-	function update(conn: any, internaldbname: any, version_source: string, target_version: string, no_data: boolean, verify: boolean, tolerated_verification_issue_level: string): Array<Query>;
+	function update(conn: any, internaldbname: any, version_source: string, target_version: string, no_data: boolean, tolerated_verification_issue_level: string): Array<Query>;
 	function vacate(conn: any, internaldbname: any): void;
 }
 
@@ -93,13 +93,12 @@ class AlphaDB {
 		return addon.update_queries(this.conn, this.internaldbname, JSON.stringify(version_source), target_version, no_data);
 	}
 
-	public async update(version_source: VersionSource, target_version?: string, no_data?: boolean, verify?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel) {
+	public async update(version_source: VersionSource, target_version?: string, no_data?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel) {
 		if (typeof target_version === "undefined") target_version = "NOVERSION";
 		if (typeof no_data === "undefined") no_data = false;
-		if (typeof verify === "undefined") verify = true;
 		if (typeof toleratedVerificationIssueLevel === "undefined") toleratedVerificationIssueLevel = "LOW";
 
-		return addon.update(this.conn, this.internaldbname, JSON.stringify(version_source), target_version, no_data, verify, toleratedVerificationIssueLevel);
+		return addon.update(this.conn, this.internaldbname, JSON.stringify(version_source), target_version, no_data, toleratedVerificationIssueLevel);
 	}
 
 	public vacate() {

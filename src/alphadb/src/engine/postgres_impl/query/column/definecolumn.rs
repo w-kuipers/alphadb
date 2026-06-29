@@ -28,11 +28,6 @@ use crate::engine::postgres_impl::verification::compatibility::{
 /// **Define column**
 ///
 /// Generate a PostgreSQL query part that defines a single column
-///
-/// - column_data: Current column object from version source
-/// - table_name: Name of the table to be created
-/// - column_name: Name of the column to be defined
-/// - version: Current version in version source loop
 pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String, version: &str) -> Result<Option<DefineColumn>, AlphaDBError> {
     let mut query = DefineColumn::new();
     let column_keys = get_object_keys(column_data);
@@ -47,7 +42,7 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
     if let Ok(column_keys) = column_keys {
         // Must know the type to create a column
         if !column_keys.contains(&&"type".to_string()) {
-            return Err(incomplete_version_object_err("type", version_trace.clone()));
+            return Err(incomplete_version_object_err("type", &version_trace));
         }
 
         let column_type = get_json_string(&column_data["type"])?;
@@ -57,7 +52,6 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             null = true;
         }
 
-        // Verify column type compatibility against all column keys
         for rule in COLUMN_TYPE_COMPATIBILITY_RULES {
             if !check_column_type_compatibility(column_type, &rule, &column_keys) {
                 return Err(incompatible_column_attributes_err(
@@ -68,7 +62,6 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             }
         }
 
-        // Verify column attribute compatibility against all other attributes
         for rule in COLUMN_ATTRIBUTE_COMPATIBILITY_RULES {
             if let Err(incompatible_keys) = check_column_attributes_compatibility(&rule, &column_keys) {
                 for key in incompatible_keys {
@@ -85,7 +78,6 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             }
         }
 
-        // Check column type compatibility with AUTO_INCREMENT
         let mut generated: Option<String> = None;
         if column_keys.iter().any(|&i| i == "generated") {
             let generated_value = get_json_string(&column_data["generated"])?.to_uppercase();
@@ -94,7 +86,6 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             }
         }
 
-        // Check column type compatibility with UNIQUE
         let mut unique = false;
         if column_keys.iter().any(|&i| i == "unique") && column_data["unique"] == true {
             unique = true;

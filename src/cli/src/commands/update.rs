@@ -17,10 +17,9 @@ use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
 use crate::dispatch::DbInstance;
 use crate::error;
-use crate::utils::{title, AVAILABLE_ENGINES};
+use crate::utils::{read_version_source, title, AVAILABLE_ENGINES};
 use alphadb::prelude::{Get, ToleratedVerificationIssueLevel};
 use colored::Colorize;
-use std::fs;
 use std::path::PathBuf;
 
 /// Update the database.
@@ -62,15 +61,7 @@ pub fn update(
         },
     };
 
-    let data = match fs::read_to_string(&vs_file) {
-        Ok(f) => f,
-        Err(_) => {
-            error!(format!(
-                "An error occured while opening the version source file at '{}'",
-                vs_file.to_string_lossy().cyan()
-            ));
-        }
-    };
+    let data = read_version_source(&vs_file);
 
     let json: serde_json::Value = match serde_json::from_str(&data) {
         Ok(v) => v,

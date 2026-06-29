@@ -58,7 +58,6 @@ pub fn verify_column_compatibility(
     let version_trace = VersionTrace::from([version.to_string(), method.to_string(), format!("table:{table}"), format!("column:{column}")]);
     let data_keys = get_object_keys(data, issues, &version_trace);
 
-    // Verify if column attributes are compatible with each other
     for rule in COLUMN_ATTRIBUTE_COMPATIBILITY_RULES {
         if let Err(incompatible_keys) = check_column_attributes_compatibility(&rule, &data_keys) {
             for key in incompatible_keys {

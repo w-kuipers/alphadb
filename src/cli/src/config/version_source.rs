@@ -17,6 +17,7 @@ use crate::config::setup::{
 };
 use crate::error;
 use crate::utils::abort;
+use alphadb::version_source::build_version_source_from_dir;
 use colored::Colorize;
 use inquire::Select;
 use inquire::{CustomType, Text};
@@ -73,22 +74,28 @@ pub fn new_version_source() -> String {
 
     print!("\n");
     let version_source_path = Text::new("Path")
-        .with_help_message("Can either be local JSON files or URL's returning JSON data.")
+        .with_help_message("Can be local JSON files or directories containing version source files.")
         .prompt()
         .unwrap();
 
-    let vs_file = fs::read_to_string(&version_source_path);
-    if vs_file.is_err() {
-        // TODO better error messages for different situations (not exist, unable to read,
-        // etc...)
-        error!(format!(
-            "An error occured while opening the version source file at '{}'",
-            version_source_path.to_string().cyan()
-        ));
-    }
+    let version_source_path_buf = PathBuf::from(&version_source_path);
 
-    let version_source: serde_json::Value =
-        serde_json::from_str(&vs_file.unwrap()).expect("JSON was not well-formatted");
+    let version_source: serde_json::Value = if version_source_path_buf.is_dir() {
+        match build_version_source_from_dir(&version_source_path_buf) {
+            Ok(v) => v,
+            Err(e) => error!(e.message),
+        }
+    } else {
+        let vs_file = fs::read_to_string(&version_source_path);
+        if vs_file.is_err() {
+            error!(format!(
+                "An error occured while opening the version source file at '{}'",
+                version_source_path.to_string().cyan()
+            ));
+        }
+
+        serde_json::from_str(&vs_file.unwrap()).expect("JSON was not well-formatted")
+    };
 
     let label: String = CustomType::new("Label")
         .with_default(version_source["name"].as_str().unwrap().to_string())

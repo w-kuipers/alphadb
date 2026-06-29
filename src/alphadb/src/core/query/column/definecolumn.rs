@@ -18,23 +18,7 @@ use core::fmt;
 ///
 /// `DefineColumn` provides a fluent interface for constructing column definitions
 /// that can be used in various SQL operations such as table creation, alteration,
-/// and modification. The builder pattern allows for flexible and readable
-/// column specification.
-///
-/// # Fields
-///
-/// - `name`: The column name
-/// - `contstraints`: A vector of column constraints (NOT NULL, UNIQUE, etc.)
-/// - `default`: The default value for the column
-/// - `default_raw`: Whether the default value should be used without quotes
-/// - `column_type`: The SQL data type (VARCHAR, INT, etc.)
-/// - `size`: The size or length specification for the data type
-/// - `method`: Optional SQL method prefix (ADD COLUMN, MODIFY COLUMN, etc.)
-///
-/// # Thread Safety
-///
-/// This struct implements `Clone`, `PartialEq`, and `Eq`, making it safe to use
-/// across multiple contexts and comparisons.
+/// and modification.
 #[derive(Clone, PartialEq, Eq)]
 pub struct DefineColumn {
     name: String,
@@ -53,12 +37,6 @@ impl Default for DefineColumn {
 }
 
 impl DefineColumn {
-    /// Creates a new `DefineColumn` instance with default values.
-    ///
-    /// # Returns
-    ///
-    /// A new `DefineColumn` instance with all fields set to their default values.
-    ///
     /// # Examples
     ///
     /// ```rust
@@ -83,14 +61,6 @@ impl DefineColumn {
     /// The column name appears at the beginning of the column definition
     /// (after any method prefix) and identifies the column in the database schema.
     ///
-    /// # Parameters
-    ///
-    /// - `name`: The name of the column. Can be any type that implements `Into<String>`.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining.
-    ///
     /// # Examples
     ///
     /// ```rust
@@ -112,14 +82,6 @@ impl DefineColumn {
     /// whether you're adding, modifying, or dropping a column. The method appears
     /// at the very beginning of the generated SQL.
     ///
-    /// # Parameters
-    ///
-    /// - `method`: The SQL method (e.g., "ADD COLUMN", "MODIFY COLUMN", "DROP COLUMN").
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining.
-    ///
     /// # Examples
     ///
     /// ```rust
@@ -140,17 +102,7 @@ impl DefineColumn {
 
     /// Sets the SQL data type for the column.
     ///
-    /// The data type determines what kind of data the column can store.
-    /// Common types include VARCHAR, INT, DECIMAL, DATE, etc. The type
-    /// will be automatically converted to uppercase in the final SQL.
-    ///
-    /// # Parameters
-    ///
-    /// - `value`: The SQL data type (case-insensitive).
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining.
+    /// The type will be automatically converted to uppercase in the final SQL.
     ///
     /// # Examples
     ///
@@ -171,15 +123,7 @@ impl DefineColumn {
     /// Sets the size or length specification for the column data type.
     ///
     /// Many SQL data types accept size parameters, such as VARCHAR(255),
-    /// DECIMAL(10,2), or CHAR(1). This method sets that size specification.
-    ///
-    /// # Parameters
-    ///
-    /// - `value`: The size specification (e.g., "255", "10,2").
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining.
+    /// DECIMAL(10,2), or CHAR(1).
     ///
     /// # Examples
     ///
@@ -200,18 +144,9 @@ impl DefineColumn {
 
     /// Adds a constraint to the column definition.
     ///
-    /// Constraints specify rules and properties for the column data.
     /// Multiple constraints can be added by calling this method multiple times.
     /// Each constraint will be appended to the column definition and converted
     /// to uppercase.
-    ///
-    /// # Parameters
-    ///
-    /// - `constraint`: The constraint to add (e.g., "NOT NULL", "UNIQUE", "AUTO_INCREMENT").
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining.
     ///
     /// # Examples
     ///
@@ -234,17 +169,8 @@ impl DefineColumn {
 
     /// Sets the default value for the column.
     ///
-    /// The default value will be used when no value is explicitly provided
-    /// during insertion. By default, the value will be wrapped in single quotes
+    /// By default, the value will be wrapped in single quotes
     /// unless `default_raw(true)` is called.
-    ///
-    /// # Parameters
-    ///
-    /// - `value`: The default value for the column.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining.
     ///
     /// # Examples
     ///
@@ -270,14 +196,6 @@ impl DefineColumn {
     /// Setting this to `true` will output the raw value without quotes,
     /// which is useful for numeric defaults, function calls, or SQL keywords.
     ///
-    /// # Parameters
-    ///
-    /// - `value`: `true` to use raw value without quotes, `false` to wrap in quotes.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining.
-    ///
     /// # Examples
     ///
     /// ```rust
@@ -298,9 +216,7 @@ impl DefineColumn {
 
     /// Generates the SQL column definition string.
     ///
-    /// This method combines all the configured properties into a properly
-    /// formatted SQL column definition. The components are assembled in
-    /// the following order:
+    /// The components are assembled in the following order:
     ///
     /// 1. Method (if specified, e.g., "ADD COLUMN")
     /// 2. Column name
@@ -308,10 +224,6 @@ impl DefineColumn {
     /// 4. Size specification (if provided, wrapped in parentheses)
     /// 5. Constraints (each converted to uppercase)
     /// 6. Default value (quoted unless raw is specified)
-    ///
-    /// # Returns
-    ///
-    /// A `String` containing the complete SQL column definition.
     ///
     /// # Examples
     ///

@@ -191,7 +191,7 @@
           "primary_key": "thecol2",
           "modifycolumn": {
             "thecol2": {
-              "length": 3000,
+              "length": 700,
               "recreate": false
             }
           }

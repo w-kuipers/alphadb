@@ -20,25 +20,13 @@ use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 use postgres::Client;
 
 /// Initialize the database with configuration table
-///
-/// # Arguments
-/// * `db_name` - The name of the database to initialize
-/// * `connection` - Active connection to the database
-///
-/// # Returns
-/// * `Result<Init, InitError>` - Init enum indicating initialization status
-///
-/// # Errors
-/// * Returns `InitError` if initialization fails
 pub fn init(db_name: &str, connection: &mut Client) -> Result<Init, AlphaDBPostgresError> {
-    // Check if the table is already initialized
     let checked = check(db_name, connection);
 
     if checked.is_ok() && checked.unwrap().check {
         return Ok(Init::AlreadyInitialized);
     }
 
-    // Create the configuration table
     connection.execute(
         &format!(
             "CREATE TABLE {} (
@@ -52,7 +40,6 @@ pub fn init(db_name: &str, connection: &mut Client) -> Result<Init, AlphaDBPostg
         &[],
     )?;
 
-    // Insert db version
     connection.execute(&format!("INSERT INTO {} (db, version) VALUES ($1, $2)", CONFIG_TABLE_NAME), &[&db_name, &"0.0.0"])?;
 
     Ok(Init::Success)

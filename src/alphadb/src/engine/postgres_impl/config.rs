@@ -14,11 +14,16 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::methods;
-use crate::core::{
-    method_types::{Init, Query, Status},
-    runtime_config::{RuntimeConfig, RuntimeHooks},
-    utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel},
+use crate::{
+    core::{
+        method_types::{Init, Status},
+        runtime_config::{RuntimeConfig, RuntimeHooks},
+        update_queries::update_queries,
+        utils::{errors::AlphaDBError, types::ToleratedVerificationIssueLevel},
+    },
+    engine::postgres_impl::methods::POSTGRES_UPDATE_QUERIES_CONFIG,
 };
+
 use postgres::Client;
 
 fn postgres_connect(host: &str, user: &str, password: &str, database: &str, port: u16) -> Result<Client, AlphaDBError> {
@@ -33,20 +38,15 @@ fn postgres_status(db_name: &str, connection: &mut Client) -> Result<Status, Alp
     methods::status(db_name, connection).map_err(|e| e.into())
 }
 
-fn postgres_update_queries(db_name: &str, connection: &mut Client, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, AlphaDBError> {
-    methods::update_queries(db_name, connection, version_source, target_version, no_data).map_err(|e| e.into())
-}
-
 fn postgres_update(
     db_name: &str,
     connection: &mut Client,
     version_source: String,
     target_version: Option<&str>,
     no_data: bool,
-    verify: bool,
     tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBError> {
-    methods::update(db_name, connection, version_source, target_version, no_data, verify, tolerated_verification_issue_level).map_err(|e| e.into())
+    methods::update(db_name, connection, version_source, target_version, no_data, tolerated_verification_issue_level).map_err(|e| e.into())
 }
 
 fn postgres_vacate(connection: &mut Client) -> Result<(), AlphaDBError> {
@@ -61,7 +61,9 @@ pub fn postgres_runtime_config() -> RuntimeConfig<Client> {
             connect: postgres_connect,
             init: postgres_init,
             status: postgres_status,
-            update_queries: postgres_update_queries,
+            update_queries: |db_name, connection, version_source, target_version, no_data| {
+                update_queries(&POSTGRES_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)
+            },
             update: postgres_update,
             vacate: postgres_vacate,
         },

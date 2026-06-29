@@ -16,12 +16,11 @@
 use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
 use crate::error;
-use crate::utils::title;
+use crate::utils::{read_version_source, title};
 use alphadb::core::utils::errors::get_version_trace_string;
 use alphadb::prelude::Get;
 use alphadb::verification::{AlphaDBVerification, VerificationIssueLevel};
 use colored::Colorize;
-use std::fs;
 use std::path::PathBuf;
 
 /// Verify the version source for errors
@@ -36,17 +35,8 @@ pub fn verify(config: &Config, version_source: Option<PathBuf>) {
         },
     };
 
-    let version_source = match fs::read_to_string(&vs_file) {
-        Ok(f) => f,
-        Err(_) => {
-            error!(format!(
-                "An error occured while opening the version source file at '{}'",
-                vs_file.to_string_lossy().cyan()
-            ));
-        }
-    };
+    let version_source = read_version_source(&vs_file);
 
-    // Use MySQL as the default verification engine
     let mut verification = match AlphaDBVerification::new(version_source) {
         Ok(v) => v,
         Err(e) => error!(e.message()),

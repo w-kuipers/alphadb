@@ -14,9 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::core::method_types::QueryValue;
+use crate::core::update_queries::update_queries;
 use crate::core::utils::errors::AlphaDBError;
 use crate::core::utils::types::ToleratedVerificationIssueLevel;
-use crate::engine::mysql_impl::methods::update_queries;
+use crate::engine::mysql_impl::methods::MYSQL_UPDATE_QUERIES_CONFIG;
 use crate::engine::mysql_impl::utils::errors::AlphaDBMysqlError;
 use mysql::prelude::*;
 use mysql::*;
@@ -32,35 +33,15 @@ fn query_value_to_mysql_value(value: &QueryValue) -> mysql::Value {
 }
 
 /// Generate and execute MySQL queries to update the tables
-///
-/// # Arguments
-/// * `db_name` - The name of the database to update
-/// * `connection` - Active connection pool to the database
-/// * `version_source` - Complete JSON version source
-/// * `target_version` - Optional version number to update to
-/// * `no_data` - Whether to skip data updates
-/// * `verify` - Whether to verify the update
-/// * `tolerated_verification_issue_level` - Level of verification issues to tolerate
-///
-/// # Returns
-/// * `Result<(), AlphaDBMysqlError>` - Ok if update successful
-///
-/// # Errors
-/// * Returns `AlphaDBMysqlError` if update fails
 pub fn update(
     db_name: &str,
     connection: &mut PooledConn,
     version_source: String,
     target_version: Option<&str>,
     no_data: bool,
-    verify: bool,
     _tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBMysqlError> {
-    if verify {
-        // TODO
-    }
-
-    let queries = update_queries(db_name, connection, version_source, target_version, no_data)?;
+    let queries = update_queries(&MYSQL_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)?;
 
     for query in queries {
         if let Some(data) = query.data {

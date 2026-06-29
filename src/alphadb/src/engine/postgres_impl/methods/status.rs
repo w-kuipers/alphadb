@@ -19,22 +19,11 @@ use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 use postgres::Client;
 
 /// Get database status including initialization state, version, name and template
-///
-/// # Arguments
-/// * `db_name` - The name of the database to check
-/// * `connection` - Active connection to the database
-///
-/// # Returns
-/// * `Result<Status, AlphaDBPostgresError>` - Status struct containing database information
-///
-/// # Errors
-/// * Returns `AlphaDBPostgresError` if there are any database or AlphaDB errors
 pub fn status(db_name: &str, connection: &mut Client) -> Result<Status, AlphaDBPostgresError> {
     let mut init = false;
     let mut version: Option<String> = None;
     let mut template: Option<String> = None;
 
-    // Check if the configuration table exists
     let table_check = connection.query_opt(
         "SELECT table_name FROM information_schema.tables WHERE table_catalog = $1 AND table_name = $2",
         &[&db_name, &CONFIG_TABLE_NAME],
@@ -48,7 +37,6 @@ pub fn status(db_name: &str, connection: &mut Client) -> Result<Status, AlphaDBP
             template = row.get::<_, Option<String>>(1);
         }
 
-        // Check true means database is initialized
         init = true;
     }
 

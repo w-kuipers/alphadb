@@ -63,14 +63,6 @@ pub struct AlphaDBVerification {
 }
 
 impl AlphaDBVerification {
-    /// Create a new Verification instance with an engine configuration
-    ///
-    /// # Arguments
-    /// * `engine_name` - The engine name (e.g., "mysql", "postgres")
-    /// * `version_source` - The JSON version source string
-    ///
-    /// # Returns
-    /// * `Result<AlphaDBVerification, AlphaDBError>` - New Verification instance
     pub fn new(version_source: String) -> Result<AlphaDBVerification, AlphaDBError> {
         let version_source: Value = match serde_json::from_str(&version_source) {
             Ok(vs) => vs,
@@ -245,7 +237,6 @@ impl AlphaDBVerification {
                 for table in ct.keys() {
                     version_trace.push(table.to_string());
 
-                    // Run createtable hooks for each table
                     for hook in self.config.verification_hooks.createtable {
                         let params = CreatetableHookParams {
                             table_name: table,
@@ -312,7 +303,6 @@ impl AlphaDBVerification {
         Ok(())
     }
 
-    /// Verify a single altertable block
     pub fn altertable(&mut self, altertable: &Value, version_output: &str, version_number: Option<&str>) -> Result<(), AlphaDBError> {
         let mut version_trace = VersionTrace::from([version_output, "altertable"]);
 
@@ -329,7 +319,6 @@ impl AlphaDBVerification {
         for table in get_object_keys(altertable, &mut self.issues, &version_trace) {
             version_trace.push(table.to_string());
 
-            // Run altertable hooks for each table
             for hook in self.config.verification_hooks.altertable {
                 let params = AltertableHookParams {
                     table_name: table,
@@ -347,14 +336,12 @@ impl AlphaDBVerification {
 
             let table_keys = get_object_keys(&altertable[table], &mut self.issues, &version_trace);
 
-            // Modifycolumn
             if table_keys.contains(&&"modifycolumn".to_string()) {
                 for (column_name, column) in altertable[table]["modifycolumn"].as_object().unwrap() {
                     self.verify_column_compatibility(table.as_str(), column_name, column, "altertable", version_output)?;
                 }
             }
 
-            // Dropcolumn
             if table_keys.contains(&&"dropcolumn".to_string()) {
                 version_trace.push("dropcolumn".to_string());
 
@@ -396,7 +383,6 @@ impl AlphaDBVerification {
                     }
                 }
 
-                // Do primary key checks
                 // Primary key checks should include checking when a column in changed into a
                 // primary key, the key was unique previously. If not there should be a warning.
 
@@ -450,7 +436,6 @@ impl AlphaDBVerification {
                 version_trace.push(format!("table:{table}"));
                 table_version_trace.push(format!("table:{table}"));
 
-                // Run default_data hooks for each table
                 for hook in self.config.verification_hooks.default_data {
                     let params = DefaultDataHookParams {
                         table_name: table,
@@ -478,7 +463,6 @@ impl AlphaDBVerification {
                     }
                 };
 
-                // Check if the columns specified in the default data exist in the table
                 if let Some(version_number) = version_number {
                     if loop_version_number == version_number {
                         for (i, dataset) in array_iter(&consolidated_default_data[table], &mut self.issues, &version_trace).iter().enumerate() {
@@ -499,8 +483,6 @@ impl AlphaDBVerification {
                     }
                 }
 
-                // Loop over the table columns and check if any of them are required and do not
-                // have a default value
                 for column in object_iter(&consolidated_table, &mut self.issues, &table_version_trace) {
                     version_trace.push(format!("column:{column}"));
                     table_version_trace.push(format!("column:{column}"));
@@ -527,7 +509,6 @@ impl AlphaDBVerification {
                                 version_trace.push(format!("item:{i}"));
                                 let col_type = get_json_string(&consolidated_table[column]["type"], &mut self.issues, &table_version_trace);
 
-                                // Check if the default data for the current column exists
                                 if !exists_in_object(dataset, column, &mut self.issues, &version_trace) {
                                     self.issues.push(VerificationIssue {
                                         level: VerificationIssueLevel::Critical,
@@ -539,7 +520,6 @@ impl AlphaDBVerification {
                                     continue;
                                 }
 
-                                // Verify if the specified default data value is the right type
                                 if self.config.string_columns.contains(&col_type) && adb_get_json_string(&dataset[column]).is_err() {
                                     self.issues.push(VerificationIssue {
                                         level: VerificationIssueLevel::Critical,
@@ -567,7 +547,6 @@ impl AlphaDBVerification {
                                 version_trace.pop();
                             }
 
-                            // Check if unique values have duplicate data
                             // TODO right now the issue is generated for every following version as well. Find
                             // a way to only add the issue once
                             let primary_key = get_primary_key(&self.version_list, table, version_number)?.unwrap_or_default();
@@ -620,7 +599,6 @@ impl AlphaDBVerification {
         let version_trace = VersionTrace::from([version.to_string(), method.to_string(), format!("table:{table}"), format!("column:{column}")]);
         let data_keys = get_object_keys(data, &mut self.issues, &version_trace);
 
-        // Verify if column attributes are compatible with each other
         for rule in self.config.attribute_compatibility_rules {
             if let Err(incompatible_keys) = check_column_attributes_compatibility(rule, &data_keys) {
                 for key in incompatible_keys {
@@ -688,7 +666,6 @@ impl AlphaDBVerification {
             });
         }
 
-        // Run column_compatibility hooks for each column
         for hook in self.config.verification_hooks.column_compatibility {
             let params = ColumnCompatibilityHookParams {
                 table_name: table,

@@ -22,9 +22,6 @@ pub const DB_CONFIG_NO_VERSION: &str =
 /// Format an AlphaDBError with version trace
 ///
 /// A version trace is a Vec<&str> that records each step, helping to trace the source of errors by displaying the sequence of items in the database structure.
-///
-/// - message: The error message
-/// - version_trace: Version trace
 pub fn simple_err(message: &str, version_trace: VersionTrace) -> AlphaDBError {
     return AlphaDBError {
         message: message.to_string(),
@@ -33,20 +30,15 @@ pub fn simple_err(message: &str, version_trace: VersionTrace) -> AlphaDBError {
     };
 }
 
-/// - key: Missing object key
-/// - version_trace: Version trace
-pub fn incomplete_version_object_err(key: &str, version_trace: VersionTrace) -> AlphaDBError {
+pub fn incomplete_version_object_err(key: &str, version_trace: &VersionTrace) -> AlphaDBError {
     return AlphaDBError {
         message: format!("Missing required key '{key}'."),
         error: "incomplete-version-object".to_string(),
-        version_trace,
+        version_trace: version_trace.clone(),
         ..Default::default()
     };
 }
 
-/// - attribute1: The incompatible MySQL column attribute
-/// - attribute2: The incompatible MySQL column attribute
-/// - version_trace: Version trace
 pub fn incompatible_column_attributes_err(attribute1: &str, attribute2: &str, version_trace: VersionTrace) -> AlphaDBError {
     return AlphaDBError {
         message: format!("Column attributes '{attribute1}' and '{attribute2}' are not compatible."),

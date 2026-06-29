@@ -43,13 +43,6 @@ impl<C> std::fmt::Debug for AlphaDB<C> {
 }
 
 impl<C> AlphaDB<C> {
-    /// Create a new AlphaDB instance with a runtime configuration
-    ///
-    /// # Arguments
-    /// * `config` - The engine runtime configuration
-    ///
-    /// # Returns
-    /// * `AlphaDB<C>` - New AlphaDB instance with the specified configuration
     pub fn new(config: RuntimeConfig<C>) -> AlphaDB<C> {
         AlphaDB {
             db_name: None,
@@ -59,20 +52,6 @@ impl<C> AlphaDB<C> {
         }
     }
 
-    /// Connect to the database using stored credentials
-    ///
-    /// # Arguments
-    /// * `host` - Database host
-    /// * `user` - Database user
-    /// * `password` - User password
-    /// * `database` - Database name
-    /// * `port` - Database port
-    ///
-    /// # Returns
-    /// * `Result<(), AlphaDBError>` - Ok if connection successful
-    ///
-    /// # Errors
-    /// * Returns `AlphaDBError` if connection fails
     pub fn connect(&mut self, host: &str, user: &str, password: &str, database: &str, port: u16) -> Result<(), AlphaDBError> {
         let conn = (self.config.hooks.connect)(host, user, password, database, port)?;
         self.connection = Some(conn);
@@ -81,6 +60,7 @@ impl<C> AlphaDB<C> {
         Ok(())
     }
 
+    /// Get a mutable reference to the connection, or return an error if not connected
     /// Get a mutable reference to the connection, or return an error if not connected
     fn get_connection(&mut self) -> Result<(&str, &mut C), AlphaDBError> {
         let db_name = self.db_name.as_deref().ok_or_else(|| AlphaDBError {
@@ -94,13 +74,6 @@ impl<C> AlphaDB<C> {
         Ok((db_name, connection))
     }
 
-    /// Initialize the database
-    ///
-    /// # Returns
-    /// * `Result<Init, AlphaDBError>` - Init enum indicating initialization status
-    ///
-    /// # Errors
-    /// * Returns `AlphaDBError` if initialization fails
     pub fn init(&mut self) -> Result<Init, AlphaDBError> {
         let hook = self.config.hooks.init;
         let (db_name, connection) = self.get_connection()?;
@@ -108,70 +81,31 @@ impl<C> AlphaDB<C> {
     }
 
     /// Get database status including initialization state, version, name and template
-    ///
-    /// # Returns
-    /// * `Result<Status, AlphaDBError>` - Status struct containing database information
-    ///
-    /// # Errors
-    /// * Returns `AlphaDBError` if there are any database or AlphaDB errors
     pub fn status(&mut self) -> Result<Status, AlphaDBError> {
         let hook = self.config.hooks.status;
         let (db_name, connection) = self.get_connection()?;
         hook(db_name, connection)
     }
 
-    /// Generate queries to update the tables
-    ///
-    /// # Arguments
-    /// * `version_source` - Complete JSON version source
-    /// * `target_version` - Optional version number to update to
-    /// * `no_data` - Whether to skip data updates
-    ///
-    /// # Returns
-    /// * `Result<Vec<Query>, AlphaDBError>` - Vector of update queries
-    ///
-    /// # Errors
-    /// * Returns `AlphaDBError` if query generation fails
     pub fn update_queries(&mut self, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, AlphaDBError> {
         let hook = self.config.hooks.update_queries;
         let (db_name, connection) = self.get_connection()?;
         hook(db_name, connection, version_source, target_version, no_data)
     }
 
-    /// Generate and execute queries to update the tables
-    ///
-    /// # Arguments
-    /// * `version_source` - Complete JSON version source
-    /// * `target_version` - Optional version number to update to
-    /// * `no_data` - Whether to skip data updates
-    /// * `verify` - Whether to verify the update
-    /// * `tolerated_verification_issue_level` - Level of verification issues to tolerate
-    ///
-    /// # Returns
-    /// * `Result<(), AlphaDBError>` - Ok if update successful
-    ///
-    /// # Errors
-    /// * Returns `AlphaDBError` if update fails
     pub fn update(
         &mut self,
         version_source: String,
         target_version: Option<&str>,
         no_data: bool,
-        verify: bool,
         tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
     ) -> Result<(), AlphaDBError> {
         let hook = self.config.hooks.update;
         let (db_name, connection) = self.get_connection()?;
-        hook(db_name, connection, version_source, target_version, no_data, verify, tolerated_verification_issue_level)
+        hook(db_name, connection, version_source, target_version, no_data, tolerated_verification_issue_level)
     }
 
     /// Remove all tables from the database
-    ///
-    /// # Returns
-    /// * `Result<(), AlphaDBError>` - Ok if all tables were removed successfully
-    ///
-    /// # Errors
-    /// * Returns `AlphaDBError` if there are any database or AlphaDB errors
     pub fn vacate(&mut self) -> Result<(), AlphaDBError> {
         let hook = self.config.hooks.vacate;
         let (_, connection) = self.get_connection()?;

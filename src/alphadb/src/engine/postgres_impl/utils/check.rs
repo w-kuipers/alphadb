@@ -31,21 +31,10 @@ pub enum CheckError {
 /// **Check**
 ///
 /// Check if the database is initialized and get the current version
-///
-/// # Arguments
-/// * `db_name` - The name of the database to check
-/// * `connection` - Active connection to the database
-///
-/// # Returns
-/// * `Result<Check, CheckError>` - Check struct containing initialization status and version
-///
-/// # Errors
-/// * Returns `CheckError` if there are any database or AlphaDB errors
 pub fn check(db_name: &str, connection: &mut Client) -> Result<Check, CheckError> {
     let mut check = false;
     let mut version: Option<String> = None;
 
-    // Check if the configuration table exists
     let table_check = connection.query_opt(
         "SELECT table_name FROM information_schema.tables WHERE table_catalog = $1 AND table_name = $2",
         &[&db_name, &CONFIG_TABLE_NAME],
@@ -59,7 +48,6 @@ pub fn check(db_name: &str, connection: &mut Client) -> Result<Check, CheckError
         }
     }
 
-    // Check true means database is redy for use
     if table_check.is_some() && version.is_some() {
         check = true;
     }

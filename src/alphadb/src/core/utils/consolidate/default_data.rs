@@ -13,23 +13,9 @@ use super::column::{get_column_renames, will_column_be_dropped};
 
 /// Consolidate default data from multiple versions into a single JSON object
 ///
-/// This function takes a list of versions and merges their default data into a single JSON object.
 /// For each table in the default data, it combines the data from all versions into a single array.
 /// If a `target_version` is specified, the consolidation will only include versions up to and including
 /// the specified target version.
-///
-/// # Arguments
-/// * `version_list` - A vector of JSON values representing different versions.
-/// * `target_version` - An optional string slice representing the maximum version number to
-///                      include in the consolidation. If `None`, all versions in `version_list`
-///                      will be processed.
-///
-/// # Returns
-/// * `Result<Value, AlphaDBError>` - A JSON object containing the consolidated default data if successful.
-///
-/// # Errors
-/// * Returns `AlphaDBError` if there are issues accessing or processing the JSON data,
-///   or if the `target_version` string is not a valid version number format.
 pub fn consolidate_default_data(version_list: &Vec<Value>, target_version: Option<&str>) -> Result<Value, AlphaDBError> {
     let mut default_data = json!({});
 
@@ -103,7 +89,6 @@ pub fn consolidate_default_data(version_list: &Vec<Value>, target_version: Optio
                 // Append all new items if the table default definition type is array
                 if version["default_data"][table].is_array() {
                     for data in array_iter(&version["default_data"][table])? {
-                        // Handle column renames
                         let mut renamed_data: Value = json!({});
                         for col in object_iter(data)? {
                             // If the column is dropped, don't process it

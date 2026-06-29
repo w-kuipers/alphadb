@@ -14,11 +14,15 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::config::connection::{get_active_connection, SessionType};
+use crate::error;
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{Aes256Gcm, Nonce};
+use alphadb::version_source::build_version_source_from_dir;
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use rand_core::RngCore;
+use std::fs;
+use std::path::PathBuf;
 use std::process;
 use std::string::FromUtf8Error;
 use thiserror::Error;
@@ -67,6 +71,32 @@ pub fn title(title: &str) {
 pub fn abort() {
     println!("{}", "\nAborted.".red());
     process::exit(0);
+}
+
+/// Read version source content from a file or directory.
+///
+/// When `path` points to a directory, the individual version source files
+/// inside it are combined using `build_version_source_from_dir`. When it
+/// points to a file, the file contents are returned directly.
+pub fn read_version_source(path: &PathBuf) -> String {
+    if path.is_dir() {
+        let value = match build_version_source_from_dir(path) {
+            Ok(v) => v,
+            Err(e) => error!(e.message),
+        };
+        match serde_json::to_string(&value) {
+            Ok(s) => s,
+            Err(_) => error!("Failed to serialize the combined version source.".to_string()),
+        }
+    } else {
+        match fs::read_to_string(path) {
+            Ok(f) => f,
+            Err(_) => error!(format!(
+                "An error occured while opening the version source at '{}'",
+                path.to_string_lossy().cyan()
+            )),
+        }
+    }
 }
 
 #[cfg(debug_assertions)]

@@ -19,22 +19,11 @@ use mysql::*;
 use crate::engine::mysql_impl::utils::errors::AlphaDBMysqlError;
 
 /// Remove all tables from the database
-///
-/// # Arguments
-/// * `connection` - Active connection pool to the database
-///
-/// # Returns
-/// * `Result<(), AlphaDBMysqlError>` - Ok if all tables were removed successfully
-///
-/// # Errors
-/// * Returns `AlphaDBMysqlError` if there are any database or AlphaDB errors
 pub fn vacate(connection: &mut PooledConn) -> Result<(), AlphaDBMysqlError> {
     connection.query_drop("SET FOREIGN_KEY_CHECKS = 0")?;
 
-    // Get all tables
     let tables: Vec<String> = connection.query_map("SHOW TABLES", |table: String| table)?;
 
-    // Drop all tables
     for table in tables {
         connection.query_drop(format!("DROP TABLE {}", table))?;
     }

@@ -18,12 +18,6 @@ use postgres::{Client, NoTls};
 use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 
 /// Create a connection to the database and return it.
-///
-/// - host: PostgreSQL host
-/// - user: Database user
-/// - password: User password for the database
-/// - database: Database name
-/// - port: PostgreSQL port
 pub fn connect(host: &str, user: &str, password: &str, database: &str, port: u16) -> Result<Client, AlphaDBPostgresError> {
     let url = format!("postgresql://{}:{}@{}:{}/{}", user, password, host, port, database);
 

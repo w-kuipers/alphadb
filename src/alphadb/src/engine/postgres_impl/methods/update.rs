@@ -14,8 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::core::method_types::QueryValue;
+use crate::core::update_queries::update_queries;
 use crate::core::utils::types::ToleratedVerificationIssueLevel;
-use crate::engine::postgres_impl::methods::update_queries;
+use crate::engine::postgres_impl::methods::POSTGRES_UPDATE_QUERIES_CONFIG;
 use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 use postgres::types::ToSql;
 use postgres::Client;
@@ -31,35 +32,15 @@ fn query_value_to_postgres_param(value: &QueryValue) -> Box<dyn ToSql + Sync> {
 }
 
 /// Generate and execute PostgreSQL queries to update the tables
-///
-/// # Arguments
-/// * `db_name` - The name of the database to update
-/// * `connection` - Active connection pool to the database
-/// * `version_source` - Complete JSON version source
-/// * `target_version` - Optional version number to update to
-/// * `no_data` - Whether to skip data updates
-/// * `verify` - Whether to verify the update
-/// * `tolerated_verification_issue_level` - Level of verification issues to tolerate
-///
-/// # Returns
-/// * `Result<(), AlphaDBPostgresError>` - Ok if update successful
-///
-/// # Errors
-/// * Returns `AlphaDBPostgresError` if update fails
 pub fn update(
     db_name: &str,
     connection: &mut Client,
     version_source: String,
     target_version: Option<&str>,
     no_data: bool,
-    verify: bool,
     _tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBPostgresError> {
-    if verify {
-        // TODO
-    }
-
-    let queries = update_queries(db_name, connection, version_source, target_version, no_data)?;
+    let queries = update_queries(&POSTGRES_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)?;
 
     for query in queries {
         if let Some(data) = query.data {

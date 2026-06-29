@@ -29,16 +29,6 @@ use crate::verification::VersionTrace;
 /// The versions of each source are concatenated in the order they are
 /// provided. The `name` of the resulting version source is taken from the
 /// first source that defines one.
-///
-/// # Arguments
-/// * `version_sources` - Slice of version source strings (JSON)
-///
-/// # Returns
-/// * `Result<Value, AlphaDBError>` - Combined version source as a JSON Value
-///
-/// # Errors
-/// * Returns `AlphaDBError` if any of the provided strings cannot be
-///   deserialized or does not contain a valid version array.
 pub fn combine_version_source_files(files: &[(String, PathBuf)], name: String, engine: AlphaDBEngine) -> Result<Value, AlphaDBError> {
     if files.is_empty() {
         return Err(AlphaDBError {

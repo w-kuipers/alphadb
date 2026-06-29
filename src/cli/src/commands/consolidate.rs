@@ -16,7 +16,7 @@
 use crate::config::setup::Config;
 use crate::config::version_source::select_version_source;
 use crate::error;
-use crate::utils::title;
+use crate::utils::{read_version_source, title};
 use alphadb::core::utils::consolidate::consolidate_version_source;
 use chrono::Local;
 use colored::Colorize;
@@ -35,15 +35,7 @@ pub fn consolidate(config: &Config, version_source: Option<PathBuf>) {
         },
     };
 
-    let vs = match fs::read_to_string(&vs_file) {
-        Ok(f) => f,
-        Err(_) => {
-            error!(format!(
-                "An error occured while opening the version source file at '{}'",
-                vs_file.to_string_lossy().cyan()
-            ));
-        }
-    };
+    let vs = read_version_source(&vs_file);
 
     match consolidate_version_source(vs) {
         Ok(consolidated_vs) => {
