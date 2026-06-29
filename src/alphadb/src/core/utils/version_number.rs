@@ -45,6 +45,28 @@ pub fn parse_version_number(version_number: &str) -> Result<u32, AlphaDBError> {
     }
 }
 
+/// Sort version objects ascending by their `_id` version number, in place.
+pub fn sort_versions(versions: &mut [serde_json::Value]) -> Result<(), AlphaDBError> {
+    let mut keyed: Vec<(u32, serde_json::Value)> = Vec::with_capacity(versions.len());
+    for (i, version) in versions.iter_mut().enumerate() {
+        let id = version["_id"].as_str().ok_or(AlphaDBError {
+            message: "No version number specified".to_string(),
+            error: "missing-version-number".to_string(),
+            version_trace: VersionTrace::from([format!("index {}", i)]),
+        })?;
+
+        let key = parse_version_number(id)?;
+        keyed.push((key, std::mem::take(version)));
+    }
+
+    keyed.sort_by_key(|(k, _)| *k);
+    for (i, (_, v)) in keyed.into_iter().enumerate() {
+        versions[i] = v;
+    }
+
+    Ok(())
+}
+
 /// Get the latest version in a version source
 pub fn get_latest_version(versions: &Vec<serde_json::Value>) -> Result<String, AlphaDBError> {
     let mut latest_version = "0.0.0";

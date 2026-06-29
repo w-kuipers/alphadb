@@ -23,7 +23,7 @@ use crate::core::query::table::{alter_table, create_table, TableQueryConfig};
 use crate::core::utils::consolidate::default_data::consolidate_default_data;
 use crate::core::utils::errors::{AlphaDBError, Get};
 use crate::core::utils::json::{array_iter, exists_in_object, get_object_keys, object_iter};
-use crate::core::utils::version_number::{get_latest_version, parse_version_number, validate_version_number};
+use crate::core::utils::version_number::{get_latest_version, parse_version_number, sort_versions, validate_version_number};
 use crate::core::utils::version_source::{get_version_array, parse_version_source_string};
 use crate::core::verification::issue::VersionTrace;
 use crate::engine::AlphaDBEngine;
@@ -76,7 +76,14 @@ pub fn update_queries<C>(
     no_data: bool,
 ) -> Result<Vec<Query>, AlphaDBError> {
     let mut queries: Vec<Query> = Vec::new();
-    let version_source = parse_version_source_string(version_source)?;
+    let mut version_source = parse_version_source_string(version_source)?;
+
+    // The version source may not be in order (combine concatenates in the
+    // order files are provided), so sort before applying migrations.
+    if let Some(versions) = version_source["version"].as_array_mut() {
+        sort_versions(versions)?;
+    }
+
     let versions = get_version_array(&version_source)?;
 
     if let Some(v) = version_source["engine"].as_str() {
