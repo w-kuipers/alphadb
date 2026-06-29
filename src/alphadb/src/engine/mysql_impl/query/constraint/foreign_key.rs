@@ -64,12 +64,13 @@ pub fn create_foreign_key_constraint(foreign_key_value: &Value, version_trace: &
 #[cfg(test)]
 mod createforeignkeyconstraint_tests {
     use super::create_foreign_key_constraint;
+    use crate::core::verification::issue::VersionTrace;
     use serde_json::json;
 
     #[test]
     fn missing_name() {
         let foreign_key = json!({ "from": "test", "to": "test", "references": "test" });
-        let result = create_foreign_key_constraint(&foreign_key, "table", "0.0.1");
+        let result = create_foreign_key_constraint(&foreign_key, &VersionTrace::from(["0.0.1", "table", "foreign_key"]));
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().message, "Missing required key 'name'.");
@@ -78,7 +79,7 @@ mod createforeignkeyconstraint_tests {
     #[test]
     fn missing_from() {
         let foreign_key = json!({ "name": "fk", "references": "test" });
-        let result = create_foreign_key_constraint(&foreign_key, "table", "0.0.1");
+        let result = create_foreign_key_constraint(&foreign_key, &VersionTrace::from(["0.0.1", "table", "foreign_key"]));
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().message, "Missing required key 'from'.");
@@ -87,7 +88,7 @@ mod createforeignkeyconstraint_tests {
     #[test]
     fn missing_references() {
         let foreign_key = json!({ "name": "fk", "from": "test", "to": "test" });
-        let result = create_foreign_key_constraint(&foreign_key, "table", "0.0.1");
+        let result = create_foreign_key_constraint(&foreign_key, &VersionTrace::from(["0.0.1", "table", "foreign_key"]));
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().message, "Missing required key 'references'.");
@@ -96,7 +97,7 @@ mod createforeignkeyconstraint_tests {
     #[test]
     fn invalid_foreign_key_item() {
         let foreign_key = json!("test");
-        let result = create_foreign_key_constraint(&foreign_key, "table", "0.0.1");
+        let result = create_foreign_key_constraint(&foreign_key, &VersionTrace::from(["0.0.1", "table", "foreign_key"]));
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().message, "foreign_key items must be objects");
@@ -113,7 +114,7 @@ mod createforeignkeyconstraint_tests {
             "on_update": "restrict"
         });
 
-        let result = create_foreign_key_constraint(&foreign_key, "table", "0.0.1").unwrap();
+        let result = create_foreign_key_constraint(&foreign_key, &VersionTrace::from(["0.0.1", "table", "foreign_key"])).unwrap();
 
         assert_eq!(
             result,
