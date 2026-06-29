@@ -15,7 +15,7 @@ default = []
 
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
-alphadb = { path = "../alphadb", features = ["mysql", "postgres"] }
+alphadb = { path = "../alphadb", features = ["mysql", "postgres", "version-source"] }
 inquire = "0.7.5"
 colored = "2.1.0"
 toml = "0.8.19"
