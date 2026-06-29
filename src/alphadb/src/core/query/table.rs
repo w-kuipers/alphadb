@@ -21,6 +21,7 @@
 use crate::core::query::build::StructureQuery;
 use crate::core::query::column::DefineColumn;
 use crate::core::query::primary_key::format_primary_key_columns;
+use crate::core::utils::consolidate::primary_key::get_primary_key;
 use crate::core::utils::errors::{AlphaDBError, Get};
 use crate::core::utils::json::{array_iter, exists_in_object, get_json_object, get_json_string, get_object_keys, object_iter};
 use crate::core::utils::version_source::get_version_array;
@@ -42,6 +43,12 @@ pub type ModifyColumnHook = fn(version_list: &Vec<Value>, modify_entry: &mut Val
 
 /// Hook to build the statement(s) that drop the table's primary key.
 pub type DropPrimaryKeyHook = fn(table_name: &str) -> Vec<DefineColumn>;
+
+/// Hook to build the statement(s) that add a primary key to the table.
+///
+/// `columns` is the comma-separated column list as produced by
+/// [`format_primary_key_columns`].
+pub type AddPrimaryKeyHook = fn(table_name: &str, columns: &str) -> Vec<DefineColumn>;
 
 /// Hook to build the statement that drops a named foreign-key constraint
 pub type DropForeignKeyHook = fn(foreign_key_name: &str) -> DefineColumn;
@@ -77,6 +84,9 @@ pub struct TableQueryConfig {
 
     /// Builds the statement(s) that drop the table's primary key.
     pub drop_primary_key: DropPrimaryKeyHook,
+
+    /// Builds the statement(s) that add a primary key to the table.
+    pub add_primary_key: AddPrimaryKeyHook,
 
     /// Builds the statement that drops a named foreign-key constraint.
     pub drop_foreign_key: DropForeignKeyHook,
@@ -259,13 +269,29 @@ pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name
     // Primary key
     let table_data = mutable_table_data.clone();
     if exists_in_object(&table_data["altertable"][table_name], "primary_key")? {
-        if Value::is_null(&table_data["altertable"][table_name]["primary_key"]) {
+        let primary_key = &table_data["altertable"][table_name]["primary_key"];
+
+        if primary_key.is_null() {
             for definition in (config.drop_primary_key)(table_name) {
                 query.definition(definition);
             }
-        }
+        } else {
+            // An existing primary key must be dropped before a new one can be added.
+            if get_primary_key(version_list, table_name, Some(version))?.is_some() {
+                for definition in (config.drop_primary_key)(table_name) {
+                    query.definition(definition);
+                }
+            }
 
-        // TODO add changing primary key
+            let columns = format_primary_key_columns(primary_key).map_err(|mut e| {
+                e.set_version_trace(&version_trace);
+                e
+            })?;
+
+            for definition in (config.add_primary_key)(table_name, &columns) {
+                query.definition(definition);
+            }
+        }
     }
 
     // Drop foreign key

@@ -34,6 +34,7 @@ pub const POSTGRES_TABLE_CONFIG: TableQueryConfig = TableQueryConfig {
     table_options: None,
     modify_column,
     drop_primary_key,
+    add_primary_key,
     drop_foreign_key,
     preprocess: None,
 };
@@ -63,6 +64,12 @@ fn modify_column(version_list: &Vec<Value>, modify_entry: &mut Value, table_name
 fn drop_primary_key(table_name: &str) -> Vec<DefineColumn> {
     let mut definition = DefineColumn::new();
     definition.method("DROP CONSTRAINT").name(format!("{}_pkey", table_name));
+    vec![definition]
+}
+
+fn add_primary_key(_table_name: &str, columns: &str) -> Vec<DefineColumn> {
+    let mut definition = DefineColumn::new();
+    definition.method("ADD").name(format!("PRIMARY KEY ({columns})"));
     vec![definition]
 }
 
@@ -146,6 +153,51 @@ mod altertable_tests {
         assert_eq!(
             alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.2").unwrap(),
             "ALTER TABLE table DROP CONSTRAINT table_pkey;"
+        );
+    }
+
+    #[test]
+    fn add_primary_key() {
+        let column = &json!({
+            "name": "test",
+            "version": [
+                {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "INTEGER"}}}},
+                {"_id": "0.0.2", "altertable": {"table": {"primary_key": "col"}}},
+            ]
+        });
+        assert_eq!(
+            alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.2").unwrap(),
+            "ALTER TABLE table ADD PRIMARY KEY (col);"
+        );
+    }
+
+    #[test]
+    fn change_primary_key() {
+        let column = &json!({
+            "name": "test",
+            "version": [
+                {"_id": "0.0.1", "createtable": {"table": {"primary_key": "col", "col": {"type": "INTEGER"}, "other_col": {"type": "INTEGER"}}}},
+                {"_id": "0.0.2", "altertable": {"table": {"primary_key": "other_col"}}},
+            ]
+        });
+        assert_eq!(
+            alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.2").unwrap(),
+            "ALTER TABLE table DROP CONSTRAINT table_pkey, ADD PRIMARY KEY (other_col);"
+        );
+    }
+
+    #[test]
+    fn change_primary_key_composite() {
+        let column = &json!({
+            "name": "test",
+            "version": [
+                {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "INTEGER"}, "other_col": {"type": "INTEGER"}}}},
+                {"_id": "0.0.2", "altertable": {"table": {"primary_key": ["col", "other_col"]}}},
+            ]
+        });
+        assert_eq!(
+            alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.2").unwrap(),
+            "ALTER TABLE table ADD PRIMARY KEY (col, other_col);"
         );
     }
 
