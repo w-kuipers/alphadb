@@ -258,10 +258,11 @@ pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name
     if exists_in_object(&table_data["altertable"][table_name], "renamecolumn")? {
         for column in object_iter(&table_data["altertable"][table_name]["renamecolumn"])? {
             let mut definition = DefineColumn::new();
-            definition
-                .method("RENAME COLUMN")
-                .name(column)
-                .constraint(format!("TO {}", get_json_string(&table_data["altertable"][table_name]["renamecolumn"][column])?));
+            definition.method("RENAME COLUMN").name(format!(
+                "{} TO {}",
+                column,
+                get_json_string(&table_data["altertable"][table_name]["renamecolumn"][column])?
+            ));
             query.definition(definition);
         }
     }
