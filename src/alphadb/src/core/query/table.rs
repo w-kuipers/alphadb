@@ -50,8 +50,8 @@ pub type DropPrimaryKeyHook = fn(table_name: &str) -> Vec<DefineColumn>;
 /// [`format_primary_key_columns`].
 pub type AddPrimaryKeyHook = fn(table_name: &str, columns: &str) -> Vec<DefineColumn>;
 
-/// Hook to build the statement that drops a named foreign-key constraint
-pub type DropForeignKeyHook = fn(foreign_key_name: &str) -> DefineColumn;
+/// Hook to build the statement that drops a named constraint (foreign key, check, ...).
+pub type DropConstraintHook = fn(constraint_name: &str) -> DefineColumn;
 
 /// Hook that runs before any column statements are generated for `ALTER TABLE`,
 /// allowing an engine to pre-process the `altertable` block.
@@ -89,7 +89,10 @@ pub struct TableQueryConfig {
     pub add_primary_key: AddPrimaryKeyHook,
 
     /// Builds the statement that drops a named foreign-key constraint.
-    pub drop_foreign_key: DropForeignKeyHook,
+    pub drop_foreign_key: DropConstraintHook,
+
+    /// Builds the statement that drops a named check constraint.
+    pub drop_check_constraint: DropConstraintHook,
 
     /// Optional step run before any column statements are generated for
     /// `ALTER TABLE`. `None` for engines that need none.
@@ -170,7 +173,8 @@ pub fn create_table(config: &TableQueryConfig, version: &Value, table_name: &str
 /// Generate an `ALTER TABLE` query for the given [`TableQueryConfig`].
 ///
 /// Processes the matching version's `altertable` block, emitting statements for
-/// dropped, added, modified and renamed columns, plus primary-key changes.
+/// dropped, added, modified and renamed columns, plus primary-key, foreign-key
+/// and check constraint changes.
 ///
 /// # Arguments
 /// * `config` - Engine-specific table query configuration
@@ -295,43 +299,49 @@ pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name
         }
     }
 
-    // Drop foreign key
-    let table_data = mutable_table_data.clone();
-    if exists_in_object(&table_data["altertable"][table_name], "drop_foreign_key")? {
-        for foreign_key in array_iter(&table_data["altertable"][table_name]["drop_foreign_key"])? {
-            query.definition((config.drop_foreign_key)(get_json_string(foreign_key)?));
+    let constraint_kinds: [(&str, ConstraintHook, DropConstraintHook); 2] = [
+        ("foreign_key", config.foreign_key_constraint, config.drop_foreign_key),
+        ("check", config.check_constraint, config.drop_check_constraint),
+    ];
+
+    for (kind, render, drop) in constraint_kinds {
+        let drop_key = format!("drop_{kind}");
+        let table_data = mutable_table_data.clone();
+        if exists_in_object(&table_data["altertable"][table_name], &drop_key)? {
+            for constraint_name in array_iter(&table_data["altertable"][table_name][&drop_key])? {
+                query.definition(drop(get_json_string(constraint_name)?));
+            }
         }
-    }
 
-    // modify_foreign_key drops the existing constraint before adding the new one.
-    let table_data = mutable_table_data.clone();
-    for (key, drop_first) in [("modify_foreign_key", true), ("add_foreign_key", false)] {
-        if exists_in_object(&table_data["altertable"][table_name], key)? {
-            version_trace.push(key.to_string());
+        // modify_* drops the existing constraint before adding the new one.
+        for (key, drop_first) in [(format!("modify_{kind}"), true), (format!("add_{kind}"), false)] {
+            if exists_in_object(&table_data["altertable"][table_name], &key)? {
+                version_trace.push(key.clone());
 
-            for (i, foreign_key) in array_iter(&table_data["altertable"][table_name][key])?.iter().enumerate() {
-                version_trace.push(format!("index: {i}"));
+                for (i, constraint_data) in array_iter(&table_data["altertable"][table_name][&key])?.iter().enumerate() {
+                    version_trace.push(format!("index: {i}"));
 
-                if drop_first {
-                    query.definition((config.drop_foreign_key)(get_json_string(&foreign_key["name"]).map_err(|mut e| {
+                    if drop_first {
+                        query.definition(drop(get_json_string(&constraint_data["name"]).map_err(|mut e| {
+                            e.set_version_trace(&VersionTrace::from([version, "altertable", table_name]));
+                            e
+                        })?));
+                    }
+
+                    let constraint = render(constraint_data, &version_trace).map_err(|mut e| {
                         e.set_version_trace(&VersionTrace::from([version, "altertable", table_name]));
                         e
-                    })?));
+                    })?;
+
+                    let mut definition = DefineColumn::new();
+                    definition.method("ADD").name(constraint);
+                    query.definition(definition);
+
+                    version_trace.pop();
                 }
-
-                let constraint = (config.foreign_key_constraint)(foreign_key, &version_trace).map_err(|mut e| {
-                    e.set_version_trace(&VersionTrace::from([version, "altertable", table_name]));
-                    e
-                })?;
-
-                let mut definition = DefineColumn::new();
-                definition.method("ADD").name(constraint);
-                query.definition(definition);
 
                 version_trace.pop();
             }
-
-            version_trace.pop();
         }
     }
 

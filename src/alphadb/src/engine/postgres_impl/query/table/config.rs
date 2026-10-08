@@ -36,6 +36,7 @@ pub const POSTGRES_TABLE_CONFIG: TableQueryConfig = TableQueryConfig {
     drop_primary_key,
     add_primary_key,
     drop_foreign_key,
+    drop_check_constraint,
     preprocess: None,
 };
 
@@ -76,6 +77,12 @@ fn add_primary_key(_table_name: &str, columns: &str) -> Vec<DefineColumn> {
 fn drop_foreign_key(foreign_key_name: &str) -> DefineColumn {
     let mut definition = DefineColumn::new();
     definition.method("DROP CONSTRAINT").name(foreign_key_name);
+    definition
+}
+
+fn drop_check_constraint(check_name: &str) -> DefineColumn {
+    let mut definition = DefineColumn::new();
+    definition.method("DROP CONSTRAINT").name(check_name);
     definition
 }
 
@@ -255,6 +262,69 @@ mod altertable_tests {
         assert_eq!(
             alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.1").unwrap(),
             "ALTER TABLE table DROP CONSTRAINT table_account_fk, ADD CONSTRAINT table_account_fk FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE;"
+        );
+    }
+
+    #[test]
+    fn add_check() {
+        let column = &json!({
+            "name": "test",
+            "version": [{
+                "_id": "0.0.1",
+                "altertable": {
+                    "table": {
+                        "add_check": [{
+                            "name": "table_valid_time",
+                            "condition": { "type": "comparison", "op": ">", "left": { "type": "column", "name": "end_at" }, "right": { "type": "column", "name": "start_at" } }
+                        }]
+                    }
+                }
+            }]
+        });
+        assert_eq!(
+            alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.1").unwrap(),
+            "ALTER TABLE table ADD CONSTRAINT table_valid_time CHECK (end_at > start_at);"
+        );
+    }
+
+    #[test]
+    fn drop_check() {
+        let column = &json!({
+            "name": "test",
+            "version": [{
+                "_id": "0.0.1",
+                "altertable": {
+                    "table": {
+                        "drop_check": ["table_valid_time"]
+                    }
+                }
+            }]
+        });
+        assert_eq!(
+            alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.1").unwrap(),
+            "ALTER TABLE table DROP CONSTRAINT table_valid_time;"
+        );
+    }
+
+    #[test]
+    fn modify_check() {
+        let column = &json!({
+            "name": "test",
+            "version": [{
+                "_id": "0.0.1",
+                "altertable": {
+                    "table": {
+                        "modify_check": [{
+                            "name": "table_valid_time",
+                            "condition": { "type": "comparison", "op": ">=", "left": { "type": "column", "name": "end_at" }, "right": { "type": "column", "name": "start_at" } }
+                        }]
+                    }
+                }
+            }]
+        });
+        assert_eq!(
+            alter_table(&POSTGRES_TABLE_CONFIG, column, "table", "0.0.1").unwrap(),
+            "ALTER TABLE table DROP CONSTRAINT table_valid_time, ADD CONSTRAINT table_valid_time CHECK (end_at >= start_at);"
         );
     }
 }
