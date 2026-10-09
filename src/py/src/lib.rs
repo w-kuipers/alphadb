@@ -87,7 +87,7 @@ impl From<AdbQuery> for Query {
     }
 }
 
-#[pyclass(eq, eq_int)]
+#[pyclass(eq, eq_int, from_py_object)]
 #[derive(Clone, PartialEq)]
 enum PyToleratedVerificationIssueLevel {
     /// Low: Will pass with verification errors below level high.
@@ -154,7 +154,7 @@ impl AlphaDB {
     }
 
     fn status(&mut self) -> PyResult<Py<PyAny>> {
-        Python::with_gil(|py| match self.inner.status() {
+        Python::attach(|py| match self.inner.status() {
             Ok(s) => {
                 let status = Status {
                     init: s.init,
@@ -185,7 +185,7 @@ impl AlphaDB {
             Err(e) => return Err(PyRuntimeError::new_err(e.message())),
         };
 
-        Python::with_gil(|_py| {
+        Python::attach(|_py| {
             match self
                 .inner
                 .update_queries(version_source, target_version, no_data)

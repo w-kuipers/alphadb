@@ -16,11 +16,10 @@
 use crate::config::connection::DbSessions;
 use crate::config::version_source::VersionSources;
 use crate::error;
+use aes_gcm::aead::Generate;
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
 use home::home_dir;
-use rand_core::OsRng;
-use rand_core::RngCore;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 use serde::Deserialize;
@@ -101,8 +100,7 @@ pub fn init_config() -> () {
     // If no config file exists, it must be created along
     // with a secret for encryption
     if !config_file.exists() {
-        let mut secret = [0u8; 32];
-        OsRng.fill_bytes(&mut secret);
+        let secret = <[u8; 32]>::generate();
 
         let mut config = Config::default();
         let _ = config

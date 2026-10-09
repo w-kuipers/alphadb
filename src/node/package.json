@@ -51,14 +51,15 @@
 		"load": "./src/load.cts"
 	},
 	"devDependencies": {
-		"@tsconfig/node20": "^20.1.4",
-		"@types/node": "^20.11.16",
-		"typescript": "^5.3.3",
-		"vitest": "^2.1.8"
+		"@tsconfig/node20": "^20.1.10",
+		"@types/node": "^26.6.4",
+		"typescript": "^7.0.2",
+		"vite": "^8.3.4",
+		"vitest": "^5.0.3"
 	},
 	"dependencies": {
-		"@neon-rs/cli": "^0.1.82",
-		"@neon-rs/load": "^0.1.82",
+		"@neon-rs/cli": "^0.2.6",
+		"@neon-rs/load": "^0.2.6",
 		"node-fetch": "^3.3.2"
 	},
 	"repository": {
