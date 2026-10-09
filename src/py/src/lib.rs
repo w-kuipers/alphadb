@@ -21,6 +21,7 @@ compile_error!("Enable one database engine feature: mysql or postgres");
 
 use alphadb::core::method_types::{Init, Query as AdbQuery};
 use alphadb::prelude::*;
+use alphadb::version_source::parse_version_source;
 #[cfg(all(feature = "mysql", not(feature = "postgres")))]
 use mysql::PooledConn;
 #[cfg(all(feature = "postgres", not(feature = "mysql")))]
@@ -179,6 +180,11 @@ impl AlphaDB {
         target_version: Option<&str>,
         no_data: bool,
     ) -> PyResult<Vec<Query>> {
+        let version_source = match parse_version_source(&version_source) {
+            Ok(vs) => vs,
+            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
+        };
+
         Python::with_gil(|_py| {
             match self
                 .inner
@@ -218,6 +224,11 @@ impl AlphaDB {
         let no_data = match no_data {
             Some(nd) => nd,
             None => false,
+        };
+
+        let version_source = match parse_version_source(&version_source) {
+            Ok(vs) => vs,
+            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
         };
 
         match self.inner.update(
