@@ -17,6 +17,7 @@ use crate::engine::update;
 use crate::types::PooledConnWrap;
 use crate::utils::get_connection;
 use alphadb::prelude::*;
+use alphadb::version_source::parse_version_source;
 use neon::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -34,6 +35,10 @@ pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     };
 
     let version_source = cx.argument::<JsString>(2)?.value(&mut cx);
+    let version_source = match parse_version_source(&version_source) {
+        Ok(vs) => vs,
+        Err(e) => return cx.throw_error(e.message()),
+    };
     let target_version = cx.argument::<JsString>(3)?.value(&mut cx);
     let no_data = cx.argument::<JsBoolean>(4)?.value(&mut cx);
     let allowed_error_priority = cx.argument::<JsString>(5)?.value(&mut cx);
