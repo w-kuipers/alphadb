@@ -87,7 +87,7 @@ def update_package_files(paths, version, engine):
     )
     replace_line(
         "alphadb =",
-        f'alphadb = {{ path = "{alphadb_path}", default-features = false }}\n',
+        f'alphadb = {{ path = "{alphadb_path}", default-features = false, features = ["version-source"] }}\n',
         str(paths["node_cargo"]),
     )
 
