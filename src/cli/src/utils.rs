@@ -15,12 +15,11 @@
 
 use crate::config::connection::{get_active_connection, SessionType};
 use crate::error;
-use aes_gcm::aead::{Aead, KeyInit, OsRng};
+use aes_gcm::aead::{Aead, Generate, KeyInit};
 use aes_gcm::{Aes256Gcm, Nonce};
 use alphadb::version_source::build_version_source_from_dir;
 use base64::engine::{general_purpose, Engine};
 use colored::Colorize;
-use rand_core::RngCore;
 use std::fs;
 use std::path::PathBuf;
 use std::process;
@@ -160,11 +159,10 @@ pub fn encrypt_password(password: &str, secret: String) -> String {
 
     // Generate a 12-byte nonce
     if cipher.is_ok() {
-        let mut nonce_bytes = [0u8; 12];
-        OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce_bytes = <[u8; 12]>::generate();
+        let nonce = Nonce::from(nonce_bytes);
 
-        let ciphertext = cipher.unwrap().encrypt(nonce, password.as_bytes());
+        let ciphertext = cipher.unwrap().encrypt(&nonce, password.as_bytes());
 
         if ciphertext.is_err() {
             error!("An unexpected error occured");
@@ -233,10 +231,10 @@ pub fn decrypt_password(password: String, secret: String) -> Result<String, Decr
     }
 
     // Decrypt the password
-    let decrypted_bytes = cipher.decrypt(
-        Nonce::from_slice(&nonce.unwrap()),
-        ciphertext.unwrap().as_slice(),
-    )?;
+    let nonce = nonce.unwrap();
+    let nonce = Nonce::try_from(nonce.as_slice())
+        .map_err(|_| DecryptionReturnError::DecryptionError("Invalid nonce length".to_string()))?;
+    let decrypted_bytes = cipher.decrypt(&nonce, ciphertext.unwrap().as_slice())?;
 
     Ok(String::from_utf8(decrypted_bytes)?)
 }

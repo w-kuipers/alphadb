@@ -20,6 +20,12 @@ interface VersionSource {
 	version: Array<Version>;
 }
 
+/**
+ * Either the version source object itself, or a path to a version source
+ * file or a directory containing version source files.
+ */
+type VersionSourceInput = VersionSource | string;
+
 interface ConnectProps {
 	host: string;
 	user: string;
@@ -39,8 +45,8 @@ interface AlphaDB {
 	connect(props: ConnectProps): void;
 	init(): void;
 	status(): Status;
-	updateQueries(version_source: VersionSource, target_version?: string, no_data?: boolean): Array<Query>;
-	update(version_source: VersionSource, target_version?: string, no_data?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel): void;
+	updateQueries(version_source: VersionSourceInput, target_version?: string, no_data?: boolean): Array<Query>;
+	update(version_source: VersionSourceInput, target_version?: string, no_data?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel): void;
 	vacate(): void;
 }
 
@@ -60,6 +66,11 @@ declare module "./load.cjs" {
 	function update_queries(conn: any, internaldbname: any, version_source: string, target_version: string, no_data: boolean): Array<Query>;
 	function update(conn: any, internaldbname: any, version_source: string, target_version: string, no_data: boolean, tolerated_verification_issue_level: string): Array<Query>;
 	function vacate(conn: any, internaldbname: any): void;
+}
+
+function serializeVersionSource(version_source: VersionSourceInput): string {
+	if (typeof version_source === "string") return version_source;
+	return JSON.stringify(version_source);
 }
 
 class AlphaDB {
@@ -87,18 +98,18 @@ class AlphaDB {
 		return addon.status(this.conn, this.internaldbname);
 	}
 
-	public updateQueries(version_source: VersionSource, target_version?: string, no_data?: boolean) {
+	public updateQueries(version_source: VersionSourceInput, target_version?: string, no_data?: boolean) {
 		if (typeof target_version === "undefined") target_version = "NOVERSION";
 		if (typeof no_data === "undefined") no_data = false;
-		return addon.update_queries(this.conn, this.internaldbname, JSON.stringify(version_source), target_version, no_data);
+		return addon.update_queries(this.conn, this.internaldbname, serializeVersionSource(version_source), target_version, no_data);
 	}
 
-	public async update(version_source: VersionSource, target_version?: string, no_data?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel) {
+	public async update(version_source: VersionSourceInput, target_version?: string, no_data?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel) {
 		if (typeof target_version === "undefined") target_version = "NOVERSION";
 		if (typeof no_data === "undefined") no_data = false;
 		if (typeof toleratedVerificationIssueLevel === "undefined") toleratedVerificationIssueLevel = "LOW";
 
-		return addon.update(this.conn, this.internaldbname, JSON.stringify(version_source), target_version, no_data, toleratedVerificationIssueLevel);
+		return addon.update(this.conn, this.internaldbname, serializeVersionSource(version_source), target_version, no_data, toleratedVerificationIssueLevel);
 	}
 
 	public vacate() {

@@ -70,7 +70,6 @@ pub fn combine_version_source_files(files: &[(String, PathBuf)], name: String, e
 
     root.insert("name".to_string(), Value::String(name));
     root.insert("engine".to_string(), Value::String(engine.to_string()));
-
     root.insert("version".to_string(), Value::Array(version));
 
     Ok(Value::Object(root))

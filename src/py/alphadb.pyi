@@ -39,7 +39,12 @@ class AlphaDB:
     def update_queries(
         self, version_source: str, target_version: Optional[str] = None, no_data=False
     ) -> List[Tuple[str, List[str]]]: ...
-    """Generate queries to update the database"""
+    """
+    Generate queries to update the database
+
+    version_source: JSON contents of a version source, or a path to a version
+    source file or a directory containing version source files.
+    """
 
     def update(
         self,
@@ -50,7 +55,12 @@ class AlphaDB:
             ToleratedVerificationIssueLevel
         ] = "LOW",
     ): ...
-    """Update the databae"""
+    """
+    Update the database
+
+    version_source: JSON contents of a version source, or a path to a version
+    source file or a directory containing version source files.
+    """
 
     def vacate(self): ...
     """

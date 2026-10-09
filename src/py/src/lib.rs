@@ -21,6 +21,7 @@ compile_error!("Enable one database engine feature: mysql or postgres");
 
 use alphadb::core::method_types::{Init, Query as AdbQuery};
 use alphadb::prelude::*;
+use alphadb::version_source::parse_version_source;
 #[cfg(all(feature = "mysql", not(feature = "postgres")))]
 use mysql::PooledConn;
 #[cfg(all(feature = "postgres", not(feature = "mysql")))]
@@ -86,7 +87,7 @@ impl From<AdbQuery> for Query {
     }
 }
 
-#[pyclass(eq, eq_int)]
+#[pyclass(eq, eq_int, from_py_object)]
 #[derive(Clone, PartialEq)]
 enum PyToleratedVerificationIssueLevel {
     /// Low: Will pass with verification errors below level high.
@@ -153,7 +154,7 @@ impl AlphaDB {
     }
 
     fn status(&mut self) -> PyResult<Py<PyAny>> {
-        Python::with_gil(|py| match self.inner.status() {
+        Python::attach(|py| match self.inner.status() {
             Ok(s) => {
                 let status = Status {
                     init: s.init,
@@ -179,7 +180,12 @@ impl AlphaDB {
         target_version: Option<&str>,
         no_data: bool,
     ) -> PyResult<Vec<Query>> {
-        Python::with_gil(|_py| {
+        let version_source = match parse_version_source(&version_source) {
+            Ok(vs) => vs,
+            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
+        };
+
+        Python::attach(|_py| {
             match self
                 .inner
                 .update_queries(version_source, target_version, no_data)
@@ -218,6 +224,11 @@ impl AlphaDB {
         let no_data = match no_data {
             Some(nd) => nd,
             None => false,
+        };
+
+        let version_source = match parse_version_source(&version_source) {
+            Ok(vs) => vs,
+            Err(e) => return Err(PyRuntimeError::new_err(e.message())),
         };
 
         match self.inner.update(
