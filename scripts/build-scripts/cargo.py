@@ -16,7 +16,7 @@ cli_path = os.path.join(os.getcwd(), "src/cli", "Cargo.toml")
 setup_paths = [setup_path, cli_path]
 
 new_version_line = f'version = "{version[1:]}"\n'
-dep_line = f'alphadb = {{ version = "{version[1:]}", features = ["mysql", "postgres"] }}\n'
+dep_line = f'alphadb = {{ version = "{version[1:]}", features = ["mysql", "postgres", "version-source"] }}\n'
 
 for path in setup_paths:
     with open(path, "r") as file:
