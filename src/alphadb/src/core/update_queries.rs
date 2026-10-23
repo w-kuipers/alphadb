@@ -216,13 +216,21 @@ pub fn update_queries<C>(
             for table in object_iter(&version["altertable"]).map_err(with_trace(&version_trace))? {
                 version_trace.push(table.clone());
 
-                queries.push(Query {
-                    query: alter_table(config.table_config, &version_source, table, version_number)?,
-                    data: None,
-                });
-
                 // Indexes are standalone CREATE/DROP INDEX statements, emitted
-                // separately from the ALTER TABLE query.
+                // separately from the ALTER TABLE query. A block with only index
+                // keys would otherwise produce an empty, invalid ALTER TABLE.
+                let alters_table = get_object_keys(&version["altertable"][table])
+                    .map_err(with_trace(&version_trace))?
+                    .iter()
+                    .any(|key| !matches!(key.as_str(), "add_index" | "modify_index" | "drop_index"));
+
+                if alters_table {
+                    queries.push(Query {
+                        query: alter_table(config.table_config, &version_source, table, version_number)?,
+                        data: None,
+                    });
+                }
+
                 if exists_in_object(&version["altertable"][table], "drop_index").map_err(with_trace(&version_trace))? {
                     for index in array_iter(&version["altertable"][table]["drop_index"]).map_err(with_trace(&version_trace))? {
                         queries.push(Query {

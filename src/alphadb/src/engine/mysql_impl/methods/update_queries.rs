@@ -49,3 +49,65 @@ fn config_update_query(latest_version: &str, template_name: &str, db_name: &str)
         ])),
     }
 }
+
+#[cfg(test)]
+mod altertable_index_tests {
+    use super::config_update_query;
+    use crate::core::method_types::Status;
+    use crate::core::update_queries::{update_queries, UpdateQueriesConfig};
+    use crate::core::utils::errors::AlphaDBError;
+    use crate::engine::mysql_impl::query::default_data::default_data;
+    use crate::engine::mysql_impl::query::table::config::MYSQL_TABLE_CONFIG;
+    use crate::engine::mysql_impl::query::{createindex, dropindex};
+    use crate::engine::AlphaDBEngine;
+    use serde_json::json;
+
+    fn status(_db_name: &str, _connection: &mut ()) -> Result<Status, AlphaDBError> {
+        Ok(Status {
+            init: true,
+            version: Some("0.0.0".to_string()),
+            name: "test".to_string(),
+            template: None,
+        })
+    }
+
+    const CONFIG: UpdateQueriesConfig<()> = UpdateQueriesConfig {
+        engine: AlphaDBEngine::MySQL,
+        status,
+        table_config: &MYSQL_TABLE_CONFIG,
+        create_index: createindex,
+        drop_index: dropindex,
+        default_data,
+        config_update_query,
+        version_extras: None,
+    };
+
+    #[test]
+    fn index_only_altertable_emits_no_alter_table() {
+        let source = json!({
+            "name": "test",
+            "version": [
+                {
+                    "_id": "0.0.1",
+                    "createtable": { "users": { "email": { "type": "VARCHAR", "length": 100 } } }
+                },
+                {
+                    "_id": "0.0.2",
+                    "altertable": {
+                        "users": {
+                            "add_index": [{ "name": "users_email_idx", "columns": ["email"] }]
+                        }
+                    }
+                }
+            ]
+        });
+
+        let queries = update_queries(&CONFIG, "test", &mut (), source.to_string(), None, true).unwrap();
+
+        assert!(
+            queries.iter().all(|q| !q.query.starts_with("ALTER TABLE")),
+            "{:?}",
+            queries.iter().map(|q| &q.query).collect::<Vec<_>>()
+        );
+    }
+}
