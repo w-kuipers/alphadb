@@ -18,10 +18,12 @@
 //! mirroring how [`TableQueryConfig`](crate::core::query::table::TableQueryConfig)
 //! factors the table builders.
 
+use crate::core::config_table::config_table_queries;
 use crate::core::method_types::{Query, Status};
 use crate::core::query::table::{alter_table, create_table, TableQueryConfig};
 use crate::core::utils::consolidate::default_data::consolidate_default_data;
 use crate::core::utils::errors::{AlphaDBError, Get};
+use crate::core::utils::globals::CONFIG_TABLE_TEMPLATE_NAME;
 use crate::core::utils::json::{array_iter, exists_in_object, get_object_keys, object_iter};
 use crate::core::utils::version_number::{get_latest_version, parse_version_number, sort_versions, validate_version_number};
 use crate::core::utils::version_source::{get_version_array, parse_version_source_string};
@@ -37,7 +39,7 @@ pub type CreateIndexHook = fn(index: &Value, table_name: &str) -> Result<String,
 /// engines with globally-named indexes (PostgreSQL) ignore it.
 pub type DropIndexHook = fn(index_name: &Value, table_name: &str) -> Result<String, AlphaDBError>;
 pub type DefaultDataHook = fn(table_name: &str, item: &Value) -> Result<Query, AlphaDBError>;
-pub type ConfigUpdateQueryHook = fn(latest_version: &str, template_name: &str, db_name: &str) -> Query;
+pub type ConfigInsertQueryHook = fn(version: &str, template_name: &str) -> Query;
 pub type VersionExtrasHook = fn(version: &Value) -> Result<Vec<Query>, AlphaDBError>;
 
 /// Engine-specific behaviour for [`update_queries`]. `C` is the engine connection
@@ -50,7 +52,8 @@ pub struct UpdateQueriesConfig<C> {
     pub create_index: CreateIndexHook,
     pub drop_index: DropIndexHook,
     pub default_data: DefaultDataHook,
-    pub config_update_query: ConfigUpdateQueryHook,
+    /// Logs an applied version of `template_name` in the config table.
+    pub config_insert_query: ConfigInsertQueryHook,
 
     /// Runs once per version, before that version's tables. `None` if unused.
     pub version_extras: Option<VersionExtrasHook>,
@@ -75,7 +78,6 @@ pub fn update_queries<C>(
     target_version: Option<&str>,
     no_data: bool,
 ) -> Result<Vec<Query>, AlphaDBError> {
-    let mut queries: Vec<Query> = Vec::new();
     let mut version_source = parse_version_source_string(version_source)?;
 
     // The version source may not be in order (combine concatenates in the
@@ -127,6 +129,14 @@ pub fn update_queries<C>(
         }
     };
 
+    if template_name == CONFIG_TABLE_TEMPLATE_NAME {
+        return Err(AlphaDBError {
+            message: format!("'{CONFIG_TABLE_TEMPLATE_NAME}' is reserved for the AlphaDB config table and can not be used as a version source name"),
+            error: "reserved-template-name".to_string(),
+            ..Default::default()
+        });
+    }
+
     if let Some(template) = status.template {
         if template != template_name {
             return Err(AlphaDBError {
@@ -160,6 +170,14 @@ pub fn update_queries<C>(
             ..Default::default()
         });
     }
+
+    // The config table migrates itself before the user's versions are applied.
+    let config_version = status.config_version.ok_or_else(|| AlphaDBError {
+        message: "The config table has no version number".to_string(),
+        error: "no-config-version-number".to_string(),
+        ..Default::default()
+    })?;
+    let mut queries = config_table_queries(config, Some(&config_version))?;
 
     for (i, version) in versions.iter().enumerate() {
         let version_number = version["_id"].as_str().ok_or_else(|| AlphaDBError {
@@ -270,16 +288,20 @@ pub fn update_queries<C>(
         }
     }
 
+    // Default data is a seeder: rows already seeded are never touched again, even
+    // when a later version edits them by index. Only rows appended since are new.
     if !no_data {
+        let seeded = consolidate_default_data(versions, Some(&database_version))?;
         let default_data_object = consolidate_default_data(versions, target_version)?;
         for table in object_iter(&default_data_object)? {
-            for item in array_iter(&default_data_object[table])? {
+            let seeded_count = seeded[table].as_array().map_or(0, Vec::len);
+            for item in array_iter(&default_data_object[table])?.iter().skip(seeded_count) {
                 queries.push((config.default_data)(table, item)?);
             }
         }
     }
 
-    queries.push((config.config_update_query)(&latest_version, template_name, db_name));
+    queries.push((config.config_insert_query)(&latest_version, template_name));
 
     Ok(queries)
 }

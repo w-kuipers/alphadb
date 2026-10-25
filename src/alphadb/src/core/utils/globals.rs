@@ -14,3 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub const CONFIG_TABLE_NAME: &str = "adb_conf";
+
+/// Template name under which the config table logs its own versions. User
+/// version sources may not use it.
+pub const CONFIG_TABLE_TEMPLATE_NAME: &str = "AlphaDB Config";

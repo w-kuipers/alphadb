@@ -1,0 +1,55 @@
+{
+  "name": "AlphaDB Config",
+  "engine": "mysql",
+  "version": [
+    {
+      "_id": "1.0.0",
+      "createtable": {
+        "adb_conf": {
+          "primary_key": "db",
+          "db": {
+            "type": "VARCHAR",
+            "length": 100
+          },
+          "version": {
+            "type": "VARCHAR",
+            "length": 50
+          },
+          "template": {
+            "type": "VARCHAR",
+            "length": 50,
+            "null": true
+          }
+        }
+      }
+    },
+    {
+      "_id": "1.0.1",
+      "altertable": {
+        "adb_conf": {
+          "primary_key": ["template", "version"],
+          "addcolumn": {
+            "applied": {
+              "type": "DATETIME",
+              "default": "CURRENT_TIMESTAMP"
+            }
+          },
+          "modifycolumn": {
+            "template": {
+              "type": "VARCHAR",
+              "length": 50
+            }
+          }
+        }
+      }
+    },
+    {
+      "_id": "1.0.2",
+      "altertable": {
+        "adb_conf": {
+          "dropcolumn": ["db"]
+        }
+      }
+    }
+  ]
+}

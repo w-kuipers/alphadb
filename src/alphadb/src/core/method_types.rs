@@ -21,17 +21,13 @@ pub enum Init {
 }
 
 #[derive(Debug)]
-pub struct Check {
-    pub check: bool,
-    pub version: Option<String>,
-}
-
-#[derive(Debug)]
 pub struct Status {
     pub init: bool,
     pub version: Option<String>,
     pub name: String,
     pub template: Option<String>,
+    /// Latest applied version of the config table itself.
+    pub config_version: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

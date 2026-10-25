@@ -13,32 +13,26 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::core::config_table::config_table_queries;
 use crate::core::method_types::Init;
-use crate::core::utils::globals::CONFIG_TABLE_NAME;
-use crate::engine::mysql_impl::utils::check::check;
+use crate::engine::mysql_impl::methods::update::query_value_to_mysql_value;
+use crate::engine::mysql_impl::methods::{status, MYSQL_UPDATE_QUERIES_CONFIG};
 use crate::engine::mysql_impl::utils::errors::AlphaDBMysqlError;
 use mysql::prelude::*;
 use mysql::*;
 
 /// Initialize the database with configuration table
 pub fn init(db_name: &str, connection: &mut PooledConn) -> Result<Init, AlphaDBMysqlError> {
-    let checked = check(db_name, connection);
-
-    if checked.is_ok() && checked.unwrap().check {
+    if status(db_name, connection)?.init {
         return Ok(Init::AlreadyInitialized);
     }
 
-    connection.query_drop(format!(
-        "CREATE TABLE {} (
-                db VARCHAR(100) NOT NULL,
-                version VARCHAR(50) NOT NULL,
-                template VARCHAR(50) NULL,
-                PRIMARY KEY (db) 
-            )",
-        CONFIG_TABLE_NAME
-    ))?;
-
-    connection.exec_drop(format!("INSERT INTO {} (db, version) VALUES (?, ?)", CONFIG_TABLE_NAME), (db_name, "0.0.0"))?;
+    for query in config_table_queries(&MYSQL_UPDATE_QUERIES_CONFIG, None)? {
+        match query.data {
+            Some(data) => connection.exec_drop(query.query, data.iter().map(query_value_to_mysql_value).collect::<Vec<_>>())?,
+            None => connection.query_drop(query.query)?,
+        }
+    }
 
     return Ok(Init::Success);
 }

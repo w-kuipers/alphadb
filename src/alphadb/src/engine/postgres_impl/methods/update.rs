@@ -21,7 +21,7 @@ use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 use postgres::types::ToSql;
 use postgres::Client;
 
-fn query_value_to_postgres_param(value: &QueryValue) -> Box<dyn ToSql + Sync> {
+pub(crate) fn query_value_to_postgres_param(value: &QueryValue) -> Box<dyn ToSql + Sync> {
     match value {
         QueryValue::String(s) => Box::new(s.clone()),
         QueryValue::Integer(i) => Box::new(*i as i32),
@@ -42,15 +42,21 @@ pub fn update(
 ) -> Result<(), AlphaDBPostgresError> {
     let queries = update_queries(&POSTGRES_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)?;
 
+    // PostgreSQL DDL is transactional, so a failure anywhere rolls back the
+    // whole update. A drop without commit rolls back.
+    let mut tx = connection.transaction()?;
+
     for query in queries {
         if let Some(data) = query.data {
             let params: Vec<Box<dyn ToSql + Sync>> = data.iter().map(query_value_to_postgres_param).collect();
             let param_refs: Vec<&(dyn ToSql + Sync)> = params.iter().map(|p| p.as_ref()).collect();
-            connection.execute(query.query.as_str(), param_refs.as_slice())?;
+            tx.execute(query.query.as_str(), param_refs.as_slice())?;
         } else {
-            connection.execute(query.query.as_str(), &[])?;
+            tx.execute(query.query.as_str(), &[])?;
         }
     }
+
+    tx.commit()?;
 
     Ok(())
 }

@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::core::config_table::build_status;
 use crate::core::method_types::Status;
 use crate::core::utils::globals::CONFIG_TABLE_NAME;
 use crate::engine::mysql_impl::utils::errors::AlphaDBMysqlError;
@@ -21,31 +22,15 @@ use mysql::*;
 
 /// Get database status including initialization state, version, name and template
 pub fn status(db_name: &str, connection: &mut PooledConn) -> Result<Status, AlphaDBMysqlError> {
-    let mut init = false;
-    let mut version: Option<String> = None;
-    let mut template: Option<String> = None;
-
     let table_check: Option<String> = connection.exec_first(
         "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
         (db_name, CONFIG_TABLE_NAME),
     )?;
 
-    if table_check.is_some() {
-        let fetched: Option<Row> = connection.exec_first(format!("SELECT version, template FROM {} where db = ?", CONFIG_TABLE_NAME), (db_name,))?;
+    let rows: Option<Vec<(String, Option<String>)>> = match table_check {
+        Some(_) => Some(connection.query(format!("SELECT version, template FROM {CONFIG_TABLE_NAME}"))?),
+        None => None,
+    };
 
-        if fetched.is_some() {
-            let c = from_row::<(String, Option<String>)>(fetched.unwrap());
-            version = Some(c.0);
-            template = c.1;
-        }
-
-        init = true;
-    }
-
-    Ok(Status {
-        init,
-        version,
-        name: db_name.to_string(),
-        template,
-    })
+    build_status(db_name, rows).map_err(|e| e.into())
 }

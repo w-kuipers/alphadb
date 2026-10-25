@@ -85,7 +85,11 @@ pub fn update(
 
     let status = match db.status() {
         Ok(s) => s,
-        Err(_) => {
+        Err(e) => {
+            if e.error == "no-config-table-history" {
+                error!(e.message());
+            }
+
             error!("Unable to retrieve database status".to_string());
         }
     };

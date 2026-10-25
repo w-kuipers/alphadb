@@ -35,7 +35,7 @@ pub const POSTGRES_UPDATE_QUERIES_CONFIG: UpdateQueriesConfig<Client> = UpdateQu
     create_index: createindex,
     drop_index,
     default_data,
-    config_update_query,
+    config_insert_query,
     version_extras: Some(version_extras),
 };
 
@@ -85,20 +85,16 @@ fn version_extras(version: &Value) -> Result<Vec<Query>, AlphaDBError> {
     Ok(queries)
 }
 
-fn config_update_query(latest_version: &str, template_name: &str, db_name: &str) -> Query {
+fn config_insert_query(version: &str, template_name: &str) -> Query {
     Query {
-        query: format!("UPDATE {CONFIG_TABLE_NAME} SET version=$1, template=$2 WHERE db = $3;"),
-        data: Some(Vec::from([
-            QueryValue::String(latest_version.to_string()),
-            QueryValue::String(template_name.to_string()),
-            QueryValue::String(db_name.to_string()),
-        ])),
+        query: format!("INSERT INTO {CONFIG_TABLE_NAME} (version, template) VALUES ($1, $2);"),
+        data: Some(Vec::from([QueryValue::String(version.to_string()), QueryValue::String(template_name.to_string())])),
     }
 }
 
 #[cfg(test)]
 mod altertable_index_tests {
-    use super::{config_update_query, drop_index, version_extras};
+    use super::{config_insert_query, drop_index, version_extras};
     use crate::core::method_types::Status;
     use crate::core::update_queries::{update_queries, UpdateQueriesConfig};
     use crate::core::utils::errors::AlphaDBError;
@@ -114,6 +110,7 @@ mod altertable_index_tests {
             version: Some("0.0.0".to_string()),
             name: "test".to_string(),
             template: None,
+            config_version: Some("1.0.2".to_string()),
         })
     }
 
@@ -124,7 +121,7 @@ mod altertable_index_tests {
         create_index: createindex,
         drop_index,
         default_data,
-        config_update_query,
+        config_insert_query,
         version_extras: Some(version_extras),
     };
 
