@@ -94,7 +94,7 @@ fn config_insert_query(version: &str, template_name: &str) -> Query {
 
 #[cfg(test)]
 mod altertable_index_tests {
-    use super::{config_update_query, drop_index, version_extras};
+    use super::{config_insert_query, drop_index, version_extras};
     use crate::core::method_types::Status;
     use crate::core::update_queries::{update_queries, UpdateQueriesConfig};
     use crate::core::utils::errors::AlphaDBError;
@@ -110,6 +110,7 @@ mod altertable_index_tests {
             version: Some("0.0.0".to_string()),
             name: "test".to_string(),
             template: None,
+            config_version: Some("1.0.2".to_string()),
         })
     }
 
@@ -120,7 +121,7 @@ mod altertable_index_tests {
         create_index: createindex,
         drop_index,
         default_data,
-        config_update_query,
+        config_insert_query,
         version_extras: Some(version_extras),
     };
 
