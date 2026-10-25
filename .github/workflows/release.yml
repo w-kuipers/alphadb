@@ -152,3 +152,68 @@ jobs:
       - build-node
       - package-cli
     uses: ./.github/workflows/publish-github-release.yml
+
+  publish-distro-packages:
+    name: Update Homebrew tap and AUR package
+    needs:
+      - publish-github-release
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Download CLI binaries
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cli-bin-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@v6
+        with:
+          repository: w-kuipers/homebrew-alphadb
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-alphadb
+
+      - name: Clone AUR repository
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          ssh-keyscan -t ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+          git -c core.sshCommand="ssh -i ~/.ssh/aur" clone ssh://aur@aur.archlinux.org/alphadb-bin.git alphadb-aur
+
+      - name: Update package files
+        run: |
+          python scripts/package-scripts/distro.py ${{ github.ref_name }} --dist dist --homebrew homebrew-alphadb --aur alphadb-aur
+
+      - name: Push Homebrew tap
+        run: |
+          cd homebrew-alphadb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add alphadb.rb
+          git diff --cached --quiet && echo "Formula already up to date." && exit 0
+          git commit -m "Bump to ${{ github.ref_name }}"
+          git push
+
+      - name: Push AUR package
+        run: |
+          cd alphadb-aur
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config core.sshCommand "ssh -i ~/.ssh/aur"
+          git add PKGBUILD .SRCINFO
+          git diff --cached --quiet && echo "PKGBUILD already up to date." && exit 0
+          git commit -m "Bump to ${{ github.ref_name }}"
+          git push
