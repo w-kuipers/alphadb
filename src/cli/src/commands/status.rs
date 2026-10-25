@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{dispatch::DbInstance, error, utils::title};
+use alphadb::core::utils::errors::Get;
 use colored::Colorize;
 
 /// Print database status
@@ -24,7 +25,11 @@ pub fn status(db: &mut DbInstance) {
 
     let status = match db.status() {
         Ok(s) => s,
-        Err(_) => {
+        Err(e) => {
+            if e.error == "no-config-table-history" {
+                error!(e.message());
+            }
+
             error!("Unable to retrieve database status".to_string());
         }
     };
@@ -40,7 +45,7 @@ pub fn status(db: &mut DbInstance) {
         }
     };
 
-    if status.init == true {
+    if status.init {
         println!("Status: {}", "Initialized".cyan());
     } else {
         println!("Status: {}", "Uninitialized".yellow());

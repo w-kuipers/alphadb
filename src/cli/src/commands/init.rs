@@ -15,6 +15,7 @@
 
 use crate::{dispatch::DbInstance, error, utils::title};
 use alphadb::core::method_types::Init;
+use alphadb::core::utils::errors::Get;
 use colored::Colorize;
 
 /// Initialize the database
@@ -25,8 +26,8 @@ pub fn init(db: &mut DbInstance) {
 
     let init = match db.init() {
         Ok(i) => i,
-        Err(_) => {
-            error!("Failed to retrieve data for initialization status".to_string());
+        Err(e) => {
+            error!(e.message());
         }
     };
 

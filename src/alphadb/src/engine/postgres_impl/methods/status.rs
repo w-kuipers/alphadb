@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::core::config_table::build_status;
 use crate::core::method_types::Status;
 use crate::core::utils::globals::CONFIG_TABLE_NAME;
 use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
@@ -20,30 +21,21 @@ use postgres::Client;
 
 /// Get database status including initialization state, version, name and template
 pub fn status(db_name: &str, connection: &mut Client) -> Result<Status, AlphaDBPostgresError> {
-    let mut init = false;
-    let mut version: Option<String> = None;
-    let mut template: Option<String> = None;
-
     let table_check = connection.query_opt(
         "SELECT table_name FROM information_schema.tables WHERE table_catalog = $1 AND table_name = $2",
         &[&db_name, &CONFIG_TABLE_NAME],
     )?;
 
-    if table_check.is_some() {
-        let fetched = connection.query_opt(&format!("SELECT version, template FROM {} where db = $1", CONFIG_TABLE_NAME), &[&db_name])?;
+    let rows = match table_check {
+        Some(_) => Some(
+            connection
+                .query(&format!("SELECT version, template FROM {CONFIG_TABLE_NAME}"), &[])?
+                .iter()
+                .map(|row| (row.get::<_, String>(0), row.get::<_, Option<String>>(1)))
+                .collect(),
+        ),
+        None => None,
+    };
 
-        if let Some(row) = fetched {
-            version = Some(row.get::<_, String>(0));
-            template = row.get::<_, Option<String>>(1);
-        }
-
-        init = true;
-    }
-
-    Ok(Status {
-        init,
-        version,
-        name: db_name.to_string(),
-        template,
-    })
+    build_status(db_name, rows).map_err(|e| e.into())
 }

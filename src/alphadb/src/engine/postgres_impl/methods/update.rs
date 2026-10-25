@@ -21,7 +21,7 @@ use crate::engine::postgres_impl::utils::errors::AlphaDBPostgresError;
 use postgres::types::ToSql;
 use postgres::Client;
 
-fn query_value_to_postgres_param(value: &QueryValue) -> Box<dyn ToSql + Sync> {
+pub(crate) fn query_value_to_postgres_param(value: &QueryValue) -> Box<dyn ToSql + Sync> {
     match value {
         QueryValue::String(s) => Box::new(s.clone()),
         QueryValue::Integer(i) => Box::new(*i as i32),

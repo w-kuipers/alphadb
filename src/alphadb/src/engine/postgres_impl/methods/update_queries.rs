@@ -35,7 +35,7 @@ pub const POSTGRES_UPDATE_QUERIES_CONFIG: UpdateQueriesConfig<Client> = UpdateQu
     create_index: createindex,
     drop_index,
     default_data,
-    config_update_query,
+    config_insert_query,
     version_extras: Some(version_extras),
 };
 
@@ -85,14 +85,10 @@ fn version_extras(version: &Value) -> Result<Vec<Query>, AlphaDBError> {
     Ok(queries)
 }
 
-fn config_update_query(latest_version: &str, template_name: &str, db_name: &str) -> Query {
+fn config_insert_query(version: &str, template_name: &str) -> Query {
     Query {
-        query: format!("UPDATE {CONFIG_TABLE_NAME} SET version=$1, template=$2 WHERE db = $3;"),
-        data: Some(Vec::from([
-            QueryValue::String(latest_version.to_string()),
-            QueryValue::String(template_name.to_string()),
-            QueryValue::String(db_name.to_string()),
-        ])),
+        query: format!("INSERT INTO {CONFIG_TABLE_NAME} (version, template) VALUES ($1, $2);"),
+        data: Some(Vec::from([QueryValue::String(version.to_string()), QueryValue::String(template_name.to_string())])),
     }
 }
 

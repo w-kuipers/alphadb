@@ -22,7 +22,7 @@ use crate::engine::mysql_impl::utils::errors::AlphaDBMysqlError;
 use mysql::prelude::*;
 use mysql::*;
 
-fn query_value_to_mysql_value(value: &QueryValue) -> mysql::Value {
+pub(crate) fn query_value_to_mysql_value(value: &QueryValue) -> mysql::Value {
     match value {
         QueryValue::String(s) => mysql::Value::from(s.as_str()),
         QueryValue::Integer(i) => mysql::Value::from(*i),

@@ -42,7 +42,7 @@ pub const MYSQL_TABLE_CONFIG: TableQueryConfig = TableQueryConfig {
 
 fn modify_column(version_list: &Vec<Value>, modify_entry: &mut Value, table_name: &str, column: &str, version: &str) -> Result<Vec<DefineColumn>, AlphaDBError> {
     if exists_in_object(modify_entry, "recreate")? && modify_entry["recreate"] == false {
-        *modify_entry = consolidate_column(version_list, column, table_name, None)?;
+        *modify_entry = consolidate_column(version_list, column, table_name, Some(version))?;
     }
 
     let mut definitions = Vec::new();

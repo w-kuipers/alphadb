@@ -31,7 +31,7 @@ pub const MYSQL_UPDATE_QUERIES_CONFIG: UpdateQueriesConfig<PooledConn> = UpdateQ
     create_index: createindex,
     drop_index: dropindex,
     default_data,
-    config_update_query,
+    config_insert_query,
     version_extras: None,
 };
 
@@ -39,20 +39,16 @@ fn status_hook(db_name: &str, connection: &mut PooledConn) -> Result<Status, Alp
     status(db_name, connection).map_err(|e| e.into())
 }
 
-fn config_update_query(latest_version: &str, template_name: &str, db_name: &str) -> Query {
+fn config_insert_query(version: &str, template_name: &str) -> Query {
     Query {
-        query: format!("UPDATE `{CONFIG_TABLE_NAME}` SET `version`=?, `template`=? WHERE `db` = ?;"),
-        data: Some(Vec::from([
-            QueryValue::String(latest_version.to_string()),
-            QueryValue::String(template_name.to_string()),
-            QueryValue::String(db_name.to_string()),
-        ])),
+        query: format!("INSERT INTO `{CONFIG_TABLE_NAME}` (`version`, `template`) VALUES (?, ?);"),
+        data: Some(Vec::from([QueryValue::String(version.to_string()), QueryValue::String(template_name.to_string())])),
     }
 }
 
 #[cfg(test)]
 mod altertable_index_tests {
-    use super::config_update_query;
+    use super::config_insert_query;
     use crate::core::method_types::Status;
     use crate::core::update_queries::{update_queries, UpdateQueriesConfig};
     use crate::core::utils::errors::AlphaDBError;
@@ -68,6 +64,7 @@ mod altertable_index_tests {
             version: Some("0.0.0".to_string()),
             name: "test".to_string(),
             template: None,
+            config_version: Some("1.0.2".to_string()),
         })
     }
 
@@ -78,7 +75,7 @@ mod altertable_index_tests {
         create_index: createindex,
         drop_index: dropindex,
         default_data,
-        config_update_query,
+        config_insert_query,
         version_extras: None,
     };
 
