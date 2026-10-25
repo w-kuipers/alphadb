@@ -43,10 +43,15 @@ pub fn update(
 ) -> Result<(), AlphaDBMysqlError> {
     let queries = update_queries(&MYSQL_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)?;
 
+    // MySQL commits implicitly on every DDL statement, so this only makes the
+    // trailing default-data inserts and the version bump atomic. A drop
+    // without commit rolls back.
+    let mut tx = connection.start_transaction(TxOpts::default())?;
+
     for query in queries {
         if let Some(data) = query.data {
             let mysql_params: Vec<mysql::Value> = data.iter().map(query_value_to_mysql_value).collect();
-            match connection.exec_drop(query.query, mysql_params) {
+            match tx.exec_drop(query.query, mysql_params) {
                 Ok(result) => result,
                 Err(error) => {
                     return Err(AlphaDBError {
@@ -57,7 +62,7 @@ pub fn update(
                 }
             };
         } else {
-            match connection.exec_drop(query.query, ()) {
+            match tx.exec_drop(query.query, ()) {
                 Ok(result) => result,
                 Err(error) => {
                     return Err(AlphaDBError {
@@ -69,6 +74,8 @@ pub fn update(
             };
         }
     }
+
+    tx.commit()?;
 
     Ok(())
 }
