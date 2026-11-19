@@ -15,10 +15,9 @@
 use crate::core::query::column::definecolumn::DefineColumn;
 use crate::core::utils::error_messages::{incompatible_column_attributes_err, incomplete_version_object_err, simple_err};
 use crate::core::utils::errors::{AlphaDBError, Get};
-use crate::core::utils::json::{get_json_float, get_json_int, get_json_string, get_json_value_as_string, get_object_keys};
+use crate::core::utils::json::{get_json_decimal_length, get_json_int, get_json_string, get_json_value_as_string, get_object_keys};
 use crate::core::verification::compatibility::{check_column_attributes_compatibility, check_column_type_compatibility};
 use crate::core::verification::issue::VersionTrace;
-use core::f64;
 use serde_json::Value;
 
 use crate::engine::mysql_impl::verification::compatibility::{ALLOW_DECIMAL_LENGTH, COLUMN_ATTRIBUTE_COMPATIBILITY_RULES, COLUMN_TYPE_COMPATIBILITY_RULES, SUPPORTED_COLUMN_TYPES};
@@ -86,16 +85,16 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
             unique = true;
         }
 
-        let mut length: f64 = -1.0;
+        let mut length: Option<String> = None;
         if column_keys.iter().any(|&i| i == "length") {
             if ALLOW_DECIMAL_LENGTH.contains(&column_type.to_lowercase().as_str()) {
-                length = match get_json_float(&column_data["length"]) {
-                    Ok(l) => l,
+                length = match get_json_decimal_length(&column_data["length"]) {
+                    Ok(l) => Some(l),
                     Err(e) => return Err(simple_err(&e.message(), version_trace)),
                 };
             } else {
                 length = match get_json_int(&column_data["length"]) {
-                    Ok(l) => l as f64,
+                    Ok(l) => Some(l.to_string()),
                     Err(e) => return Err(simple_err(&e.message(), version_trace)),
                 };
             }
@@ -123,10 +122,8 @@ pub fn definecolumn(column_data: &Value, table_name: &str, column_name: &String,
         query.datatype(column_type);
         query.name(column_name);
 
-        if length != -1.0 {
-            let length_string = length.to_string();
-            let length_str = length_string.as_str();
-            query.size(length_str);
+        if let Some(length) = length {
+            query.size(length);
         }
 
         if null {

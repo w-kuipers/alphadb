@@ -15,10 +15,9 @@
 use crate::core::query::column::definecolumn::DefineColumn;
 use crate::core::utils::error_messages::{incompatible_column_attributes_err, simple_err};
 use crate::core::utils::errors::{AlphaDBError, Get};
-use crate::core::utils::json::{get_json_float, get_json_int, get_json_string, get_json_value_as_string, get_object_keys};
+use crate::core::utils::json::{get_json_decimal_length, get_json_int, get_json_string, get_json_value_as_string, get_object_keys};
 use crate::core::verification::compatibility::{check_column_attributes_compatibility, check_column_type_compatibility};
 use crate::core::verification::issue::VersionTrace;
-use core::f64;
 use serde_json::Value;
 
 use crate::engine::postgres_impl::verification::compatibility::{
@@ -88,17 +87,17 @@ pub fn altercolumn(column_data: &Value, table_name: &str, column_name: &String, 
             }
         }
 
-        let mut length: f64 = -1.0;
+        let mut length: Option<String> = None;
         if !NO_LENGTH_COLUMN_TYPES.contains(&column_type.as_str()) {
             if column_keys.iter().any(|&i| i == "length") {
                 if ALLOW_DECIMAL_LENGTH.contains(&column_type.to_lowercase().as_str()) {
-                    length = match get_json_float(&column_data["length"]) {
-                        Ok(l) => l,
+                    length = match get_json_decimal_length(&column_data["length"]) {
+                        Ok(l) => Some(l),
                         Err(e) => return Err(simple_err(&e.message(), version_trace)),
                     };
                 } else {
                     length = match get_json_int(&column_data["length"]) {
-                        Ok(l) => l as f64,
+                        Ok(l) => Some(l.to_string()),
                         Err(e) => return Err(simple_err(&e.message(), version_trace)),
                     };
                 }
@@ -115,7 +114,7 @@ pub fn altercolumn(column_data: &Value, table_name: &str, column_name: &String, 
         }
 
         let mut type_constraint = format!("TYPE {}", column_type.to_uppercase());
-        if length != -1.0 {
+        if let Some(length) = length {
             type_constraint = format!("{} ({})", type_constraint, length);
         }
 

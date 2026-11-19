@@ -181,6 +181,27 @@ pub fn get_json_float(value: &Value) -> Result<f64, AlphaDBError> {
     }
 }
 
+/// Get a precision/scale length such as `10,2` from `10`, `10.2`, `"10,2"` or `"10.2"`.
+///
+/// A bare JSON number loses trailing zeros in the scale (`20.10` arrives as `20.1`),
+/// use the string form for those.
+pub fn get_json_decimal_length(value: &Value) -> Result<String, AlphaDBError> {
+    let length = match value.as_str() {
+        Some(v) => v.replace(".", ","),
+        None => value.to_string().replace(".", ","),
+    };
+
+    if length.split(',').all(|part| part.parse::<u64>().is_ok()) {
+        return Ok(length);
+    }
+
+    Err(AlphaDBError {
+        message: format!("The value {} could not be parsed as a decimal length", value),
+        error: "invalid-json-number".to_string(),
+        ..Default::default()
+    })
+}
+
 /// Check if a JSON value is empty
 ///
 /// - Null: Always empty
