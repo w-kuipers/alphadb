@@ -14,15 +14,18 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::commands::Connection;
-use crate::config::connection::connection::{DbSessions, MysqlSession, SessionType};
+use crate::config::connection::connection::{
+    DbSessions, MysqlSession, PostgresSession, SessionType,
+};
 use crate::config::setup::{
     get_config_content, get_home, Config, ALPHADB_DIR, CONFIG_DIR, SESSIONS_FILE,
 };
 use crate::error;
 use crate::utils::encrypt_password;
+use alphadb::engine::AlphaDBEngine;
 use alphadb::AlphaDB;
 use colored::Colorize;
-use inquire::{required, CustomType, Password, Text};
+use inquire::{required, CustomType, Password, Select, Text};
 use std::fs;
 use toml;
 
@@ -41,10 +44,30 @@ use toml;
 /// # Panics
 /// * Panics if unable to connect to the database with provided credentials
 /// * Panics if unable to write to the config file
-pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
+pub fn new_connection(activate: bool, config: &Config) -> String {
     let home = get_home();
 
     print!("\n");
+    let engine = match Select::new(
+        "Engine",
+        vec![
+            AlphaDBEngine::MySQL.display_name(),
+            AlphaDBEngine::PostgreSQL.display_name(),
+        ],
+    )
+    .with_vim_mode(config.input.vim_bindings)
+    .prompt()
+    .unwrap()
+    {
+        "PostgreSQL" => AlphaDBEngine::PostgreSQL,
+        _ => AlphaDBEngine::MySQL,
+    };
+
+    let default_port: u16 = match engine {
+        AlphaDBEngine::MySQL => 3306,
+        AlphaDBEngine::PostgreSQL => 5432,
+    };
+
     let host = Text::new("Host")
         .with_default("localhost")
         .with_help_message("URL/IP")
@@ -71,7 +94,7 @@ pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
 
     let port: u16 = CustomType::new("Port")
         .with_error_message("Port should be a number")
-        .with_default(3306)
+        .with_default(default_port)
         .prompt()
         .unwrap();
 
@@ -84,15 +107,28 @@ pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
     };
 
     // Try if the credentials will connect
-    let runtime_config = alphadb::engine::mysql_impl::mysql_runtime_config();
-    let mut db = AlphaDB::new(runtime_config);
-    let testconn = db.connect(
-        &connection.host,
-        &connection.user,
-        &connection.password,
-        &connection.database,
-        connection.port,
-    );
+    let testconn = match engine {
+        AlphaDBEngine::MySQL => {
+            let runtime_config = alphadb::engine::mysql_impl::mysql_runtime_config();
+            AlphaDB::new(runtime_config).connect(
+                &connection.host,
+                &connection.user,
+                &connection.password,
+                &connection.database,
+                connection.port,
+            )
+        }
+        AlphaDBEngine::PostgreSQL => {
+            let runtime_config = alphadb::engine::postgres_impl::postgres_runtime_config();
+            AlphaDB::new(runtime_config).connect(
+                &connection.host,
+                &connection.user,
+                &connection.password,
+                &connection.database,
+                connection.port,
+            )
+        }
+    };
 
     if let Err(t) = testconn {
         error!(t.to_string());
@@ -115,16 +151,25 @@ pub fn new_mysql_connection(activate: bool, config: &Config) -> String {
         None => DbSessions::default(),
     };
 
-    sessions_content.sessions.insert(
-        label.to_string(),
-        SessionType::Mysql(MysqlSession {
+    let password = encrypt_password(&connection.password, config.main.secret.clone().unwrap());
+    let session = match engine {
+        AlphaDBEngine::MySQL => SessionType::Mysql(MysqlSession {
             host: connection.host,
             user: connection.user,
-            password: encrypt_password(&connection.password, config.main.secret.clone().unwrap()),
+            password,
             database: connection.database,
             port: connection.port,
         }),
-    );
+        AlphaDBEngine::PostgreSQL => SessionType::Postgres(PostgresSession {
+            host: connection.host,
+            user: connection.user,
+            password,
+            database: connection.database,
+            port: connection.port,
+        }),
+    };
+
+    sessions_content.sessions.insert(label.to_string(), session);
 
     if activate {
         let _ = sessions_content

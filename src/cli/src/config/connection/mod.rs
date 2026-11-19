@@ -14,10 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 mod connection;
-mod mysql;
+mod new;
 
 pub use connection::{
     get_active_connection, get_connections, remove_connection, set_active_connection, DbSessions,
     SessionType,
 };
-pub use mysql::new_mysql_connection;
+pub use new::new_connection;
