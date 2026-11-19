@@ -113,16 +113,19 @@ pub fn altercolumn(column_data: &Value, table_name: &str, column_name: &String, 
             return Err(simple_err(format!("Column type '{}' is not (yet) supported", column_type).as_str(), version_trace));
         }
 
-        let mut type_constraint = format!("TYPE {}", column_type.to_uppercase());
-        if let Some(length) = length {
-            type_constraint = format!("{} ({})", type_constraint, length);
-        }
+        // Restating the type without a length would reset the column's existing length
+        if column_keys.iter().any(|&i| i == "type" || i == "length") {
+            let mut type_constraint = format!("TYPE {}", column_type.to_uppercase());
+            if let Some(length) = length {
+                type_constraint = format!("{} ({})", type_constraint, length);
+            }
 
-        let mut type_stmt = DefineColumn::new();
-        type_stmt.method("ALTER COLUMN");
-        type_stmt.name(column_name);
-        type_stmt.constraint(type_constraint);
-        statements.push(type_stmt);
+            let mut type_stmt = DefineColumn::new();
+            type_stmt.method("ALTER COLUMN");
+            type_stmt.name(column_name);
+            type_stmt.constraint(type_constraint);
+            statements.push(type_stmt);
+        }
 
         if null {
             let mut null_stmt = DefineColumn::new();
@@ -224,10 +227,9 @@ mod altercolumn_tests {
         let q = altercolumn(column, "table", &"col".to_string(), &"VARCHAR".to_string(), "0.0.1");
         assert!(q.is_ok());
         let statements = q.unwrap();
-        assert_eq!(statements.len(), 3);
-        assert_eq!(statements[0].to_string(), "ALTER COLUMN col TYPE VARCHAR");
-        assert_eq!(statements[1].to_string(), "ALTER COLUMN col SET NOT NULL");
-        assert_eq!(statements[2].to_string(), "ALTER COLUMN col SET DEFAULT 'TEST'");
+        assert_eq!(statements.len(), 2);
+        assert_eq!(statements[0].to_string(), "ALTER COLUMN col SET NOT NULL");
+        assert_eq!(statements[1].to_string(), "ALTER COLUMN col SET DEFAULT 'TEST'");
     }
 
     #[test]
