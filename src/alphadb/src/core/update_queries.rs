@@ -20,11 +20,11 @@
 
 use crate::core::config_table::config_table_queries;
 use crate::core::method_types::{Query, Status};
-use crate::core::query::table::{alter_table, create_table, TableQueryConfig};
+use crate::core::query::table::{alter_table, create_table, drop_table, TableQueryConfig};
 use crate::core::utils::consolidate::default_data::consolidate_default_data;
 use crate::core::utils::errors::{AlphaDBError, Get};
 use crate::core::utils::globals::CONFIG_TABLE_TEMPLATE_NAME;
-use crate::core::utils::json::{array_iter, exists_in_object, get_object_keys, object_iter};
+use crate::core::utils::json::{array_iter, exists_in_object, get_json_string, get_object_keys, object_iter};
 use crate::core::utils::version_number::{get_latest_version, parse_version_number, sort_versions, validate_version_number};
 use crate::core::utils::version_source::{get_version_array, parse_version_source_string};
 use crate::core::verification::issue::VersionTrace;
@@ -202,6 +202,20 @@ pub fn update_queries<C>(
 
         if let Some(version_extras) = config.version_extras {
             queries.extend(version_extras(version).map_err(with_trace(&version_trace))?);
+        }
+
+        // Before createtable, so a version can drop a table and create it again
+        if version_keys.contains(&&"droptable".to_string()) {
+            version_trace.push("droptable".to_string());
+
+            for table in array_iter(&version["droptable"]).map_err(with_trace(&version_trace))? {
+                queries.push(Query {
+                    query: drop_table(get_json_string(table).map_err(with_trace(&version_trace))?),
+                    data: None,
+                });
+            }
+
+            version_trace.pop();
         }
 
         if version_keys.contains(&&"createtable".to_string()) {
