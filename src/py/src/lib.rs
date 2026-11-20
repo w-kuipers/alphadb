@@ -173,12 +173,11 @@ impl AlphaDB {
         })
     }
 
-    #[pyo3(signature = (version_source, target_version=None, no_data=false))]
+    #[pyo3(signature = (version_source, target_version=None))]
     fn update_queries(
         &mut self,
         version_source: String,
         target_version: Option<&str>,
-        no_data: bool,
     ) -> PyResult<Vec<Query>> {
         let version_source = match parse_version_source(&version_source) {
             Ok(vs) => vs,
@@ -186,10 +185,7 @@ impl AlphaDB {
         };
 
         Python::attach(|_py| {
-            match self
-                .inner
-                .update_queries(version_source, target_version, no_data)
-            {
+            match self.inner.update_queries(version_source, target_version) {
                 Ok(queries) => {
                     let mut queries_converted: Vec<Query> = Vec::new();
 
@@ -204,12 +200,11 @@ impl AlphaDB {
         })
     }
 
-    #[pyo3(signature = (version_source, target_version=None, no_data=false, tolerated_verification_issue_level=PyToleratedVerificationIssueLevel::Low))]
+    #[pyo3(signature = (version_source, target_version=None, tolerated_verification_issue_level=PyToleratedVerificationIssueLevel::Low))]
     fn update(
         &mut self,
         version_source: String,
         target_version: Option<String>,
-        no_data: Option<bool>,
         tolerated_verification_issue_level: PyToleratedVerificationIssueLevel,
     ) -> PyResult<()> {
         let allowed_error_priority = match tolerated_verification_issue_level {
@@ -221,11 +216,6 @@ impl AlphaDB {
             PyToleratedVerificationIssueLevel::All => ToleratedVerificationIssueLevel::All,
         };
 
-        let no_data = match no_data {
-            Some(nd) => nd,
-            None => false,
-        };
-
         let version_source = match parse_version_source(&version_source) {
             Ok(vs) => vs,
             Err(e) => return Err(PyRuntimeError::new_err(e.message())),
@@ -234,7 +224,6 @@ impl AlphaDB {
         match self.inner.update(
             version_source,
             target_version.as_deref(),
-            no_data,
             allowed_error_priority,
         ) {
             Ok(_) => Ok(()),
