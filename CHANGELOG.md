@@ -11,6 +11,8 @@ in the next listed release. `dev` builds are not listed.
 
 ## [Unreleased]
 
+## [1.0.0-beta.58] - 2026-11-20
+
 ### Added
 
 - `droptable` version source method. A version can drop a table and create it again.
@@ -322,7 +324,8 @@ AlphaDB is rewritten in Rust.
 
 - Initial open-source release, written in Python.
 
-[Unreleased]: https://github.com/w-kuipers/alphadb/compare/v1.0.0-beta.57...HEAD
+[Unreleased]: https://github.com/w-kuipers/alphadb/compare/v1.0.0-beta.58...HEAD
+[1.0.0-beta.58]: https://github.com/w-kuipers/alphadb/compare/v1.0.0-beta.57...v1.0.0-beta.58
 [1.0.0-beta.57]: https://github.com/w-kuipers/alphadb/compare/v1.0.0-beta.55...v1.0.0-beta.57
 [1.0.0-beta.55]: https://github.com/w-kuipers/alphadb/compare/v1.0.0-beta.54...v1.0.0-beta.55
 [1.0.0-beta.54]: https://github.com/w-kuipers/alphadb/compare/v1.0.0-beta.53...v1.0.0-beta.54
