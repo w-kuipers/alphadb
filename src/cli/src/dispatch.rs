@@ -60,7 +60,6 @@ impl DbInstance {
         &mut self,
         version_source: String,
         target_version: Option<&str>,
-        no_data: bool,
         _verify: bool,
         tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
     ) -> Result<(), AlphaDBError> {
@@ -68,13 +67,11 @@ impl DbInstance {
             DbInstance::Mysql(db) => db.update(
                 version_source,
                 target_version,
-                no_data,
                 tolerated_verification_issue_level,
             ),
             DbInstance::Postgres(db) => db.update(
                 version_source,
                 target_version,
-                no_data,
                 tolerated_verification_issue_level,
             ),
         }
@@ -102,12 +99,6 @@ pub fn dispatch(matches: &ArgMatches, config: &Config, mut db: DbInstance) {
         Some(("init", _query_matches)) => commands::init(&mut db),
         Some(("status", _query_matches)) => commands::status(&mut db),
         Some(("update", query_matches)) => {
-            // No data should be false by default
-            let mut nodata = false;
-            if let Some(nodata_some) = query_matches.get_one("no-data") {
-                nodata = *nodata_some;
-            }
-
             // No verify should be false by default
             let mut noverify = false;
             if let Some(noverify_some) = query_matches.get_one("no-verify") {
@@ -130,7 +121,6 @@ pub fn dispatch(matches: &ArgMatches, config: &Config, mut db: DbInstance) {
             commands::update(
                 &config,
                 &mut db,
-                nodata,
                 noverify,
                 allowed_error_priority,
                 version_source,
