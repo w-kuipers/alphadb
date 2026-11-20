@@ -2,12 +2,12 @@ use serde_json::{json, Value};
 
 use crate::core::utils::{
     errors::AlphaDBError,
-    json::{get_object_keys, is_empty_json},
+    json::get_object_keys,
     version_number::get_latest_version,
     version_source::{get_version_array, parse_version_source_string},
 };
 
-use super::{default_data::consolidate_default_data, table::consolidate_table};
+use super::table::consolidate_table;
 
 /// Consolidate a version source by combining all table definitions across versions
 ///
@@ -46,16 +46,10 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
     }
 
     let latest_version = get_latest_version(&versions)?;
-    let mut consolidated_version = json!({
+    let consolidated_version = json!({
         "_id": latest_version,
         "createtable": consolidated_versions
     });
-
-    // Consolidate default data
-    let default_data = consolidate_default_data(versions, None)?;
-    if !is_empty_json(&default_data) {
-        consolidated_version["default_data"] = default_data;
-    }
 
     let consolidated_version_source = json!({
         "name": version_source["name"],

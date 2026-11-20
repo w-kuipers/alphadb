@@ -18,7 +18,6 @@ use crate::core::update_queries::UpdateQueriesConfig;
 use crate::core::utils::errors::AlphaDBError;
 use crate::core::utils::globals::CONFIG_TABLE_NAME;
 use crate::engine::mysql_impl::methods::status;
-use crate::engine::mysql_impl::query::default_data::default_data;
 use crate::engine::mysql_impl::query::table::config::MYSQL_TABLE_CONFIG;
 use crate::engine::mysql_impl::query::{createindex, dropindex};
 use crate::engine::AlphaDBEngine;
@@ -30,7 +29,6 @@ pub const MYSQL_UPDATE_QUERIES_CONFIG: UpdateQueriesConfig<PooledConn> = UpdateQ
     table_config: &MYSQL_TABLE_CONFIG,
     create_index: createindex,
     drop_index: dropindex,
-    default_data,
     config_insert_query,
     version_extras: None,
 };
@@ -52,7 +50,6 @@ mod altertable_index_tests {
     use crate::core::method_types::Status;
     use crate::core::update_queries::{update_queries, UpdateQueriesConfig};
     use crate::core::utils::errors::AlphaDBError;
-    use crate::engine::mysql_impl::query::default_data::default_data;
     use crate::engine::mysql_impl::query::table::config::MYSQL_TABLE_CONFIG;
     use crate::engine::mysql_impl::query::{createindex, dropindex};
     use crate::engine::AlphaDBEngine;
@@ -74,7 +71,6 @@ mod altertable_index_tests {
         table_config: &MYSQL_TABLE_CONFIG,
         create_index: createindex,
         drop_index: dropindex,
-        default_data,
         config_insert_query,
         version_extras: None,
     };
@@ -99,7 +95,7 @@ mod altertable_index_tests {
             ]
         });
 
-        let queries = update_queries(&CONFIG, "test", &mut (), source.to_string(), None, true).unwrap();
+        let queries = update_queries(&CONFIG, "test", &mut (), source.to_string(), None).unwrap();
 
         assert!(
             queries.iter().all(|q| !q.query.starts_with("ALTER TABLE")),

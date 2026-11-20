@@ -47,17 +47,6 @@ pub struct AltertableHookParams<'a> {
 /// Hook for the `altertable` step - runs for each table in an altertable block
 pub type AltertableHook = fn(params: &AltertableHookParams) -> Result<(), VerificationIssueDraft>;
 
-/// Parameters for the `default_data` hook
-#[derive(Debug, Clone)]
-pub struct DefaultDataHookParams<'a> {
-    pub table_name: &'a str,
-    pub default_data: &'a serde_json::Value,
-    pub version: &'a str,
-}
-
-/// Hook for the `default_data` step - runs for default_data validation
-pub type DefaultDataHook = fn(params: &DefaultDataHookParams) -> Result<(), VerificationIssueDraft>;
-
 /// Parameters for the `column_compatibility` hook
 #[derive(Debug, Clone)]
 pub struct ColumnCompatibilityHookParams<'a> {
@@ -78,7 +67,6 @@ pub struct VerificationHooks {
     pub verify: &'static [VerifyHook],
     pub createtable: &'static [CreatetableHook],
     pub altertable: &'static [AltertableHook],
-    pub default_data: &'static [DefaultDataHook],
     pub column_compatibility: &'static [ColumnCompatibilityHook],
 }
 
@@ -94,15 +82,6 @@ pub struct EngineConfig {
 
     /// All version source table keys that do not represent a column
     pub non_column_table_keys: &'static [&'static str],
-
-    /// Column types that should take a string value as inserted data
-    pub string_columns: &'static [&'static str],
-
-    /// Column types that should take an integer value as inserted data
-    pub int_columns: &'static [&'static str],
-
-    /// Column types that should take a float value as inserted data
-    pub float_columns: &'static [&'static str],
 
     /// All column types supported by this engine
     pub supported_column_types: &'static [&'static str],

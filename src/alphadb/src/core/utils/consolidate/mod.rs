@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod column;
-pub mod default_data;
 pub mod primary_key;
 pub mod table;
 pub mod version_source;

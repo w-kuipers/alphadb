@@ -42,10 +42,9 @@ fn mysql_update(
     connection: &mut PooledConn,
     version_source: String,
     target_version: Option<&str>,
-    no_data: bool,
     tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBError> {
-    methods::update(db_name, connection, version_source, target_version, no_data, tolerated_verification_issue_level).map_err(|e| e.into())
+    methods::update(db_name, connection, version_source, target_version, tolerated_verification_issue_level).map_err(|e| e.into())
 }
 
 fn mysql_vacate(connection: &mut PooledConn) -> Result<(), AlphaDBError> {
@@ -60,8 +59,8 @@ pub fn mysql_runtime_config() -> RuntimeConfig<PooledConn> {
             connect: mysql_connect,
             init: mysql_init,
             status: mysql_status,
-            update_queries: |db_name, connection, version_source, target_version, no_data| {
-                update_queries(&MYSQL_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)
+            update_queries: |db_name, connection, version_source, target_version| {
+                update_queries(&MYSQL_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version)
             },
             update: mysql_update,
             vacate: mysql_vacate,

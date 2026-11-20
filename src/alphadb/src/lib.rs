@@ -87,22 +87,21 @@ impl<C> AlphaDB<C> {
         hook(db_name, connection)
     }
 
-    pub fn update_queries(&mut self, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, AlphaDBError> {
+    pub fn update_queries(&mut self, version_source: String, target_version: Option<&str>) -> Result<Vec<Query>, AlphaDBError> {
         let hook = self.config.hooks.update_queries;
         let (db_name, connection) = self.get_connection()?;
-        hook(db_name, connection, version_source, target_version, no_data)
+        hook(db_name, connection, version_source, target_version)
     }
 
     pub fn update(
         &mut self,
         version_source: String,
         target_version: Option<&str>,
-        no_data: bool,
         tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
     ) -> Result<(), AlphaDBError> {
         let hook = self.config.hooks.update;
         let (db_name, connection) = self.get_connection()?;
-        hook(db_name, connection, version_source, target_version, no_data, tolerated_verification_issue_level)
+        hook(db_name, connection, version_source, target_version, tolerated_verification_issue_level)
     }
 
     /// Remove all tables from the database

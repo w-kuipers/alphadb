@@ -22,9 +22,6 @@ use crate::core::{
 pub const POSTGRES_CONFIG: EngineConfig = EngineConfig {
     name: "postgres",
     non_column_table_keys: &["primary_key", "foreign_key"],
-    string_columns: &["TEXT", "VARCHAR", "CHAR", "JSONB", "JSON"],
-    int_columns: &["INTEGER", "SMALLINT", "BIGINT", "SERIAL", "BIGSERIAL"],
-    float_columns: &["REAL", "DOUBLE PRECISION", "NUMERIC"],
 
     supported_column_types: &[
         "SERIAL",
@@ -87,7 +84,6 @@ pub const POSTGRES_CONFIG: EngineConfig = EngineConfig {
         verify: &[],
         createtable: &[],
         altertable: &[],
-        default_data: &[],
         column_compatibility: &[],
     },
 };

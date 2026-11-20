@@ -38,14 +38,12 @@ pub fn update(
     connection: &mut PooledConn,
     version_source: String,
     target_version: Option<&str>,
-    no_data: bool,
     _tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBMysqlError> {
-    let queries = update_queries(&MYSQL_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)?;
+    let queries = update_queries(&MYSQL_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version)?;
 
     // MySQL commits implicitly on every DDL statement, so this only makes the
-    // trailing default-data inserts and the version bump atomic. A drop
-    // without commit rolls back.
+    // version bump atomic. A drop without commit rolls back.
     let mut tx = connection.start_transaction(TxOpts::default())?;
 
     for query in queries {
