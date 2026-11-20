@@ -37,7 +37,7 @@ class AlphaDB:
     """Get the databases status"""
 
     def update_queries(
-        self, version_source: str, target_version: Optional[str] = None, no_data=False
+        self, version_source: str, target_version: Optional[str] = None
     ) -> List[Tuple[str, List[str]]]: ...
     """
     Generate queries to update the database
@@ -50,7 +50,6 @@ class AlphaDB:
         self,
         version_source: str,
         target_version: Optional[str] = None,
-        no_data=False,
         tolerated_verification_issue_level: Optional[
             ToleratedVerificationIssueLevel
         ] = "LOW",

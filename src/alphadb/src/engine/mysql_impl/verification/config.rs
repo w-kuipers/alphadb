@@ -22,9 +22,6 @@ use crate::core::{
 pub const MYSQL_CONFIG: EngineConfig = EngineConfig {
     name: "mysql",
     non_column_table_keys: &["primary_key"],
-    string_columns: &["TEXT", "LONGTEXT", "VARCHAR", "DATETIME", "JSON"],
-    int_columns: &["INT", "TINYINT", "BIGINT", "DATETIME"],
-    float_columns: &["FLOAT", "DECIMAL"],
     supported_column_types: &["INT", "TINYINT", "BIGINT", "TEXT", "LONGTEXT", "FLOAT", "DECIMAL", "VARCHAR", "DATETIME", "JSON", "BINARY"],
 
     type_compatibility_rules: &[
@@ -47,7 +44,6 @@ pub const MYSQL_CONFIG: EngineConfig = EngineConfig {
         verify: &[],
         createtable: &[],
         altertable: &[],
-        default_data: &[],
         column_compatibility: &[],
     },
 };

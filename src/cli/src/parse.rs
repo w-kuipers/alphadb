@@ -29,11 +29,6 @@ pub fn parse_cl_input() -> ArgMatches {
         .subcommand(Command::new("status").about("Get database status"))
         .subcommand(
             Command::new("update").about("Update the database").args([
-                Arg::new("no-data")
-                    .short('n')
-                    .long("no-data")
-                    .help("Update the data, but do not insert the default data")
-                    .action(ArgAction::SetTrue),
                 Arg::new("no-verify")
                     .short('v')
                     .long("no-verify")

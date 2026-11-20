@@ -45,8 +45,8 @@ interface AlphaDB {
 	connect(props: ConnectProps): void;
 	init(): void;
 	status(): Status;
-	updateQueries(version_source: VersionSourceInput, target_version?: string, no_data?: boolean): Array<Query>;
-	update(version_source: VersionSourceInput, target_version?: string, no_data?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel): void;
+	updateQueries(version_source: VersionSourceInput, target_version?: string): Array<Query>;
+	update(version_source: VersionSourceInput, target_version?: string, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel): void;
 	vacate(): void;
 }
 
@@ -63,8 +63,8 @@ declare module "./load.cjs" {
 	function connect(conn: any, internaldbname: any, internalisconnected: any, host: string, user: string, password: string, database: string, port: number): void;
 	function init(conn: any, internaldbname: any): void;
 	function status(conn: any, internaldbname: any): Status;
-	function update_queries(conn: any, internaldbname: any, version_source: string, target_version: string, no_data: boolean): Array<Query>;
-	function update(conn: any, internaldbname: any, version_source: string, target_version: string, no_data: boolean, tolerated_verification_issue_level: string): Array<Query>;
+	function update_queries(conn: any, internaldbname: any, version_source: string, target_version: string): Array<Query>;
+	function update(conn: any, internaldbname: any, version_source: string, target_version: string, tolerated_verification_issue_level: string): Array<Query>;
 	function vacate(conn: any, internaldbname: any): void;
 }
 
@@ -98,18 +98,16 @@ class AlphaDB {
 		return addon.status(this.conn, this.internaldbname);
 	}
 
-	public updateQueries(version_source: VersionSourceInput, target_version?: string, no_data?: boolean) {
+	public updateQueries(version_source: VersionSourceInput, target_version?: string) {
 		if (typeof target_version === "undefined") target_version = "NOVERSION";
-		if (typeof no_data === "undefined") no_data = false;
-		return addon.update_queries(this.conn, this.internaldbname, serializeVersionSource(version_source), target_version, no_data);
+		return addon.update_queries(this.conn, this.internaldbname, serializeVersionSource(version_source), target_version);
 	}
 
-	public async update(version_source: VersionSourceInput, target_version?: string, no_data?: boolean, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel) {
+	public async update(version_source: VersionSourceInput, target_version?: string, toleratedVerificationIssueLevel?: ToleratedVerificationIssueLevel) {
 		if (typeof target_version === "undefined") target_version = "NOVERSION";
-		if (typeof no_data === "undefined") no_data = false;
 		if (typeof toleratedVerificationIssueLevel === "undefined") toleratedVerificationIssueLevel = "LOW";
 
-		return addon.update(this.conn, this.internaldbname, serializeVersionSource(version_source), target_version, no_data, toleratedVerificationIssueLevel);
+		return addon.update(this.conn, this.internaldbname, serializeVersionSource(version_source), target_version, toleratedVerificationIssueLevel);
 	}
 
 	public vacate() {

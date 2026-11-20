@@ -40,8 +40,7 @@ pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
         Err(e) => return cx.throw_error(e.message()),
     };
     let target_version = cx.argument::<JsString>(3)?.value(&mut cx);
-    let no_data = cx.argument::<JsBoolean>(4)?.value(&mut cx);
-    let allowed_error_priority = cx.argument::<JsString>(5)?.value(&mut cx);
+    let allowed_error_priority = cx.argument::<JsString>(4)?.value(&mut cx);
 
     // The TypeScript wrapper allows for target_version to be undefined
     // so it's set to NOVERSION if that is the case
@@ -67,7 +66,6 @@ pub fn update_wrap(mut cx: FunctionContext) -> JsResult<JsUndefined> {
             connection,
             version_source,
             target_version_processed,
-            no_data,
             allowed_error_priority_processed,
         ) {
             Ok(_) => {

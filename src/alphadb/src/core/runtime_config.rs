@@ -36,7 +36,7 @@ pub type StatusHook<C> = fn(db_name: &str, connection: &mut C) -> Result<Status,
 /// Hook type for the `update_queries` operation.
 ///
 /// Generates queries to update the database tables.
-pub type UpdateQueriesHook<C> = fn(db_name: &str, connection: &mut C, version_source: String, target_version: Option<&str>, no_data: bool) -> Result<Vec<Query>, AlphaDBError>;
+pub type UpdateQueriesHook<C> = fn(db_name: &str, connection: &mut C, version_source: String, target_version: Option<&str>) -> Result<Vec<Query>, AlphaDBError>;
 
 /// Hook type for the `update` operation.
 ///
@@ -46,7 +46,6 @@ pub type UpdateHook<C> = fn(
     connection: &mut C,
     version_source: String,
     target_version: Option<&str>,
-    no_data: bool,
     tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBError>;
 

@@ -29,7 +29,6 @@ use std::path::PathBuf;
 pub fn update(
     config: &Config,
     db: &mut DbInstance,
-    nodata: bool,
     noverify: bool,
     tolerated_verification_level: String,
     version_source: Option<PathBuf>,
@@ -81,7 +80,7 @@ pub fn update(
         }
     }
 
-    let update = db.update(data, None, nodata, noverify, verification_issue_level);
+    let update = db.update(data, None, noverify, verification_issue_level);
 
     let status = match db.status() {
         Ok(s) => s,

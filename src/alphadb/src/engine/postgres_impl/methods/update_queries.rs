@@ -19,7 +19,6 @@ use crate::core::utils::errors::AlphaDBError;
 use crate::core::utils::globals::CONFIG_TABLE_NAME;
 use crate::core::utils::json::{array_iter, get_object_keys};
 use crate::engine::postgres_impl::methods::status;
-use crate::engine::postgres_impl::query::default_data::default_data;
 use crate::engine::postgres_impl::query::table::config::POSTGRES_TABLE_CONFIG;
 use crate::engine::postgres_impl::query::{
     create_extension, createindex, drop_extension, dropindex, update_extension, CreateExtension, DropExtension, FromExtensionValue, UpdateExtension,
@@ -34,7 +33,6 @@ pub const POSTGRES_UPDATE_QUERIES_CONFIG: UpdateQueriesConfig<Client> = UpdateQu
     table_config: &POSTGRES_TABLE_CONFIG,
     create_index: createindex,
     drop_index,
-    default_data,
     config_insert_query,
     version_extras: Some(version_extras),
 };
@@ -99,7 +97,6 @@ mod altertable_index_tests {
     use crate::core::update_queries::{update_queries, UpdateQueriesConfig};
     use crate::core::utils::errors::AlphaDBError;
     use crate::engine::postgres_impl::query::createindex;
-    use crate::engine::postgres_impl::query::default_data::default_data;
     use crate::engine::postgres_impl::query::table::config::POSTGRES_TABLE_CONFIG;
     use crate::engine::AlphaDBEngine;
     use serde_json::json;
@@ -120,7 +117,6 @@ mod altertable_index_tests {
         table_config: &POSTGRES_TABLE_CONFIG,
         create_index: createindex,
         drop_index,
-        default_data,
         config_insert_query,
         version_extras: Some(version_extras),
     };
@@ -145,7 +141,7 @@ mod altertable_index_tests {
             ]
         });
 
-        let queries = update_queries(&CONFIG, "test", &mut (), source.to_string(), None, true).unwrap();
+        let queries = update_queries(&CONFIG, "test", &mut (), source.to_string(), None).unwrap();
 
         assert!(queries.iter().all(|q| !q.query.starts_with("ALTER TABLE")), "{:?}", queries.iter().map(|q| &q.query).collect::<Vec<_>>());
     }
@@ -167,7 +163,7 @@ mod altertable_index_tests {
             ]
         });
 
-        let queries = update_queries(&CONFIG, "test", &mut (), source.to_string(), None, true).unwrap();
+        let queries = update_queries(&CONFIG, "test", &mut (), source.to_string(), None).unwrap();
         let queries = queries.iter().map(|q| q.query.as_str()).collect::<Vec<_>>();
         let position = |query: &str| queries.iter().position(|q| *q == query).unwrap_or_else(|| panic!("missing '{query}' in {queries:?}"));
 

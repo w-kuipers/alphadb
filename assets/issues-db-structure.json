@@ -51,15 +51,6 @@
           }
         },
         "broken_table": "not-an-object"
-      },
-      "default_data": {
-        "table2": [
-          {
-            "col1": 4,
-            "col3": "test",
-            "col4": 12
-          }
-        ]
       }
     },
     {

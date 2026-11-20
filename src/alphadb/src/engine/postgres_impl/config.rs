@@ -43,10 +43,9 @@ fn postgres_update(
     connection: &mut Client,
     version_source: String,
     target_version: Option<&str>,
-    no_data: bool,
     tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBError> {
-    methods::update(db_name, connection, version_source, target_version, no_data, tolerated_verification_issue_level).map_err(|e| e.into())
+    methods::update(db_name, connection, version_source, target_version, tolerated_verification_issue_level).map_err(|e| e.into())
 }
 
 fn postgres_vacate(connection: &mut Client) -> Result<(), AlphaDBError> {
@@ -61,8 +60,8 @@ pub fn postgres_runtime_config() -> RuntimeConfig<Client> {
             connect: postgres_connect,
             init: postgres_init,
             status: postgres_status,
-            update_queries: |db_name, connection, version_source, target_version, no_data| {
-                update_queries(&POSTGRES_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)
+            update_queries: |db_name, connection, version_source, target_version| {
+                update_queries(&POSTGRES_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version)
             },
             update: postgres_update,
             vacate: postgres_vacate,

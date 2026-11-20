@@ -21,7 +21,6 @@
 use crate::core::config_table::config_table_queries;
 use crate::core::method_types::{Query, Status};
 use crate::core::query::table::{alter_table, create_table, drop_table, TableQueryConfig};
-use crate::core::utils::consolidate::default_data::consolidate_default_data;
 use crate::core::utils::errors::{AlphaDBError, Get};
 use crate::core::utils::globals::CONFIG_TABLE_TEMPLATE_NAME;
 use crate::core::utils::json::{array_iter, exists_in_object, get_json_string, get_object_keys, object_iter};
@@ -38,7 +37,6 @@ pub type CreateIndexHook = fn(index: &Value, table_name: &str) -> Result<String,
 /// `table_name` is supplied for engines that scope index names to a table (MySQL);
 /// engines with globally-named indexes (PostgreSQL) ignore it.
 pub type DropIndexHook = fn(index_name: &Value, table_name: &str) -> Result<String, AlphaDBError>;
-pub type DefaultDataHook = fn(table_name: &str, item: &Value) -> Result<Query, AlphaDBError>;
 pub type ConfigInsertQueryHook = fn(version: &str, template_name: &str) -> Query;
 pub type VersionExtrasHook = fn(version: &Value) -> Result<Vec<Query>, AlphaDBError>;
 
@@ -51,7 +49,6 @@ pub struct UpdateQueriesConfig<C> {
     pub table_config: &'static TableQueryConfig,
     pub create_index: CreateIndexHook,
     pub drop_index: DropIndexHook,
-    pub default_data: DefaultDataHook,
     /// Logs an applied version of `template_name` in the config table.
     pub config_insert_query: ConfigInsertQueryHook,
 
@@ -76,7 +73,6 @@ pub fn update_queries<C>(
     connection: &mut C,
     version_source: String,
     target_version: Option<&str>,
-    no_data: bool,
 ) -> Result<Vec<Query>, AlphaDBError> {
     let mut version_source = parse_version_source_string(version_source)?;
 
@@ -299,19 +295,6 @@ pub fn update_queries<C>(
             }
 
             version_trace.pop();
-        }
-    }
-
-    // Default data is a seeder: rows already seeded are never touched again, even
-    // when a later version edits them by index. Only rows appended since are new.
-    if !no_data {
-        let seeded = consolidate_default_data(versions, Some(&database_version))?;
-        let default_data_object = consolidate_default_data(versions, target_version)?;
-        for table in object_iter(&default_data_object)? {
-            let seeded_count = seeded[table].as_array().map_or(0, Vec::len);
-            for item in array_iter(&default_data_object[table])?.iter().skip(seeded_count) {
-                queries.push((config.default_data)(table, item)?);
-            }
         }
     }
 

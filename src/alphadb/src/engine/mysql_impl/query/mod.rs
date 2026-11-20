@@ -1,6 +1,5 @@
 pub mod column;
 mod constraint;
-pub mod default_data;
 mod index;
 pub mod table;
 

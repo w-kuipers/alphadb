@@ -37,10 +37,9 @@ pub fn update(
     connection: &mut Client,
     version_source: String,
     target_version: Option<&str>,
-    no_data: bool,
     _tolerated_verification_issue_level: ToleratedVerificationIssueLevel,
 ) -> Result<(), AlphaDBPostgresError> {
-    let queries = update_queries(&POSTGRES_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version, no_data)?;
+    let queries = update_queries(&POSTGRES_UPDATE_QUERIES_CONFIG, db_name, connection, version_source, target_version)?;
 
     // PostgreSQL DDL is transactional, so a failure anywhere rolls back the
     // whole update. A drop without commit rolls back.
