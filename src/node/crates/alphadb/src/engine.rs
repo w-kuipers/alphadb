@@ -39,7 +39,6 @@ pub fn update_queries(
     connection: &mut Connection,
     version_source: String,
     target_version: Option<&str>,
-    no_data: bool,
 ) -> Result<Vec<alphadb::core::method_types::Query>, alphadb::prelude::AlphaDBError> {
     #[cfg(feature = "mysql")]
     return alphadb::core::update_queries::update_queries(
@@ -48,7 +47,6 @@ pub fn update_queries(
         connection,
         version_source,
         target_version,
-        no_data,
     );
 
     #[cfg(feature = "postgres")]
@@ -58,6 +56,5 @@ pub fn update_queries(
         connection,
         version_source,
         target_version,
-        no_data,
     );
 }
