@@ -149,4 +149,32 @@ mod altertable_index_tests {
 
         assert!(queries.iter().all(|q| !q.query.starts_with("ALTER TABLE")), "{:?}", queries.iter().map(|q| &q.query).collect::<Vec<_>>());
     }
+
+    #[test]
+    fn droptable_runs_before_createtable() {
+        let source = json!({
+            "name": "test",
+            "version": [
+                {
+                    "_id": "0.0.1",
+                    "createtable": { "users": { "email": { "type": "VARCHAR", "length": 100 } }, "sessions": { "token": { "type": "TEXT" } } }
+                },
+                {
+                    "_id": "0.0.2",
+                    "createtable": { "users": { "name": { "type": "TEXT" } } },
+                    "droptable": ["sessions", "users"]
+                }
+            ]
+        });
+
+        let queries = update_queries(&CONFIG, "test", &mut (), source.to_string(), None, true).unwrap();
+        let queries = queries.iter().map(|q| q.query.as_str()).collect::<Vec<_>>();
+        let position = |query: &str| queries.iter().position(|q| *q == query).unwrap_or_else(|| panic!("missing '{query}' in {queries:?}"));
+
+        let drop_sessions = position("DROP TABLE sessions;");
+        let drop_users = position("DROP TABLE users;");
+        let create_users = queries.iter().rposition(|q| q.starts_with("CREATE TABLE users")).unwrap();
+
+        assert!(drop_sessions < drop_users && drop_users < create_users, "{queries:?}");
+    }
 }

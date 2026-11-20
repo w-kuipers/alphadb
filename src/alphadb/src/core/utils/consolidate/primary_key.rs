@@ -25,7 +25,9 @@ use super::table::table_history;
 /// Searches through version history to find the most recent primary key definition
 /// for the specified table, optionally stopping before a specific version.
 pub fn get_primary_key<'a>(version_list: &'a [Value], table_name: &str, target_version: Option<&str>) -> Result<Option<&'a str>, AlphaDBError> {
-    let version_list = table_history(version_list, table_name, target_version.map(parse_version_number).transpose()?)?;
+    // `target_version` itself is left out, so a drop in it has not happened yet
+    let before_target = target_version.map(parse_version_number).transpose()?.map(|v| v.saturating_sub(1));
+    let version_list = table_history(version_list, table_name, before_target)?;
     let mut primary_key: Option<&str> = None;
 
     for version in version_list {
@@ -239,5 +241,18 @@ mod get_primary_key_tests {
             get_primary_key(get_version_array(&versions).unwrap(), &"table".to_string(), None).unwrap(),
             Some("email_address")
         );
+    }
+
+    #[test]
+    fn recreated_table_does_not_inherit_primary_key() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"primary_key": "id", "id": {"type": "INTEGER"}}}},
+            {"_id": "0.0.2", "droptable": ["table"]},
+            {"_id": "0.0.3", "createtable": {"table": {"name": {"type": "TEXT"}}}},
+        ]});
+        let versions = get_version_array(&versions).unwrap();
+
+        assert_eq!(get_primary_key(versions, "table", Some("0.0.2")).unwrap(), Some("id"));
+        assert_eq!(get_primary_key(versions, "table", None).unwrap(), None);
     }
 }

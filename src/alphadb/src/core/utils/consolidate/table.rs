@@ -213,3 +213,27 @@ mod consolidate_table_tests {
         assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table", Some("0.0.2")).unwrap(), result);
     }
 }
+
+#[cfg(test)]
+mod table_history_tests {
+    use super::table_history;
+    use crate::core::utils::version_source::get_version_array;
+    use serde_json::json;
+
+    #[test]
+    fn splits_on_drops() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "INTEGER"}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"addcolumn": {"col2": {"type": "TEXT"}}}}},
+            {"_id": "0.0.3", "droptable": ["table"], "createtable": {"table": {"col": {"type": "TEXT"}}}},
+            {"_id": "0.0.4", "droptable": ["other"]},
+            {"_id": "0.0.5", "droptable": ["table"]},
+        ]});
+        let versions = get_version_array(&versions).unwrap();
+        let ids = |at| table_history(versions, "table", at).unwrap().iter().map(|v| v["_id"].as_str().unwrap()).collect::<Vec<_>>();
+
+        assert_eq!(ids(Some(2)), ["0.0.1", "0.0.2"]);
+        assert_eq!(ids(Some(4)), ["0.0.3", "0.0.4"]);
+        assert_eq!(ids(None), ["0.0.5"]);
+    }
+}
