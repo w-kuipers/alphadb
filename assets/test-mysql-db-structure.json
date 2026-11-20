@@ -25,16 +25,6 @@
             "length": 7
           }
         }
-      },
-      "default_data": {
-        "table1": [
-          {
-            "col1": 4,
-            "col2": "test",
-            "col3": "test",
-            "col4": 12
-          }
-        ]
       }
     },
     {
@@ -69,16 +59,6 @@
             "default": "default value"
           }
         }
-      },
-      "default_data": {
-        "table1": [
-          {
-            "col1": 3,
-            "col2": "test1",
-            "col3": "test",
-            "col4": 12
-          }
-        ]
       }
     },
     {
@@ -112,21 +92,6 @@
               "type": "JSON",
               "null": true
             }
-          }
-        }
-      },
-      "default_data": {
-        "table1": {
-          "0": {
-            "col5": "test"
-          },
-          "1": {
-            "col5": "test"
-          },
-          "2": {
-            "col2": "test2",
-            "col4": 12,
-            "col5": "test"
           }
         }
       }
@@ -221,15 +186,6 @@
             }
           }
         }
-      },
-      "default_data": {
-        "table1": [
-          {
-            "col2": "test3",
-            "col4": 12,
-            "col5": "test"
-          }
-        ]
       }
     },
     {

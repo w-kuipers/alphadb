@@ -63,18 +63,6 @@
             "type": "VARCHAR"
           }
         }
-      },
-      "default_data": {
-        "table1": [
-          {
-            "col2": "test2",
-            "col4": 12
-          },
-          {
-            "col2": "test3",
-            "col4": 12
-          }
-        ]
       }
     }
   ]
