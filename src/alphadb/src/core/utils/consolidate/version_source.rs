@@ -20,6 +20,10 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
     // Get all table names
     let mut tables: Vec<String> = Vec::new();
     for version in versions.iter() {
+        if let Some(dropped_tables) = version["droptable"].as_array() {
+            tables.retain(|table| !dropped_tables.iter().any(|dropped| dropped.as_str() == Some(table.as_str())));
+        }
+
         let methods = get_object_keys(&version)?;
         if !methods.contains(&&"createtable".to_string()) {
             continue;

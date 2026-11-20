@@ -17,6 +17,7 @@ use crate::core::query::column::DefineColumn;
 use crate::core::query::table::TableQueryConfig;
 use crate::core::utils::consolidate::column::{consolidate_column, get_column_renames};
 use crate::core::utils::consolidate::primary_key::get_primary_key;
+use crate::core::utils::consolidate::table::table_history;
 use crate::core::utils::errors::AlphaDBError;
 use crate::core::utils::json::exists_in_object;
 use crate::core::utils::version_number::parse_version_number;
@@ -87,7 +88,8 @@ fn prepare_primary_key_change(version_list: &Vec<Value>, table_data: &mut Value,
     // There is a chance that the old primary_key has the AUTO_INCREMENT attribute
     // which must be removed first.
     if let Some(old_primary_key) = get_primary_key(version_list, table_name, Some(version))? {
-        let column_renames = get_column_renames(version_list, old_primary_key, table_name, "ASC")?;
+        let table_versions = table_history(version_list, table_name, Some(parse_version_number(version)?))?;
+        let column_renames = get_column_renames(table_versions, old_primary_key, table_name, "ASC")?;
 
         // If the column is renamed, get hystorical column name for current version
         let mut version_column_name = old_primary_key;
