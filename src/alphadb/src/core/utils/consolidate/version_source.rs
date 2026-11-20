@@ -20,6 +20,10 @@ pub fn consolidate_version_source(version_source: String) -> Result<Value, Alpha
     // Get all table names
     let mut tables: Vec<String> = Vec::new();
     for version in versions.iter() {
+        if let Some(dropped_tables) = version["droptable"].as_array() {
+            tables.retain(|table| !dropped_tables.iter().any(|dropped| dropped.as_str() == Some(table.as_str())));
+        }
+
         let methods = get_object_keys(&version)?;
         if !methods.contains(&&"createtable".to_string()) {
             continue;
@@ -176,6 +180,36 @@ mod consolidate_version_source_tests {
                 "createtable": {
                     "table1": {
                         "col2": {"type": "TEXT", "unique": true}
+                    }
+                }
+            }]
+        });
+        assert_eq!(consolidate_version_source(version_source).unwrap(), result);
+    }
+
+    #[test]
+    fn dropped_and_recreated_tables() {
+        let version_source = json!({
+            "name": "test",
+            "version": [
+                {"_id": "0.0.1", "createtable": {
+                    "dropped": {"col": {"type": "INTEGER"}},
+                    "recreated": {"primary_key": "id", "id": {"type": "INTEGER"}, "name": {"type": "VARCHAR", "length": 200}}
+                }},
+                {"_id": "0.0.2", "altertable": {"recreated": {"renamecolumn": {"name": "title"}}}},
+                {"_id": "0.0.3", "droptable": ["dropped", "recreated"]},
+                {"_id": "0.0.4", "createtable": {"recreated": {"name": {"type": "TEXT"}}}},
+            ]
+        })
+        .to_string();
+
+        let result = json!({
+            "name": "test",
+            "version": [{
+                "_id": "0.0.4",
+                "createtable": {
+                    "recreated": {
+                        "name": {"type": "TEXT"}
                     }
                 }
             }]

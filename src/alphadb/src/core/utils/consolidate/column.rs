@@ -18,6 +18,8 @@ use crate::core::utils::version_number::parse_version_number;
 use crate::core::utils::{errors::AlphaDBError, json::exists_in_object};
 use serde_json::{json, Value};
 
+use super::table::table_history;
+
 #[derive(Debug, PartialEq)]
 pub struct ColumnRename {
     pub old_name: String,
@@ -29,13 +31,13 @@ pub struct ColumnRename {
 ///
 /// This function processes a list of versions to determine the final state of a column,
 /// taking into account all modifications including creation, alterations, and renames.
-pub fn consolidate_column(version_list: &Vec<Value>, column_name: &str, table_name: &str, target_version: Option<&str>) -> Result<Value, AlphaDBError> {
+pub fn consolidate_column(version_list: &[Value], column_name: &str, table_name: &str, target_version: Option<&str>) -> Result<Value, AlphaDBError> {
+    let version_list = table_history(version_list, table_name, target_version.map(parse_version_number).transpose()?)?;
     let mut column = json!({});
     let mut version_column_name = column_name;
     let rename_data = get_column_renames(version_list, column_name, table_name, "DESC")?;
-    let version_list_cloned = version_list.clone();
 
-    for version in version_list_cloned {
+    for version in version_list {
         // If target version is defined and the current version is higher than the target version
         // consolidation should be stopped
         if let Some(target_version) = target_version {
@@ -122,7 +124,10 @@ pub fn consolidate_column(version_list: &Vec<Value>, column_name: &str, table_na
 ///     "new_name": Column name after renaming
 ///     "rename_version": Version in which the column was renamed (parsed to int)
 /// }
-pub fn get_column_renames(version_list: &Vec<Value>, column_name: &str, table_name: &str, order: &str) -> Result<Vec<ColumnRename>, AlphaDBError> {
+///
+/// Looks at every version it is given. Pass the table's
+/// [`table_history`] when the table may have been dropped and created again.
+pub fn get_column_renames(version_list: &[Value], column_name: &str, table_name: &str, order: &str) -> Result<Vec<ColumnRename>, AlphaDBError> {
     let mut rename_data: Vec<ColumnRename> = Vec::new();
 
     let mut version_loop = |version: &Value| -> Result<bool, AlphaDBError> {
@@ -251,7 +256,8 @@ pub fn will_column_be_dropped(version_list: &Vec<Value>, column_name: &str, tabl
 /// This function traverses the version list to determine what type a column has
 /// at a specific version, taking into account column creation, modifications,
 /// renames, drops, and additions across different versions.
-pub fn get_column_type(version_list: &Vec<Value>, column_name: &str, table_name: &str, version: u32) -> Result<Option<String>, AlphaDBError> {
+pub fn get_column_type(version_list: &[Value], column_name: &str, table_name: &str, version: u32) -> Result<Option<String>, AlphaDBError> {
+    let version_list = table_history(version_list, table_name, Some(version))?;
     let mut column_type: Option<String> = None;
     let mut version_column_name: &str;
     let rename_data = get_column_renames(version_list, column_name, table_name, "DESC")?;

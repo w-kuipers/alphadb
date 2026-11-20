@@ -11,12 +11,46 @@ use super::{
     primary_key::get_primary_key,
 };
 
+pub fn drops_table(version: &Value, table_name: &str) -> bool {
+    version["droptable"].as_array().is_some_and(|tables| tables.iter().any(|table| table.as_str() == Some(table_name)))
+}
+
+/// The versions that define `table_name` as it exists at version `at` (the
+/// latest version when `None`). A table that is dropped and created again
+/// starts over, so versions from before the drop are left out, as are versions
+/// from the next drop after `at` onwards.
+///
+/// `droptable` runs before a version's other methods: the dropping version is
+/// the first of the returned versions. Expects `version_list` in ascending order.
+pub fn table_history<'a>(version_list: &'a [Value], table_name: &str, at: Option<u32>) -> Result<&'a [Value], AlphaDBError> {
+    let mut start = 0;
+    let mut end = version_list.len();
+
+    for (i, version) in version_list.iter().enumerate() {
+        if !drops_table(version, table_name) {
+            continue;
+        }
+
+        let version_number = parse_version_number(get_json_string(&version["_id"])?)?;
+        match at {
+            Some(at) if version_number > at => {
+                end = i;
+                break;
+            }
+            _ => start = i,
+        }
+    }
+
+    Ok(&version_list[start..end])
+}
+
 /// Consolidate table information from multiple versions into a single table definition
 ///
 /// This includes all columns that have been added through create table or alter table operations.
 /// If a `target_version` is specified, the consolidation will only include versions up to and including
 /// the specified target version.
-pub fn consolidate_table(version_list: &Vec<Value>, table_name: &str, target_version: Option<&str>) -> Result<Value, AlphaDBError> {
+pub fn consolidate_table(version_list: &[Value], table_name: &str, target_version: Option<&str>) -> Result<Value, AlphaDBError> {
+    let version_list = table_history(version_list, table_name, target_version.map(parse_version_number).transpose()?)?;
     let mut table = json!({});
     let mut columns: Vec<String> = Vec::new();
 
@@ -177,5 +211,29 @@ mod consolidate_table_tests {
         });
         // Only include up to version 0.0.2
         assert_eq!(consolidate_table(get_version_array(&versions).unwrap(), "table", Some("0.0.2")).unwrap(), result);
+    }
+}
+
+#[cfg(test)]
+mod table_history_tests {
+    use super::table_history;
+    use crate::core::utils::version_source::get_version_array;
+    use serde_json::json;
+
+    #[test]
+    fn splits_on_drops() {
+        let versions = json!({"name": "test", "version": [
+            {"_id": "0.0.1", "createtable": {"table": {"col": {"type": "INTEGER"}}}},
+            {"_id": "0.0.2", "altertable": {"table": {"addcolumn": {"col2": {"type": "TEXT"}}}}},
+            {"_id": "0.0.3", "droptable": ["table"], "createtable": {"table": {"col": {"type": "TEXT"}}}},
+            {"_id": "0.0.4", "droptable": ["other"]},
+            {"_id": "0.0.5", "droptable": ["table"]},
+        ]});
+        let versions = get_version_array(&versions).unwrap();
+        let ids = |at| table_history(versions, "table", at).unwrap().iter().map(|v| v["_id"].as_str().unwrap()).collect::<Vec<_>>();
+
+        assert_eq!(ids(Some(2)), ["0.0.1", "0.0.2"]);
+        assert_eq!(ids(Some(4)), ["0.0.3", "0.0.4"]);
+        assert_eq!(ids(None), ["0.0.5"]);
     }
 }

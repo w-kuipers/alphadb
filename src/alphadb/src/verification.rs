@@ -24,7 +24,11 @@ use crate::core::verification::primary_key::verify_primary_key;
 use crate::core::{
     engine_config::EngineConfig,
     utils::{
-        consolidate::{default_data::consolidate_default_data, primary_key::get_primary_key, table::consolidate_table},
+        consolidate::{
+            default_data::consolidate_default_data,
+            primary_key::get_primary_key,
+            table::{consolidate_table, drops_table},
+        },
         errors::{AlphaDBError, Get, ToVerificationIssue},
         json::{
             exists_in_object as adb_exists_in_object, get_json_float as adb_get_json_float, get_json_int as adb_get_json_int, get_json_object as adb_get_json_object,
@@ -182,6 +186,7 @@ impl AlphaDBVerification {
                                 version_trace: e.version_trace().clone(),
                             }),
                         },
+                        "droptable" => self.droptable(&version["droptable"], &version_output, version_number),
                         "altertable" => match self.altertable(&version["altertable"], &version_output, version_number) {
                             Ok(v) => v,
                             Err(e) => self.issues.add(VerificationIssue {
@@ -301,6 +306,59 @@ impl AlphaDBVerification {
         }
 
         Ok(())
+    }
+
+    fn droptable(&mut self, droptable: &Value, version_output: &str, version_number: Option<&str>) {
+        let version_trace = VersionTrace::from([version_output, "droptable"]);
+
+        if droptable.as_array().is_some_and(|tables| tables.is_empty()) {
+            self.issues.push(VerificationIssue {
+                level: VerificationIssueLevel::Low,
+                message: "Does not contain any data".to_string(),
+                version_trace,
+            });
+
+            return;
+        }
+
+        // Without a valid version number it's not possible to determine which tables exist
+        let version_number = version_number.and_then(|v| adb_parse_version_number(v).ok());
+
+        for table in array_iter(droptable, &mut self.issues, &version_trace) {
+            let table = get_json_string(&table, &mut self.issues, &version_trace);
+
+            if let Some(version_number) = version_number {
+                if !table.is_empty() && !self.table_exists_before(table, version_number) {
+                    self.issues.push(VerificationIssue {
+                        level: VerificationIssueLevel::Critical,
+                        message: format!("Table '{table}' does not exist"),
+                        version_trace: version_trace.clone(),
+                    });
+                }
+            }
+        }
+    }
+
+    /// Whether the versions preceding `version_number` leave `table_name` in place.
+    fn table_exists_before(&self, table_name: &str, version_number: u32) -> bool {
+        let mut exists = false;
+
+        for version in &self.version_list {
+            let precedes = version["_id"].as_str().and_then(|v| adb_parse_version_number(v).ok()).is_some_and(|v| v < version_number);
+            if !precedes {
+                continue;
+            }
+
+            if drops_table(version, table_name) {
+                exists = false;
+            }
+
+            if version["createtable"][table_name].is_object() {
+                exists = true;
+            }
+        }
+
+        exists
     }
 
     pub fn altertable(&mut self, altertable: &Value, version_output: &str, version_number: Option<&str>) -> Result<(), AlphaDBError> {

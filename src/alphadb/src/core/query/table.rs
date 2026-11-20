@@ -181,6 +181,10 @@ pub fn create_table(config: &TableQueryConfig, version: &Value, table_name: &str
 /// * `version_source` - Complete JSON version source containing table modification history
 /// * `table_name` - Name of the table to be altered
 /// * `version` - Current version number to process
+pub fn drop_table(table_name: &str) -> String {
+    format!("DROP TABLE {table_name};")
+}
+
 pub fn alter_table(config: &TableQueryConfig, version_source: &Value, table_name: &str, version: &str) -> Result<String, AlphaDBError> {
     let mut version_trace = VersionTrace::from([version, "altertable", table_name]);
     let version_list = get_version_array(version_source)?;
